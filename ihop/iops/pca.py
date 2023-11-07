@@ -12,6 +12,8 @@ from ihop.hydrolight import loisel23
 pca_path = os.path.join(resources.files('ihop'),
                             'data', 'PCA')
 
+def load(pca_file:str):
+    return np.load(os.path.join(pca_path, pca_file))
 
 def load_loisel_2023_pca():
     """ Load the PCA-based parameterization of IOPs from Loisel 2023
@@ -43,9 +45,6 @@ def load_loisel_2023_pca():
     return ab, Rs, d_a, d_bb
 
 
-#def generate_all_pca(clobber:bool=False):
-#    generate_l23_pca(clobber=clobber)
-#    generate_l23_tara_pca(clobber=clobber)
 
 
 def generate_l23_pca(clobber:bool=False, Ncomp:int=3,
@@ -110,3 +109,8 @@ def reconstruct(Y, pca_dict, idx):
     recon = np.dot(Y, pca_dict['M']) + pca_dict['mean']
 
     return orig, recon 
+
+
+if __name__ == '__main__':
+    #generate_l23_pca(clobber=clobber)
+    generate_l23_tara_pca()

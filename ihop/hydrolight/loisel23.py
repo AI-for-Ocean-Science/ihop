@@ -4,7 +4,7 @@ import os
 import xarray
 import numpy as np
 
-from oceancolor.tara import tara_io 
+from oceancolor.tara import io as tara_io 
 from oceancolor.tara import spectra
 from oceancolor import water
 from oceancolor.utils import spectra as spec_utils 
@@ -42,6 +42,9 @@ def load_ds(X:int, Y:int):
 def tara_matched_to_l23(low_cut:float=400., high_cut:float=705., X:int=4, Y:int=0):
     """ Generate Tara spectra matched to L23
 
+    Restricted on wavelength and time of cruise
+    as per Patrick Gray recommendations
+
     Args:
         low_cut (float, optional): low cut wavelength. Defaults to 400..
         high_cut (float, optional): high cut wavelength. Defaults to 705..
@@ -58,7 +61,8 @@ def tara_matched_to_l23(low_cut:float=400., high_cut:float=705., X:int=4, Y:int=
 
     # Load up Tara
     print("Loading Tara..")
-    tara_db = tara_io.load_tara_db()
+    tara_db = tara_io.load_tara_db(clean_dates=True)
+
     # Spectra
     wv_nm, all_a_p, all_a_p_sig = spectra.spectra_from_table(tara_db)
 
