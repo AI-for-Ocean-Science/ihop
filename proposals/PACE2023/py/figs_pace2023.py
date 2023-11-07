@@ -21,10 +21,9 @@ import corner
 
 from oceancolor.utils import plotting 
 
-from oceancolor.ihop import mcmc
 from oceancolor.ihop import io as ihop_io
 from oceancolor.ihop.nn import SimpleNet
-from oceancolor.ihop import pca as ihop_pca
+from ihop.iops import pca as ihop_pca
 
 mpl.rcParams['font.family'] = 'stixgeneral'
 
@@ -46,9 +45,9 @@ def gen_cb(img, lbl, csz = 17.):
 def fig_l23_tara_pca(outfile='fig_l23_tara_pca.png'):
 
     # Load up
-    L23_Tara_pca_N20 = ihop_pca.load_pca('pca_L23_X4Y0_Tara_a_N20.npz')
+    L23_Tara_pca_N20 = ihop_pca.load('pca_L23_X4Y0_Tara_a_N20.npz')
     N=3
-    L23_Tara_pca = ihop_pca.load_pca(f'pca_L23_X4Y0_Tara_a_N{N}.npz')
+    L23_Tara_pca = ihop_pca.load(f'pca_L23_X4Y0_Tara_a_N{N}.npz')
     wave = L23_Tara_pca['wavelength']
 
 
@@ -71,13 +70,15 @@ def fig_l23_tara_pca(outfile='fig_l23_tara_pca.png'):
     ax_recon = plt.subplot(gs[1])
 
     idx = 1000  # L23 
-    orig, recon = ihop_pca.reconstruct(L23_Tara_pca, idx)
+    orig, recon = ihop_pca.reconstruct(
+        L23_Tara_pca['Y'][idx], L23_Tara_pca, idx)
     lbl = 'L23'
     ax_recon.plot(wave, orig,  label=lbl)
     ax_recon.plot(wave, recon, 'r:', label=f'L23 Model (N={N})')
 
     idx = 100000  # L23 
-    orig, recon = ihop_pca.reconstruct(L23_Tara_pca, idx)
+    orig, recon = ihop_pca.reconstruct(
+        L23_Tara_pca['Y'][idx], L23_Tara_pca, idx)
     lbl = 'Tara'
     ax_recon.plot(wave, orig,  'g', label=lbl)
     ax_recon.plot(wave, recon, color='orange', ls=':', label=f'Tara Model (N={N})')
