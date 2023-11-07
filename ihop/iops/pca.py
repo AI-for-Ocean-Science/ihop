@@ -5,6 +5,8 @@ import numpy as np
 
 from importlib import resources
 
+from oceancolor import pca
+
 from ihop.hydrolight import loisel23
 
 pca_path = os.path.join(resources.files('ihop'),
@@ -12,6 +14,15 @@ pca_path = os.path.join(resources.files('ihop'),
 
 
 def load_loisel_2023_pca():
+    """ Load the PCA-based parameterization of IOPs from Loisel 2023
+
+    Returns:
+        tuple: 
+            - **ab** (*np.ndarray*) -- PCA coefficients
+            - **Rs** (*np.ndarray*) -- Rrs values
+            - **d_a** (*dict*) -- dict of PCA 
+            - **d_bb** (*dict*) -- dict of PCA
+    """
 
     # Load up data
     l23_path = os.path.join(resources.files('ihop'),
@@ -37,17 +48,18 @@ def load_loisel_2023_pca():
 #    generate_l23_tara_pca(clobber=clobber)
 
 
-def generate_l23_pca(clobber:bool=False, Ncomp:int=3):
+def generate_l23_pca(clobber:bool=False, Ncomp:int=3,
+                     X:int=4, Y:int=0):
     """ Generate PCA models for IOPs in Loisel 2023 data
 
     Args:
-        clobber (bool, optional): _description_. Defaults to False.
-        Ncomp (int, optional): _description_. Defaults to 3.
+        clobber (bool, optional): Clobber existing model? Defaults to False.
+        Ncomp (int, optional): Number of PCA components. Defaults to 3.
+        X (int, optional): X. Defaults to 4.
+        Y (int, optional): Y. Defaults to 0.
     """
 
     # Load up the data
-    X=4
-    Y=0
     ds = loisel23.load_ds(X, Y)
 
     # Loop on IOPs
@@ -61,9 +73,22 @@ def generate_l23_pca(clobber:bool=False, Ncomp:int=3):
     # L23 positive, definite
 
 def generate_l23_tara_pca(clobber:bool=False, return_N:int=None):
+    """ Generate a PCA for L23 + Tara
+        Restricted to 400-705nm
+
+    Args:
+        clobber (bool, optional): _description_. Defaults to False.
+        return_N (int, optional): _description_. Defaults to None.
+
+    Returns:
+        None or tuple:  if return_N is not None, returns
+            - **data** (*np.ndarray*) -- data array
+            - **wave_grid** (*np.ndarray*) -- wavelength grid
+            - **pca_fit** (*dict*) -- PCA fit
+    """
 
     # Load up
-    wave_grid, tara_a_water, l23_a = load_tara()
+    wave_grid, tara_a_water, l23_a = loisel23.tara_matched_to_l23()
 
     # N components
     data = np.append(l23_a, tara_a_water, axis=0)
