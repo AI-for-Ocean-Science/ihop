@@ -42,7 +42,8 @@ def gen_cb(img, lbl, csz = 17.):
     cbaxes.ax.tick_params(labelsize=csz)
 
 
-def fig_l23_tara_pca(outfile='fig_l23_tara_pca.png'):
+def fig_l23_tara_pca(outfile='fig_l23_tara_pca.png',
+                     show_spec:bool=False):
 
     # Load up
     L23_Tara_pca_N20 = ihop_pca.load('pca_L23_X4Y0_Tara_a_N20.npz')
@@ -51,9 +52,16 @@ def fig_l23_tara_pca(outfile='fig_l23_tara_pca.png'):
     wave = L23_Tara_pca['wavelength']
 
 
-    fig = plt.figure(figsize=(12,6))
+    if show_spec:
+        figsize=(12,6)
+    else:
+        figsize=(7,6)
+    fig = plt.figure(figsize=figsize)
     plt.clf()
-    gs = gridspec.GridSpec(1,2)
+    if show_spec:
+        gs = gridspec.GridSpec(1,2)
+    else:
+        gs = gridspec.GridSpec(1,1)
 
     # #####################################################
     # PDF
@@ -64,31 +72,38 @@ def fig_l23_tara_pca(outfile='fig_l23_tara_pca.png'):
     ax_var.set_xlim(0., 10)
     ax_var.set_xlabel('Number of Components')
     ax_var.set_ylabel('Cumulative Explained Variance')
+    # Horizontal line at 1
+    ax_var.axhline(1., color='k', ls=':')
 
-    # #####################################################
-    # Reconstructions
-    ax_recon = plt.subplot(gs[1])
+    axes = [ax_var]
 
-    idx = 1000  # L23 
-    orig, recon = ihop_pca.reconstruct(
-        L23_Tara_pca['Y'][idx], L23_Tara_pca, idx)
-    lbl = 'L23'
-    ax_recon.plot(wave, orig,  label=lbl)
-    ax_recon.plot(wave, recon, 'r:', label=f'L23 Model (N={N})')
+    if show_spec:
+        # #####################################################
+        # Reconstructions
+        ax_recon = plt.subplot(gs[1])
 
-    idx = 100000  # L23 
-    orig, recon = ihop_pca.reconstruct(
-        L23_Tara_pca['Y'][idx], L23_Tara_pca, idx)
-    lbl = 'Tara'
-    ax_recon.plot(wave, orig,  'g', label=lbl)
-    ax_recon.plot(wave, recon, color='orange', ls=':', label=f'Tara Model (N={N})')
-    
-    
-    #
-    ax_recon.set_xlabel('Wavelength (nm)')
-    ax_recon.set_ylabel(r'$a(\lambda)$')
-    ax_recon.set_ylim(0., 1.1*np.max(recon))
-    ax_recon.legend(fontsize=15.)
+        idx = 1000  # L23 
+        orig, recon = ihop_pca.reconstruct(
+            L23_Tara_pca['Y'][idx], L23_Tara_pca, idx)
+        lbl = 'L23'
+        ax_recon.plot(wave, orig,  label=lbl)
+        ax_recon.plot(wave, recon, 'r:', label=f'L23 Model (N={N})')
+
+        idx = 100000  # L23 
+        orig, recon = ihop_pca.reconstruct(
+            L23_Tara_pca['Y'][idx], L23_Tara_pca, idx)
+        lbl = 'Tara'
+        ax_recon.plot(wave, orig,  'g', label=lbl)
+        ax_recon.plot(wave, recon, color='orange', ls=':', label=f'Tara Model (N={N})')
+        
+        
+        #
+        ax_recon.set_xlabel('Wavelength (nm)')
+        ax_recon.set_ylabel(r'$a(\lambda)$')
+        ax_recon.set_ylim(0., 1.1*np.max(recon))
+        ax_recon.legend(fontsize=15.)
+        # Add it
+        axes.append(ax_recon)
     
     # Stats
     #rms = np.sqrt(np.mean((var.a.data[idx] - a_recon3[idx])**2))
@@ -99,7 +114,7 @@ def fig_l23_tara_pca(outfile='fig_l23_tara_pca.png'):
 
 
     # Finish
-    for ax in [ax_var, ax_recon]:
+    for ax in axes:
         plotting.set_fontsize(ax, 15)
 
 
