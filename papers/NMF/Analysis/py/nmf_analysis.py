@@ -38,6 +38,10 @@ def loisel23_components(min_wv:float=400.,
     a_w = cross.a_water(wave, data='IOCCG')
     spec_nw = spec - np.outer(np.ones(3320), a_w)
 
+    # Reshape
+    spec_nw = np.reshape(spec_nw, (spec_nw.shape[0], 
+                     spec_nw.shape[1], 1))
+
     # Build mask and error
     mask = (spec_nw >= 0.).astype(int)
     err = np.ones_like(mask)*sigma
@@ -55,10 +59,15 @@ def loisel23_components(min_wv:float=400.,
     coeff = hdul2[0].data.T
 
     outfile = outroot+'_M.npz'
-    np.savez(outfile, M=M, coeff=coeff)
+    np.savez(outfile, M=M, coeff=coeff,
+             spec=spec_nw[...,0], 
+             mask=mask[...,0], 
+             err=err[...,0],
+             wave=wave)
 
     print(f'Wrote: {outfile}')
 
 if __name__ == '__main__':
 
-    loisel23_components()
+    for n in range(1,10):
+        loisel23_components(N_NMF=n+1)
