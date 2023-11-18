@@ -5,7 +5,7 @@ import numpy as np
 
 from importlib import resources
 
-from oceancolor import pca
+from oceancolor.utils import pca
 
 from ihop.hydrolight import loisel23
 
