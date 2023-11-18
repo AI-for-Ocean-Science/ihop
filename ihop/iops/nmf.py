@@ -26,10 +26,12 @@ def prep_loisel23(iop:str, min_wv:float=400., sigma:float=0.05,
     # Unpack and cut
     spec = ds[iop].data
     wave = ds.Lambda.data 
+    Rs = ds.Rrs.data
 
     cut = wave >= min_wv
     spec = spec[:,cut]
     wave = wave[cut]
+    Rs = Rs[:,cut]
 
     # Remove water
     if iop == 'a':
@@ -47,4 +49,4 @@ def prep_loisel23(iop:str, min_wv:float=400., sigma:float=0.05,
     err = np.ones_like(mask)*sigma
 
     # Return
-    return spec_nw, mask, err, wave
+    return spec_nw, mask, err, wave, Rs
