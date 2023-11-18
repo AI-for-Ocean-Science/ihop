@@ -21,7 +21,7 @@ def archt_search(hidden_lists, lr_list, p_drop_list, epochs):
                     p_drop,
                     False,
                     True,
-                    f"densenet_p_{p_drop}_lr_{lr}",
+                    f"densenet_{hidden_list}_epochs_{epochs}_p_{p_drop}_lr_{lr}",
                 )
                 if loss_i < loss_opt:
                     batchnorm_opt = False
@@ -37,7 +37,7 @@ def archt_search(hidden_lists, lr_list, p_drop_list, epochs):
                     p_drop,
                     True,
                     True,
-                    f"densenet_p_{p_drop}_lr_{lr}_batchnorm",
+                    f"densenet_{hidden_list}_batchnorm_epochs_{epochs}_p_{p_drop}_lr_{lr}",
                 )
                 if loss_i_bn < loss_opt:
                     batchnorm_opt = True
@@ -54,7 +54,7 @@ if __name__ == "__main__":
         [512, 256, 128],
         [512, 512, 128],
         [512, 512, 256],
-        [512, 256, 128, 128],
+        [512, 512, 512, 256],
     ]
     p_drop_list = [0.0, 0.05]
     print("search starts.")
@@ -65,7 +65,7 @@ if __name__ == "__main__":
     #############################################
     ### best results provided by above models:
     ### epochs: 2500
-    ### opt_loss: 0.001996453170879529
-    ### model: (True, [512, 512, 256], 0.01, 0.0)
+    ### opt_loss: 0.001484
+    ### model: (True,  [512, 512, 512, 256], 0.01, 0.0)
     #############################################
     
