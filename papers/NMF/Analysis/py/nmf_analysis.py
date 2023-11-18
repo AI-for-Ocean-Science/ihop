@@ -58,7 +58,7 @@ def loisel23_components(min_wv:float=400.,
     hdul2 = fits.open(outroot+'_coef.fits')
     coeff = hdul2[0].data.T
 
-    outfile = outroot+'_M.npz'
+    outfile = outroot+'.npz'
     np.savez(outfile, M=M, coeff=coeff,
              spec=spec_nw[...,0], 
              mask=mask[...,0], 

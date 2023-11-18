@@ -41,7 +41,7 @@ def load_nmf(nmf_fit:str, N_NMF:int=None):
         path = os.path.join(resources.files('ihop'), 
                     'data', 'NMF')
         outroot = os.path.join(path, f'L23_NMF_{N_NMF}')
-        nmf_file = outroot+'_M.npz'
+        nmf_file = outroot+'.npz'
         #
         d = np.load(nmf_file)
     else:
@@ -148,67 +148,25 @@ def fig_nmf_indiv(outfile:str='fig_nmf_indiv.png',
     plt.savefig(outfile, dpi=300)
     print(f"Saved: {outfile}")
 
-
-def fig_nmf_ceoff(outfile:str='fig_nmf_ceoff.png',
+def fig_nmf_coeff(outfile:str='fig_nmf_coeff.png',
                  nmf_fit:str='l23'):
 
     # load
     d = load_nmf(nmf_fit)
     M = d['M']
+    coeff = d['coeff']
     wave = d['wave']
 
-    fig = plt.figure(figsize=(7,5))
-    gs = gridspec.GridSpec(2,2)
-
-    all_ax = []
-    for clr, ss in zip(['b', 'orange', 'g', 'r'], range(4)):
-        ax = plt.subplot(gs[ss])
-
-        ax.step(wave, M[ss], label=r'$\xi_'+f'{ss}'+'$',
-                color=clr)
-        #
-        ax.set_xlabel('Wavelength (nm)')
-        ax.set_ylabel('Basis vector')
-
-        # Axis specific
-        if ss == 0:
-            pass
-        elif ss == 1: # CDOM
-            # Expoential
-            a_cdom_exp = cdom.a_exp(wave)
-            iwv = np.argmin(np.abs(wave-400.))
-            a_cdom_exp *= M[ss][iwv] / a_cdom_exp[iwv]
-
-            # Power law
-            a_cdom_pow = cdom.a_pow(wave)
-            a_cdom_pow *= M[ss][iwv] / a_cdom_pow[iwv]
-
-            # Power law fit
-            # TODO -- Fit!!!
-            S_fit = -10.
-            a_cdom_pow_fit = cdom.a_pow(wave, S=S_fit)
-            a_cdom_pow_fit *= M[ss][iwv] / a_cdom_pow_fit[iwv]
-
-            #
-            ax.plot(wave, a_cdom_exp, color='gray', label='CDOM exp', ls='--')
-            ax.plot(wave, a_cdom_pow, color='gray', label='CDOM pow', ls=':')
-            ax.plot(wave, a_cdom_pow_fit, color='gray', 
-                    label=f'CDOM pow: S={S_fit}', ls='-')
-
-            ax.legend()
-        else:
-            pass
-
-        # Save
-        all_ax.append(ax)
-    
-    # Axes
-    for ax in all_ax:
-        plotting.set_fontsize(ax, 15)
-
+    fig = corner.corner(
+        coeff[:,:4], labels=['a0', 'a1', 'a2', 'a3'],
+        label_kwargs={'fontsize':17},
+        show_titles=True,
+        title_kwargs={"fontsize": 12},
+        )
     plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
     plt.savefig(outfile, dpi=300)
     print(f"Saved: {outfile}")
+
 
 def main(flg):
     if flg== 'all':
@@ -227,6 +185,11 @@ def main(flg):
     # Individual
     if flg & (2**2):
         fig_nmf_indiv()
+
+    # Coeff
+    if flg & (2**3):
+        fig_nmf_coeff()
+
 
 
 # Command line execution
