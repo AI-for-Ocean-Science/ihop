@@ -44,5 +44,5 @@ def loisel23_components(iop:str, N_NMF:int=10):
 if __name__ == '__main__':
 
     for n in range(1,10):
-        #loisel23_components('a', N_NMF=n+1)
+        loisel23_components('a', N_NMF=n+1)
         loisel23_components('bb', N_NMF=n+1)
