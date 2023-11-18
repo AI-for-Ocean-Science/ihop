@@ -9,7 +9,7 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 import torch.optim as optim
 
-from ihop.iops import load_loisel_2023_pca
+from ihop.iops.pca import load_loisel_2023_pca
 
 from IPython import embed
 
