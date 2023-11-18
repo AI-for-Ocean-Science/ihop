@@ -9,10 +9,7 @@ from oceancolor.iop import cross
 
 from ihop.hydrolight import loisel23
 
-import nmf_imaging
-
-# TODO -- remove this dependency!
-from astropy.io import fits
+from ihop.iops import nmf
 
 
 def loisel23_components(min_wv:float=400.,
@@ -47,21 +44,18 @@ def loisel23_components(min_wv:float=400.,
     err = np.ones_like(mask)*sigma
 
     # Do it
-    comps = nmf_imaging.NMFcomponents(
+    comps = nmf.NMFcomponents(
         ref=spec_nw, mask=mask, ref_err=err, n_components=N_NMF,
         path_save=outroot, oneByOne=True)
 
     # Load
-    hdul = fits.open(outroot+'_comp.fits')
-    M = hdul[0].data.T
-
-    hdul2 = fits.open(outroot+'_coef.fits')
-    coeff = hdul2[0].data.T
+    M = np.load(outroot+'_comp.npy').T
+    coeff = np.load(outroot+'_coef.npy').T
 
     outfile = outroot+'.npz'
     np.savez(outfile, M=M, coeff=coeff,
-             spec=spec_nw[...,0], 
-             mask=mask[...,0], 
+             spec=spec_nw[...,0],
+             mask=mask[...,0],
              err=err[...,0],
              wave=wave)
 
