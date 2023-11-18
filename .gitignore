@@ -8,6 +8,7 @@ __pycache__/
 
 # data
 *.npz
+*.npy
 *.fits
 
 # Figures
