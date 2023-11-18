@@ -20,7 +20,7 @@ def loisel23_components(iop:str, N_NMF:int=10):
     outroot = os.path.join(path, f'L23_NMF_{iop}_{N_NMF}')
 
     # Load
-    spec_nw, mask, err, wave = iop_nmf.prep_loisel23(iop)
+    spec_nw, mask, err, wave, Rs = iop_nmf.prep_loisel23(iop)
 
     # Do it
     comps = nmf_utils.NMFcomponents(
@@ -37,7 +37,8 @@ def loisel23_components(iop:str, N_NMF:int=10):
              spec=spec_nw[...,0],
              mask=mask[...,0],
              err=err[...,0],
-             wave=wave)
+             wave=wave,
+             Rs=Rs)
 
     print(f'Wrote: {outfile}')
 
