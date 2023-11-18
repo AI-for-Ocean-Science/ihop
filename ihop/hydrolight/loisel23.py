@@ -9,8 +9,11 @@ from oceancolor.tara import spectra
 from oceancolor import water
 from oceancolor.utils import spectra as spec_utils 
 
-l23_path = os.path.join(os.getenv('OS_COLOR'),
+try:
+    l23_path = os.path.join(os.getenv('OS_COLOR'),
                         'data', 'Loisel2023')
+except TypeError:
+    l23_path = None
 
 def load_ds(X:int, Y:int):
     """ Load up the data
