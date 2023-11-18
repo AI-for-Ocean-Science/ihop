@@ -10,6 +10,7 @@ from torch.utils.data import Dataset, DataLoader
 import torch.optim as optim
 
 from ihop.iops.pca import load_loisel_2023_pca
+from ihop.iops.nmf import load_loisel_2023_nmf
 
 from IPython import embed
 
@@ -287,7 +288,7 @@ def build_densenet(hidden_list:list,
     if dataset == 'L23_PCA':
         ab, Rs, _, _ = load_loisel_2023_pca()
     elif dataset == 'L23_NMF':
-        _, Rs, _, _ = load_loisel_2023_pca()
+        ab, Rs, _, _ = load_loisel_2023_nmf()
 
     target = Rs
     nparam = ab.shape[1]
