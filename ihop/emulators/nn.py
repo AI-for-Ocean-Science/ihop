@@ -10,7 +10,7 @@ from torch.utils.data import Dataset, DataLoader
 import torch.optim as optim
 
 from ihop.iops.pca import load_loisel_2023_pca
-from ihop.iops.nmf import load_loisel_2023_nmf
+from ihop.iops.nmf import load_loisel_2023
 
 from IPython import embed
 
@@ -175,8 +175,22 @@ def preprocess_data(data):
 
     return data.astype(np.float32), mean, std
 
-def perform_training(model, dataset, ishape:int, train_kwargs, lr,
-                     nepochs:int=100):
+def perform_training(model, dataset, ishape:int, tshape:int,
+                     train_kwargs, lr, nepochs:int=100):
+    """ Performs training of a model
+
+    Args:
+        model (_type_): _description_
+        dataset (_type_): _description_
+        ishape (int): Shape of the input
+        tshape (int): Shape of the target
+        train_kwargs (_type_): _description_
+        lr (float): learning rate
+        nepochs (int, optional): _description_. Defaults to 100.
+
+    Returns:
+        _type_: _description_
+    """
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -190,7 +204,7 @@ def perform_training(model, dataset, ishape:int, train_kwargs, lr,
 
             # load it to the active device
             batch_features = batch_features.view(-1, ishape).to(device)
-            targets = targets.view(-1, 81).to(device)
+            targets = targets.view(-1, tshape).to(device)
 
             
             # reset the gradients back to zero
@@ -258,8 +272,9 @@ def build_quick_nn_l23(nepochs:int,
     train_kwargs = {'batch_size': nbatch}
 
     lr = 1e-3
-    epoch, loss, optimizer = perform_training(model, dataset, nparam,
-                     train_kwargs, lr, nepochs=nepochs)
+    epoch, loss, optimizer = perform_training(
+        model, dataset, nparam, target.shape[1], train_kwargs, 
+        lr, nepochs=nepochs)
 
 
     # Save
@@ -288,7 +303,7 @@ def build_densenet(hidden_list:list,
     if dataset == 'L23_PCA':
         ab, Rs, _, _ = load_loisel_2023_pca()
     elif dataset == 'L23_NMF':
-        ab, Rs, _, _ = load_loisel_2023_nmf()
+        ab, Rs, _, _ = load_loisel_2023()
 
     target = Rs
     nparam = ab.shape[1]
@@ -312,7 +327,7 @@ def build_densenet(hidden_list:list,
     train_kwargs = {'batch_size': nbatch}
 
     epoch, loss, optimizer = perform_training(model, dataset, nparam,
-                     train_kwargs, lr, nepochs=nepochs)
+        target.shape[1], train_kwargs, lr, nepochs=nepochs)
 
     # Save
     if save:
