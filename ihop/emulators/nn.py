@@ -301,8 +301,10 @@ def build_densenet(hidden_list:list,
     
     # Load up data
     if dataset == 'L23_PCA':
+        print("Loading L23_PCA")
         ab, Rs, _, _ = load_loisel_2023_pca()
     elif dataset == 'L23_NMF':
+        print("Loading L23_NMF")
         ab, Rs, _, _ = load_loisel_2023()
 
     target = Rs
