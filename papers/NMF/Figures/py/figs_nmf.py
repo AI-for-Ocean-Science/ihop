@@ -32,7 +32,7 @@ import pandas
 
 from IPython import embed
 
-def load_nmf(nmf_fit:str, N_NMF:int=None):
+def load_nmf(nmf_fit:str, N_NMF:int=None, iop:str='a'):
 
     # Load
     if nmf_fit == 'l23':
@@ -40,7 +40,7 @@ def load_nmf(nmf_fit:str, N_NMF:int=None):
             N_NMF = 5
         path = os.path.join(resources.files('ihop'), 
                     'data', 'NMF')
-        outroot = os.path.join(path, f'L23_NMF_{N_NMF}')
+        outroot = os.path.join(path, f'L23_NMF_{iop}_{N_NMF}')
         nmf_file = outroot+'.npz'
         #
         d = np.load(nmf_file)
@@ -87,11 +87,46 @@ def fig_nmf_rmse(outfile:str='fig_nmf_rmse.png',
     plt.savefig(outfile, dpi=300)
     print(f"Saved: {outfile}")
 
+def fig_nmf_basis(outroot:str='fig_nmf_basis',
+                 nmf_fit:str='l23', N_NMF:int=4):
+
+    outfile = f'{outroot}_{N_NMF}.png'
+    # RMSE
+    rmss = []
+    # load
+    d = load_nmf(nmf_fit, N_NMF=N_NMF)
+    M = d['M']
+    wave = d['wave']
+
+    fig = plt.figure(figsize=(12,6))
+    plt.clf()
+    ax = plt.gca()
+
+    # Plot
+    for ss in range(N_NMF):
+        ax.step(wave, M[ss], label=r'$\xi_'+f'{ss}'+'$')
+
+
+    ax.set_xlabel('Wavelength (nm)')
+    ax.set_ylabel('Basis vector')
+
+    ax.legend()
+
+    #ax.set_yscale('log')
+    
+    # axes
+    plotting.set_fontsize(ax, 15)
+
+    plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
+    plt.savefig(outfile, dpi=300)
+    print(f"Saved: {outfile}")
+
+
 def fig_nmf_indiv(outfile:str='fig_nmf_indiv.png',
-                 nmf_fit:str='l23'):
+                 nmf_fit:str='l23', N_NMF:int=4):
 
     # load
-    d = load_nmf(nmf_fit)
+    d = load_nmf(nmf_fit, N_NMF=N_NMF)
     M = d['M']
     wave = d['wave']
 
@@ -109,9 +144,10 @@ def fig_nmf_indiv(outfile:str='fig_nmf_indiv.png',
         ax.set_ylabel('Basis vector')
 
         # Axis specific
-        if ss == 0:
+        if (N_NMF == 5 & ss == 0):
             pass
-        elif ss == 1: # CDOM
+        elif (N_NMF==5 and ss == 1) or (N_NMF==4 and ss == 0): # CDOM
+            #embed(header='fig_nmf_indiv 150')
             # Expoential
             a_cdom_exp = cdom.a_exp(wave)
             iwv = np.argmin(np.abs(wave-400.))
@@ -181,10 +217,13 @@ def main(flg):
     # NMF basis
     if flg & (2**1):
         fig_nmf_basis()
+        fig_nmf_basis(N_NMF=5)
 
     # Individual
     if flg & (2**2):
         fig_nmf_indiv()
+        fig_nmf_indiv(outfile='fig_nmf_indiv_N5.png',
+            N_NMF=5)
 
     # Coeff
     if flg & (2**3):
