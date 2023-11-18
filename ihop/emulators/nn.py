@@ -8,9 +8,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 import torch.optim as optim
-from torch.optim.lr_scheduler import StepLR
 
-from oceancolor.ihop import io as ihop_io
+from ihop.iops import load_loisel_2023_pca
 
 from IPython import embed
 
@@ -229,7 +228,7 @@ def build_quick_nn_l23(nepochs:int,
     # Quick NN on L23
 
     # Load up data
-    ab, Rs, _, _ = ihop_io.load_loisel_2023_pca()
+    ab, Rs, _, _ = load_loisel_2023_pca()
     
 
     target = Rs
@@ -285,7 +284,7 @@ def build_densenet(hidden_list,
     ### The DenseNet with dropout and batchnorm layers.
     
     # Load up data
-    ab, Rs, _, _ = ihop_io.load_loisel_2023_pca()
+    ab, Rs, _, _ = load_loisel_2023_pca()
 
     target = Rs
     nparam = ab.shape[1]
