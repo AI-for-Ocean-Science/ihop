@@ -272,19 +272,22 @@ def build_quick_nn_l23(nepochs:int,
     torch.save(model, f'{root}.pth')
     print(f"Wrote: {root}.pt, {root}.pth")
 
-def build_densenet(hidden_list,
+def build_densenet(hidden_list:list,
                    nepochs:int,
+                   dataset:str,
                    lr:float,
                    dropout_on:bool,
                    p_dropout:float,
                    batchnorm:bool,
                    save:bool,
-                   root:str='model',
-                   back_scatt:str='bb'):
+                   root:str='model'):
     ### The DenseNet with dropout and batchnorm layers.
     
     # Load up data
-    ab, Rs, _, _ = load_loisel_2023_pca()
+    if dataset == 'L23_PCA':
+        ab, Rs, _, _ = load_loisel_2023_pca()
+    elif dataset == 'L23_NMF':
+        _, Rs, _, _ = load_loisel_2023_pca()
 
     target = Rs
     nparam = ab.shape[1]
