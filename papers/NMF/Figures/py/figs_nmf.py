@@ -13,13 +13,12 @@ import torch
 from matplotlib import pyplot as plt
 import matplotlib as mpl
 import matplotlib.gridspec as gridspec
-import matplotlib.dates as mdates
-from matplotlib.ticker import MultipleLocator 
 
 import corner
 
 from oceancolor.utils import plotting 
 from oceancolor.iop import cdom
+from oceancolor.ph import pigments
 
 
 mpl.rcParams['font.family'] = 'stixgeneral'
@@ -142,10 +141,42 @@ def fig_nmf_indiv(outfile:str='fig_nmf_indiv.png',
         #
         ax.set_xlabel('Wavelength (nm)')
         ax.set_ylabel('Basis vector')
+        ax.minorticks_on()
 
         # Axis specific
-        if (N_NMF == 5 & ss == 0):
-            pass
+        if (N_NMF==5 and ss == 0) or (N_NMF==4 and ss == 1): # Chl a
+
+            # Chl a
+            iwv_a = np.argmin(np.abs(wave-663.))
+            a_chla = pigments.a_chl(wave, ctype='a')
+            a_chla /= a_chla[iwv_a]
+            a_chla *= M[ss][iwv_a]
+            ax.plot(wave, a_chla, color='gray', label='Chl-a', ls='--')
+
+            # Chl a -- Bricaud
+            iwv_a = np.argmin(np.abs(wave-670.))
+            a_chla = pigments.a_chl(wave, ctype='a', source='bricaud')
+            a_chla /= a_chla[iwv_a]
+            a_chla *= M[ss][iwv_a]
+            ax.plot(wave, a_chla, color='k', label='Chl-a Bricaud2004', ls='--')
+
+            # Chl b
+            iwv_b = np.argmin(np.abs(wave-646.))
+            a_chlb = pigments.a_chl(wave, ctype='b')
+            a_chlb /= a_chlb[iwv_b]
+            a_chlb *= M[ss][iwv_b]
+            ax.plot(wave, a_chlb, color='gray', label='Chl-b', ls=':')
+
+            # Chl c2
+            iwv_c2 = np.argmin(np.abs(wave-444.))
+            a_chlc2 = pigments.a_chl(wave, ctype='c2')
+            a_chlc2 /= a_chlc2[iwv_c2]
+            a_chlc2 *= M[ss][iwv_c2]
+            ax.plot(wave, a_chlc2, color='gray', label='Chl-c2', ls='dashdot')
+
+
+            ax.legend()
+            
         elif (N_NMF==5 and ss == 1) or (N_NMF==4 and ss == 0): # CDOM
             #embed(header='fig_nmf_indiv 150')
             # Expoential
