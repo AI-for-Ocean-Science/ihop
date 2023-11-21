@@ -44,8 +44,12 @@ def load_loisel_2023_pca():
     # Return
     return ab, Rs, d_a, d_bb
 
-
-
+def load_data(data_path, back_scatt:str='bb'):
+    # Load up data
+    data = np.load(data_path)
+    features_data = data["abb"]
+    labels_data = data["Rs"]
+    return features_data, labels_data
 
 def generate_l23_pca(clobber:bool=False, Ncomp:int=3,
                      X:int=4, Y:int=0):
