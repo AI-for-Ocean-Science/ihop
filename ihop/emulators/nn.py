@@ -10,6 +10,7 @@ from torch.utils.data import Dataset, DataLoader
 import torch.optim as optim
 
 from ihop.iops.pca import load_loisel_2023_pca
+from ihop.iops.pca import load_data
 from ihop.iops.nmf import load_loisel_2023
 
 from IPython import embed
@@ -306,6 +307,9 @@ def build_densenet(hidden_list:list,
     elif dataset == 'L23_NMF':
         print("Loading L23_NMF")
         ab, Rs, _, _ = load_loisel_2023()
+    else:
+        print("Load Data from path of dataset")    
+        ab, Rs = load_data(dataset)
 
     target = Rs
     nparam = ab.shape[1]
