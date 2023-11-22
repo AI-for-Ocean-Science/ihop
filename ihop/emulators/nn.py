@@ -152,11 +152,12 @@ class DenseNet(nn.Module):
     def prediction(self, sample, device):
         # Normalize the inputs
         norm_sample = (sample - self.ab_parm[0])/self.ab_parm[1]
+        nparam = norm_sample.size
         tensor = torch.Tensor(norm_sample)
 
         self.eval()
         with torch.no_grad():
-            batch_features = tensor.view(-1, 6).to(device)
+            batch_features = tensor.view(-1, nparam).to(device)
             outputs = self(batch_features)
 
         outputs.cpu()
