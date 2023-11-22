@@ -2,6 +2,8 @@
 
 import torch
 
+from ihop.emulators import nn
+from ihop.emulators.nn import DenseNet, SimpleNet 
 
 def load_nn(model_file:str):
 

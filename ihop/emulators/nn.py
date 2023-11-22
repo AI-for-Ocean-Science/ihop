@@ -103,9 +103,13 @@ class DenseNet(nn.Module):
         ab_parm:tuple, Rs_parm:tuple
     ):
         super(DenseNet, self).__init__()
+        # Save
         self.ab_parm = ab_parm
         self.Rs_parm = Rs_parm
+        self.ninput = d_input
+        self.noutput = d_output
         self.num_layers = len(hidden_list) + 1
+        # Build the layers
         block_layers = []
         d_in = d_input
         d_out = hidden_list[0]

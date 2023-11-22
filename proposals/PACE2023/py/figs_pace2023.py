@@ -1,15 +1,13 @@
 """ Figures for the PACE 2023 proposal """
 
 # imports
-from importlib import reload
 import os
-import xarray
+from importlib import resources
 
 import numpy as np
-from scipy import stats
-from scipy.interpolate import interp1d 
 
 import torch
+import h5py
 
 from matplotlib import pyplot as plt
 import matplotlib as mpl
@@ -21,9 +19,11 @@ import corner
 
 from oceancolor.utils import plotting 
 
-from oceancolor.ihop import io as ihop_io
-from oceancolor.ihop.nn import SimpleNet
+from ihop.emulators import io as ihop_io
+from ihop.emulators.nn import SimpleNet, DenseNet
 from ihop.iops import pca as ihop_pca
+from ihop.iops.pca import load_loisel_2023_pca
+from ihop.iops.nmf import load_loisel_2023
 
 mpl.rcParams['font.family'] = 'stixgeneral'
 
@@ -126,27 +126,36 @@ def fig_l23_tara_pca(outfile='fig_l23_tara_pca.png',
 
 
 
-    # #############################################
-    # Load
+# #############################################
+# Load
 def load_up(in_idx:int, chop_burn = -3000):
-    out_path = os.path.join(
-        os.getenv('OS_COLOR'), 'IHOP', 'L23')
-    chain_file = 'fit_a_L23_NN_Rs10.npz'
+    #out_path = os.path.join(
+    #    os.getenv('OS_COLOR'), 'IHOP', 'L23')
+    #chain_file = 'fit_a_L23_NN_Rs10.npz'
+    chain_file = os.path.join(resources.files('ihop'),
+                              'emulators',
+                              f'MCMC_NN_NMF_i{in_idx}.h5')
 
     # Load model
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = ihop_io.load_nn('model_100000')
+    em_path = os.path.join(os.getenv('OS_COLOR'), 'IHOP', 'Emulators')
+    model_file = os.path.join(em_path, 'densenet_NMF3_L23', 
+                       'densenet_NMF_[512, 128, 128]_batchnorm_epochs_2500_p_0.05_lr_0.001.pth')
+    print(f"Loading model: {model_file}")
+    model = io.load_nn(model_file)
 
     # Load Hydrolight
     print("Loading Hydrolight data")
-    ab, Rs, d_a, d_bb = ihop_io.load_loisel_2023_pca()
+    ab, Rs, _, _ = load_loisel_2023()
+    #ab, Rs, d_a, d_bb = ihop_io.load_loisel_2023_pca()
 
     # MCMC
     print("Loading MCMC")
-    d = np.load(os.path.join(out_path, chain_file))
+    #d = np.load(os.path.join(out_path, chain_file))
+    d = h5py.File(chain_file, 'r')
     chains = d['chains']
-    l23_idx = d['idx']
-    obs_Rs = d['obs_Rs']
+    l23_idx = in_idx
+    #l23_idx = d['idx']
+    #obs_Rs = d['obs_Rs']
 
     idx = l23_idx[in_idx]
     print(f'Working on: L23 index={idx}')
