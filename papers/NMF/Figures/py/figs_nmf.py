@@ -120,63 +120,107 @@ def fig_nmf_basis(outroot:str='fig_nmf_basis',
     plt.savefig(outfile, dpi=300)
     print(f"Saved: {outfile}")
 
-
-def fig_nmf_indiv(outfile:str='fig_nmf_indiv.png',
-                 nmf_fit:str='l23', N_NMF:int=4):
+def fig_fit_cdom(outfile:str='fig_fit_cdom.png',
+                 nmf_fit:str='l23', N_NMF:int=4,
+                 wv_max:float=600.):
 
     # load
     d = load_nmf(nmf_fit, N_NMF=N_NMF)
     M = d['M']
     wave = d['wave']
 
-    fig = plt.figure(figsize=(7,5))
-    gs = gridspec.GridSpec(2,2)
 
-    all_ax = []
-    for clr, ss in zip(['b', 'orange', 'g', 'r'], range(4)):
-        ax = plt.subplot(gs[ss])
+    # load
+    d = load_nmf(nmf_fit, N_NMF=N_NMF)
+    M = d['M']
+    wave = d['wave']
 
-        ax.step(wave, M[ss], label=r'$\xi_'+f'{ss}'+'$',
-                color=clr)
-        #
+    if N_NMF==5: 
+        ss = 1
+    elif N_NMF==4: 
+        ss = 0
+    else:
+        raise IOError("Bad N_NMF")
+    a_cdom = M[ss]
+
+    wv_cut = wave < wv_max
+    cut_wv = wave[wv_cut]
+
+    # Fit exponentials
+    exp_tot_coeff, cov = cdom.fit_exp_tot(wave[wv_cut], 
+                                            a_cdom[wv_cut])
+    a_cdom_totexp_fit = exp_tot_coeff[0] * cdom.a_exp(
+        wave[wv_cut], S_CDOM=exp_tot_coeff[1],
+        wave0=exp_tot_coeff[2])
+    print(f'Tot exp coeff: {exp_tot_coeff}')
+    exp_norm_coeff, cov = cdom.fit_exp_norm(wave[wv_cut], 
+                                            a_cdom[wv_cut])
+    a_cdom_exp_fit = exp_norm_coeff[0] * cdom.a_exp(wave[wv_cut])
+
+    # Fit power-law
+    pow_coeff, pow_cov = cdom.fit_pow(cut_wv, a_cdom[wv_cut])
+    a_cdom_pow_fit = pow_coeff[0] * cdom.a_pow(cut_wv, S=pow_coeff[1])
+
+    fig = plt.figure(figsize=(11,5))
+    gs = gridspec.GridSpec(1,2)
+
+    # #########################################################
+    # Fits as normal
+    ax_fits = plt.subplot(gs[0])
+
+    # NMF
+    ax_fits.step(wave, M[ss], label=r'$\xi_'+f'{ss}'+'$', color='k')
+
+    ax_fits.plot(cut_wv, a_cdom_exp_fit, 
+            color='b', label='CDOM exp', ls='-')
+    ax_fits.plot(cut_wv, a_cdom_totexp_fit, 
+            color='b', label='CDOM Tot exp', ls='--')
+    ax_fits.plot(cut_wv, a_cdom_pow_fit, 
+            color='r', label='CDOM pow', ls='-')
+
+    ax_fits.axvline(wv_max, ls='--', color='gray')
+
+    ax_fits.legend()
+
+    # #########################################################
+    # CDF
+    cdf_NMF = np.cumsum(a_cdom[wv_cut])
+    cdf_NMF /= cdf_NMF[-1]
+    
+    cdf_exp = np.cumsum(a_cdom_exp_fit)
+    cdf_exp /= cdf_exp[-1]
+
+    cdf_exptot = np.cumsum(a_cdom_totexp_fit)
+    cdf_exptot /= cdf_exptot[-1]
+
+    cdf_pow = np.cumsum(a_cdom_pow_fit)
+    cdf_pow /= cdf_pow[-1]
+
+    ax_cdf = plt.subplot(gs[1])
+
+    # Plot
+    ax_cdf.step(cut_wv, cdf_NMF, label=r'$\xi_'+f'{ss}'+'$', color='k')
+    ax_cdf.plot(cut_wv, cdf_exp, color='b', label='CDOM exp', ls='-')
+    ax_cdf.plot(cut_wv, cdf_exptot, color='b', label='CDOM exp', ls='--')
+    ax_cdf.plot(cut_wv, cdf_pow, color='r', label='CDOM pow', ls='-')
+
+    # Finish
+    for ax in [ax_fits, ax_cdf]:
+        plotting.set_fontsize(ax, 15)
+    plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
+    plt.savefig(outfile, dpi=300)
+    print(f"Saved: {outfile}")
+
+
+def fig_nmf_indiv(outfile:str='fig_nmf_indiv.png',
+                 nmf_fit:str='l23', N_NMF:int=4):
+    pass
+    '''
+    #
         ax.set_xlabel('Wavelength (nm)')
         ax.set_ylabel('Basis vector')
         ax.minorticks_on()
 
-        # Axis specific
-        if (N_NMF==5 and ss == 0) or (N_NMF==4 and ss == 1): # Chl a
-
-            # Chl a
-            iwv_a = np.argmin(np.abs(wave-663.))
-            a_chla = pigments.a_chl(wave, ctype='a')
-            a_chla /= a_chla[iwv_a]
-            a_chla *= M[ss][iwv_a]
-            ax.plot(wave, a_chla, color='gray', label='Chl-a', ls='--')
-
-            # Chl a -- Bricaud
-            iwv_a = np.argmin(np.abs(wave-670.))
-            a_chla = pigments.a_chl(wave, ctype='a', source='bricaud')
-            a_chla /= a_chla[iwv_a]
-            a_chla *= M[ss][iwv_a]
-            ax.plot(wave, a_chla, color='k', label='Chl-a Bricaud2004', ls='--')
-
-            # Chl b
-            iwv_b = np.argmin(np.abs(wave-646.))
-            a_chlb = pigments.a_chl(wave, ctype='b')
-            a_chlb /= a_chlb[iwv_b]
-            a_chlb *= M[ss][iwv_b]
-            ax.plot(wave, a_chlb, color='gray', label='Chl-b', ls=':')
-
-            # Chl c2
-            iwv_c2 = np.argmin(np.abs(wave-444.))
-            a_chlc2 = pigments.a_chl(wave, ctype='c2')
-            a_chlc2 /= a_chlc2[iwv_c2]
-            a_chlc2 *= M[ss][iwv_c2]
-            ax.plot(wave, a_chlc2, color='gray', label='Chl-c2', ls='dashdot')
-
-
-            ax.legend()
-            
         elif (N_NMF==5 and ss == 1) or (N_NMF==4 and ss == 0): # CDOM
             #embed(header='fig_nmf_indiv 150')
             # Expoential
@@ -189,16 +233,14 @@ def fig_nmf_indiv(outfile:str='fig_nmf_indiv.png',
             a_cdom_pow *= M[ss][iwv] / a_cdom_pow[iwv]
 
             # Power law fit
-            # TODO -- Fit!!!
-            S_fit = -10.
-            a_cdom_pow_fit = cdom.a_pow(wave, S=S_fit)
-            a_cdom_pow_fit *= M[ss][iwv] / a_cdom_pow_fit[iwv]
+            coeff, cov = cdom.fit_pow(wave, M[ss])
+            a_cdom_pow_fit = coeff[0] * cdom.a_pow(wave, S=coeff[1])
 
             #
             ax.plot(wave, a_cdom_exp, color='gray', label='CDOM exp', ls='--')
             ax.plot(wave, a_cdom_pow, color='gray', label='CDOM pow', ls=':')
             ax.plot(wave, a_cdom_pow_fit, color='gray', 
-                    label=f'CDOM pow: S={S_fit}', ls='-')
+                    label=f'CDOM pow: S={coeff[1]:0.2f}', ls='-')
 
             ax.legend()
         else:
@@ -214,6 +256,7 @@ def fig_nmf_indiv(outfile:str='fig_nmf_indiv.png',
     plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
     plt.savefig(outfile, dpi=300)
     print(f"Saved: {outfile}")
+    '''
 
 def fig_nmf_coeff(outfile:str='fig_nmf_coeff.png',
                  nmf_fit:str='l23'):
@@ -260,6 +303,10 @@ def main(flg):
     if flg & (2**3):
         fig_nmf_coeff()
 
+    # Fit CDOM
+    if flg & (2**4):
+        fig_fit_cdom()
+
 
 
 # Command line execution
@@ -268,7 +315,11 @@ if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         flg = 0
-        #flg += 2 ** 1  # 1 -- 
+        #flg += 2 ** 0  # 1 -- RMSE
+        #flg += 2 ** 1  # 2 -- NMF basis
+        #flg += 2 ** 2  # 4 -- Indiv
+        #flg += 2 ** 3  # 8 -- Coeff
+        #flg += 2 ** 4  # 16 -- Fit CDOM
     else:
         flg = sys.argv[1]
 
