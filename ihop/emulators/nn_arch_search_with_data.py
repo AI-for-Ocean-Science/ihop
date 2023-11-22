@@ -64,4 +64,9 @@ if __name__ == "__main__":
     print("search ends.")
     print("opt loss is: ", opt_result[-1])
     print("opt hyperparas are: ", opt_result[:-1])
+    #############################################
+    ### possible choice
+    ### epochs: 2500, opt_loss: 0.001687
+    ### lr: 0.01, hidden_list: [512, 512, 512, 256], p: 0.0 with batchnorm
+    #############################################
     
