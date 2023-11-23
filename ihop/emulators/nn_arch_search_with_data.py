@@ -27,6 +27,7 @@ def archt_search_with_data(data_path, hidden_lists, lr_list, p_drop_list, epochs
                     hidden_list_opt = hidden_list
                     lr_opt = lr
                     p_drop_opt = p_drop
+                    loss_opt = loss_i
                 print(f"Experiment for lr: {lr}, hidden_list: {hidden_list}, p: {p_drop} with batchnorm starts.")
                 loss_i_bn = build_densenet(
                     hidden_list,
@@ -44,6 +45,7 @@ def archt_search_with_data(data_path, hidden_lists, lr_list, p_drop_list, epochs
                     hidden_list_opt = hidden_list
                     lr_opt = lr
                     p_drop_opt = p_drop
+                    loss_opt = loss_i_bn
     return batchnorm_opt, hidden_list_opt, lr_opt, p_drop_opt, loss_opt
 
 if __name__ == "__main__":
