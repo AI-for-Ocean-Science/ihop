@@ -349,6 +349,7 @@ def build_densenet(hidden_list:list,
                     'loss': loss,}, PATH)
         torch.save(model, f'{root}.pth')
         print(f"Wrote: {root}.pt, {root}.pth")
+    del model
     return loss
 
 if __name__ == '__main__':
