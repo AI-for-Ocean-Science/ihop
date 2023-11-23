@@ -42,9 +42,10 @@ model.prediction(values, device)
 '''
 
     # Do it
-    time_per_eval = timeit.timeit(stmt=main_code, setup=setup_code, 
+    tot_time = timeit.timeit(stmt=main_code, setup=setup_code, 
         globals=globals(), number=number)
-    print(f'Time per evaluation: {1000*time_per_eval/number} ms')
+    time_per_eval = tot_time/number
+    print(f'Time per evaluation: {1000*time_per_eval} ms')
 
     return time_per_eval
 
@@ -75,9 +76,18 @@ def calc_stats(model_file:str, iop_type:str):
 
     max_dev_per = np.max(np.abs(devs/Rs), axis=0)
     bias = np.mean(devs, axis=0)
+    per_bias = bias/mean_Rs*100
 
     # Return
-    return mean_Rs, rmse_wave, avg_rmse, per_rmse, max_dev_per, bias
+    stat_dict = {}
+    stat_dict['mean_Rs'] = mean_Rs
+    stat_dict['rmse_wave'] = rmse_wave
+    stat_dict['avg_rmse'] = avg_rmse
+    stat_dict['per_rmse'] = per_rmse
+    stat_dict['max_dev_per'] = max_dev_per
+    stat_dict['bias'] = bias
+    stat_dict['per_bias'] = per_bias
+    return stat_dict
 
 def nn_emulator_plot(model_file:str, iop_type:str):
 
@@ -89,34 +99,62 @@ def nn_emulator_plot(model_file:str, iop_type:str):
     # Calculations
     model = ihop_io.load_nn(model_file)
     time_per = benchmark(model)
-    mean_Rs, rmse_wave, avg_rmse, per_rmse, max_dev_per, bias = \
-        calc_stats(model_file, iop_type)
+    stat_dict = calc_stats(model_file, iop_type)
 
     if iop_type == 'pca':
         ab, Rs, d_a, d_bb = load_loisel_2023_pca()
     elif iop_type == 'nmf':
         ab, Rs, d_a, d_bb = load_loisel_2023()
 
+    # ########################
     # Plots
     fig = plt.figure(figsize=(11,7))
     gs = gridspec.GridSpec(2,2)
 
+    # ########################
     # Data
     ax0 = plt.subplot(gs[0])
     ax0.text(0.95, 0.9, out_root, transform=ax0.transAxes,
               fontsize=14, ha='right', color='k')
+    ax0.text(0.95, 0.8, f'Time per eval: {time_per*1000:0.2f} ms', transform=ax0.transAxes,
+              fontsize=14, ha='right', color='k')
+    ax0.text(0.95, 0.7, f'Avg RMSE: {np.mean(stat_dict["avg_rmse"]):0.5f}', 
+             transform=ax0.transAxes, fontsize=14, ha='right', color='k')
+    ax0.set_axis_off()
 
+    # ########################
     # RMSE
     ax1 = plt.subplot(gs[1])
 
-    ax1.plot(d_a['wave'], per_rmse)
+    ax1.plot(d_a['wave'], stat_dict['per_rmse'])
     ax1.set_xlabel('Wavelength (nm)')
     ax1.set_ylabel('RMSE (%)')
 
+    ax1b = ax1.twinx()
+    oclr = 'g'
+    ax1b.plot(d_a['wave'], stat_dict['rmse_wave'], color=oclr)
+    ax1b.set_ylabel('RMSE', color=oclr)
+
+    # ########################
+    # Bias
+    ax2 = plt.subplot(gs[2])
+
+    ax2.plot(d_a['wave'], stat_dict['bias'], color='k')
+    ax2.set_xlabel('Wavelength (nm)')
+    ax2.set_ylabel('Bias (%)')
+
+    # ########################
+    # Max dev
+    ax3 = plt.subplot(gs[3])
+
+    ax3.plot(d_a['wave'], stat_dict['max_dev_per'], color='r')
+    ax3.set_xlabel('Wavelength (nm)')
+    ax3.set_ylabel('Max Dev (%)')
+
     # Finish
-    for ax in [ax1]:
+    for ax in [ax1, ax1b, ax2, ax3]:
         plotting.set_fontsize(ax, 15)
-    plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
+    plt.tight_layout(pad=0.0, h_pad=0.0, w_pad=0.0)
     plt.savefig(out_file, dpi=300)
     print(f"Saved: {out_file}")
 
