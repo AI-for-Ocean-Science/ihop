@@ -295,8 +295,10 @@ def another_test(iop_type:str='pca'):
     fit_fixed_perc(perc=10, n_cores=4, Nspec=8, iop_type=iop_type)
 
 def quick_test(iop_type:str='pca'):
-    # Load Hydrolight
 
+    # Load Hydrolight
+    print("Loading Hydrolight data")
+    ab, Rs, d_a, d_bb, model = load_hyrdro(iop_type=iop_type)
 
     pdict = dict(model=model)
     pdict['nwalkers'] = 16
@@ -324,8 +326,12 @@ def quick_test(iop_type:str='pca'):
     plt.show()
 
     # Corner
-    fig = corner.corner(samples, labels=['a0', 'a1', 'a2', 'b0', 'b1', 'b2'],
-                    truths=ab[idx])
+    if iop_type == 'pca':
+        labels=['a0', 'a1', 'a2', 'b0', 'b1', 'b2']
+    elif iop_type == 'nmf':
+        labels=['a0', 'a1', 'a2', 'a3', 'b0', 'b1', 'b2', 'b3']
+
+    fig = corner.corner(samples, labels=labels, truths=ab[idx])
     plt.show()
 
 
@@ -401,8 +407,10 @@ if __name__ == '__main__':
 
     # Testing
     #quick_test()
+    quick_test(iop_type='nmf')
+
     #another_test()
-    another_test(iop_type='nmf')
+    #another_test(iop_type='nmf')
 
     # All of em
     #do_all_fits(iop_type='pca')
