@@ -11,7 +11,7 @@ from IPython import embed
 
 model = None
 
-def benchmark(in_model, iop_type:str='nmf'):
+def benchmark(in_model):
     global model
     model = in_model
 
