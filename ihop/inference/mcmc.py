@@ -7,16 +7,21 @@ import numpy as np
 import emcee
 
 import torch
-from ihop.emulators import io 
+from ihop.emulators import io
 
 from IPython import embed
+
 
 def log_prob(ab, Rs, model, device, scl_sig):
     pred = model.prediction(ab, device)
     #
     sig = scl_sig * Rs
     #
-    return -1*0.5 * np.sum( (pred-Rs)**2 / sig**2)
+    prob = -1*0.5 * np.sum( (pred-Rs)**2 / sig**2)
+    if np.isnan(prob):
+        return -np.inf
+    else:
+        return prob
 
 
 def run_emcee_nn(nn_model, Rs, nwalkers:int=32, nsteps:int=20000,
