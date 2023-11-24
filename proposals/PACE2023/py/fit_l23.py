@@ -418,7 +418,7 @@ if __name__ == '__main__':
 
     # All of em
     #do_all_fits(iop_type='pca')
-    do_all_fits(iop_type='nmf')
+    do_all_fits(iop_type='nmf', n_cores=20)
 
     # Analysis
     #stats = analyze_l23('fit_a_L23_NN_Rs10.npz')
