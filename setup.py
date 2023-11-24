@@ -25,7 +25,7 @@ setup_keywords['install_requires'] = [
     'torchvision', 'seaborn', 'smart-open[s3]', 'pyarrow',
     'scikit-learn', 'scikit-image', 'tqdm', 'astropy', 'astropy-healpix',
     'healpy', 'cftime', 'bokeh', 'umap-learn', 'llvmlite', 'boto3',
-    'xarray', 'h5netcdf', 'emcee', 
+    'xarray', 'h5netcdf', 'emcee', 'corner',
     'importlib-metadata', 'timm==0.3.2',
     'scikit-learn', 'scikit-image', 'tqdm'] 
 setup_keywords['zip_safe'] = False
