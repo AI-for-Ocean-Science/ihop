@@ -414,10 +414,11 @@ if __name__ == '__main__':
     #quick_test(iop_type='nmf')
 
     #another_test()
-    another_test(iop_type='nmf')
+    #another_test(iop_type='nmf')
 
     # All of em
     #do_all_fits(iop_type='pca')
+    do_all_fits(iop_type='nmf')
 
     # Analysis
     #stats = analyze_l23('fit_a_L23_NN_Rs10.npz')

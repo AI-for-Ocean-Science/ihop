@@ -20,7 +20,8 @@ def log_prob(ab, Rs, model, device, scl_sig):
 
 
 def run_emcee_nn(nn_model, Rs, nwalkers:int=32, nsteps:int=20000,
-                 save_file:str=None, p0=None, scl_sig:float=0.05):
+                 save_file:str=None, p0=None, scl_sig:float=0.05,
+                 skip_check:bool=False):
 
     # Device for NN
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -58,16 +59,15 @@ def run_emcee_nn(nn_model, Rs, nwalkers:int=32, nsteps:int=20000,
         backend=backend)
 
     # Burn in
-    skip = False
     print("Running burn-in")
     state = sampler.run_mcmc(p0, 1000,
-        skip_initial_state_check=skip)
+        skip_initial_state_check=skip_check)
     sampler.reset()
 
     # Run
     print("Running full model")
     sampler.run_mcmc(state, nsteps,
-        skip_initial_state_check=skip)
+        skip_initial_state_check=skip_check)
 
     print(f"All done: Wrote {save_file}")
 
