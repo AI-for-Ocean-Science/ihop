@@ -21,7 +21,7 @@ from IPython import embed
 
 model = None
 
-def benchmark(in_model, number:int=10000):
+def benchmark(in_model, number:int=50000):
     global model
     model = in_model
 
@@ -129,6 +129,7 @@ def nn_emulator_plot(model_file:str, iop_type:str):
     ax1.plot(d_a['wave'], stat_dict['per_rmse'])
     ax1.set_xlabel('Wavelength (nm)')
     ax1.set_ylabel('RMSE (%)')
+    ax1.set_ylim(0, 30)
 
     ax1b = ax1.twinx()
     oclr = 'g'
