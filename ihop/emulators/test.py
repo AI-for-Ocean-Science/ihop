@@ -93,7 +93,7 @@ def nn_emulator_plot(model_file:str, iop_type:str):
 
     out_path = os.path.join(
         resources.files('ihop'), 'emulators', 'QA')
-    out_root = os.path.basename(model_file).split('.')[0]
+    out_root = os.path.basename(model_file).split('.pt')[0]
     out_file = os.path.join(out_path, f'{out_root}.png')
 
     # Calculations
@@ -115,7 +115,7 @@ def nn_emulator_plot(model_file:str, iop_type:str):
     # Data
     ax0 = plt.subplot(gs[0])
     ax0.text(0.95, 0.9, out_root, transform=ax0.transAxes,
-              fontsize=14, ha='right', color='k')
+              fontsize=9, ha='right', color='k')
     ax0.text(0.95, 0.8, f'Time per eval: {time_per*1000:0.2f} ms', transform=ax0.transAxes,
               fontsize=14, ha='right', color='k')
     ax0.text(0.95, 0.7, f'Avg RMSE: {np.mean(stat_dict["avg_rmse"]):0.5f}', 

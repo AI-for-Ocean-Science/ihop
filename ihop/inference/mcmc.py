@@ -1,19 +1,15 @@
 """ MCMC module for IHOP """
 
 import os
-from importlib import resources
+import warnings
 
 import numpy as np
-
-import matplotlib.pyplot as plt
-
 import emcee
-import corner
 
 import torch
-
 from ihop.emulators import io 
 
+from IPython import embed
 
 def log_prob(ab, Rs, model, device, scl_sig):
     pred = model.prediction(ab, device)
@@ -34,10 +30,20 @@ def run_emcee_nn(nn_model, Rs, nwalkers:int=32, nsteps:int=20000,
         ndim = nn_model.ninput
     else:
         # TODO -- remove this
+        warnings.warn("Assuming 8 inputs. REMOVE THIS")
         ndim = 8
+
     if p0 is None:
         p0 = np.random.rand(nwalkers, ndim)
+    else:
+        if len(p0) != ndim:
+            raise ValueError("Bad p0")
+        # Replicate for nwalkers
+        p0 = np.tile(p0, (nwalkers, 1))
+        # Perturb a tiny bit
+        p0 += p0*np.random.uniform(-1e-4, 1e-4, size=p0.shape)
 
+    #embed(header='run_emcee_nn 47')
     # Set up the backend
     # Don't forget to clear it in case the file already exists
     if save_file is not None:
@@ -46,18 +52,22 @@ def run_emcee_nn(nn_model, Rs, nwalkers:int=32, nsteps:int=20000,
     else:
         backend = None
 
-    sampler = emcee.EnsembleSampler(nwalkers, ndim, log_prob, 
-                                    args=[Rs, nn_model, device, scl_sig],
-                                    backend=backend)
+    sampler = emcee.EnsembleSampler(
+        nwalkers, ndim, log_prob, 
+        args=[Rs, nn_model, device, scl_sig],
+        backend=backend)
 
     # Burn in
+    skip = False
     print("Running burn-in")
-    state = sampler.run_mcmc(p0, 1000)
+    state = sampler.run_mcmc(p0, 1000,
+        skip_initial_state_check=skip)
     sampler.reset()
 
     # Run
     print("Running full model")
-    sampler.run_mcmc(state, nsteps)
+    sampler.run_mcmc(state, nsteps,
+        skip_initial_state_check=skip)
 
     print(f"All done: Wrote {save_file}")
 

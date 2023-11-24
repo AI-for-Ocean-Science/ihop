@@ -42,9 +42,13 @@ def load_hyrdro(iop_type:str='pca'):
         model = ihop_io.load_nn(model_file)
     elif iop_type == 'nmf':
         ab, Rs, d_a, d_bb = load_loisel_2023()
-        em_path = os.path.join(os.getenv('OS_COLOR'), 'IHOP', 'Emulators')
-        model_file = os.path.join(em_path, 'densenet_NMF3_L23', 
-                       'densenet_NMF_[512, 128, 128]_batchnorm_epochs_2500_p_0.05_lr_0.001.pth')
+        em_path = os.path.join(os.getenv('OS_COLOR'), 
+                               'IHOP', 'Emulators')
+        model_file = os.path.join(
+            em_path, 'DenseNet_NM4',
+            'densenet_NMF_[512, 512, 512, 256]_epochs_2500_p_0.0_lr_0.01.pth')
+                                  
+                       
         print(f"Loading model: {model_file}")
         model = ihop_io.load_nn(model_file)
 
@@ -215,7 +219,7 @@ def check_one(chain_file:str, in_idx:int, chop_burn:int=-3000):
 
 def fit_one(items:list, pdict:dict=None):
     # Unpack
-    Rs, ab_pca, idx = items
+    Rs, ab, idx = items
 
     # Init (cheating, but do it)
     if hasattr(pdict['model'], 'ninput'):
@@ -229,7 +233,7 @@ def fit_one(items:list, pdict:dict=None):
         nwalkers=pdict['nwalkers'],
         nsteps=pdict['nsteps'],
         scl_sig=pdict['perc']/100.,
-        #p0=p0,
+        p0=ab,
         save_file=pdict['save_file'])
 
     # Return
@@ -407,10 +411,10 @@ if __name__ == '__main__':
 
     # Testing
     #quick_test()
-    quick_test(iop_type='nmf')
+    #quick_test(iop_type='nmf')
 
     #another_test()
-    #another_test(iop_type='nmf')
+    another_test(iop_type='nmf')
 
     # All of em
     #do_all_fits(iop_type='pca')
