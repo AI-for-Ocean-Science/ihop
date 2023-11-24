@@ -32,7 +32,7 @@ from IPython import embed
 out_path = os.path.join(
         os.getenv('OS_COLOR'), 'IHOP', 'L23')
 
-def load_hyrdro(iop_type:str='pca'):
+def load_hydro(iop_type:str='pca'):
     print("Loading Hydrolight data")
     if iop_type == 'pca':
         ab, Rs, d_a, d_bb = load_loisel_2023_pca()
@@ -247,7 +247,7 @@ def fit_fixed_perc(perc:int, n_cores:int, seed:int=1234,
 
     # Load Hydrolight
     print("Loading Hydrolight data")
-    ab, Rs, d_a, d_bb, model = load_hyrdro(iop_type=iop_type)
+    ab, Rs, d_a, d_bb, model = load_hydro(iop_type=iop_type)
     #ab, Rs, d_a, d_bb = ihop_io.load_loisel_2023_pca()
 
     # Select a random sample
@@ -302,7 +302,7 @@ def quick_test(iop_type:str='pca'):
 
     # Load Hydrolight
     print("Loading Hydrolight data")
-    ab, Rs, d_a, d_bb, model = load_hyrdro(iop_type=iop_type)
+    ab, Rs, d_a, d_bb, model = load_hydro(iop_type=iop_type)
 
     pdict = dict(model=model)
     pdict['nwalkers'] = 16
