@@ -84,3 +84,13 @@ def prep_loisel23(iop:str, min_wv:float=400., sigma:float=0.05,
 
     # Return
     return spec_nw, mask, err, wave, Rs
+
+def reconstruct(Y, nmf_dict, idx):
+    # Grab the orginal
+    orig = nmf_dict['spec'][idx]
+
+    # Reconstruct
+    recon = np.dot(Y, nmf_dict['M']) 
+
+    # Return
+    return orig, recon 

@@ -12,23 +12,18 @@ import h5py
 from matplotlib import pyplot as plt
 import matplotlib as mpl
 import matplotlib.gridspec as gridspec
-import matplotlib.dates as mdates
-from matplotlib.ticker import MultipleLocator 
 
 import corner
 
 from oceancolor.utils import plotting 
 
 from ihop.emulators import io as ihop_io
-from ihop.emulators.nn import SimpleNet, DenseNet
 from ihop.iops import pca as ihop_pca
+from ihop.iops import nmf as ihop_nmf
 from ihop.iops.pca import load_loisel_2023_pca
 from ihop.iops.nmf import load_loisel_2023
 
 mpl.rcParams['font.family'] = 'stixgeneral'
-
-
-import seaborn as sns
 
 import pandas
 
@@ -128,48 +123,68 @@ def fig_l23_tara_pca(outfile='fig_l23_tara_pca.png',
 
 # #############################################
 # Load
-def load_up(in_idx:int, chop_burn = -3000):
-    #out_path = os.path.join(
-    #    os.getenv('OS_COLOR'), 'IHOP', 'L23')
-    #chain_file = 'fit_a_L23_NN_Rs10.npz'
-    chain_file = os.path.join(resources.files('ihop'),
-                              'emulators',
-                              f'MCMC_NN_NMF_i{in_idx}.h5')
+def load_up(in_idx:int, chop_burn = -3000,
+            iop_type:str='nmf'):
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    # Chains
+    out_path = os.path.join(
+        os.getenv('OS_COLOR'), 'IHOP', 'L23',
+        iop_type.upper())
+    chain_file = 'fit_a_L23_NN_Rs10.npz'
+           
+    # Load prep
+    if iop_type == 'pca':
+        lfunc = load_loisel_2023_pca
+        em_path = os.path.join(os.getenv('OS_COLOR'), 'IHOP', 
+                               'Emulators', 'SimpleNet_PCA')
+        model_file += '/model_100000.pth'
+        ncomp = 3
+    elif iop_type == 'nmf':
+        # Model
+        em_path = os.path.join(os.getenv('OS_COLOR'), 'IHOP', 
+                               'Emulators')
+        model_file = os.path.join(
+            em_path, 'DenseNet_NM4',
+            'densenet_NMF_[512, 512, 512, 256]_epochs_2500_p_0.0_lr_0.01.pth')
+        lfunc = load_loisel_2023
+        ncomp = 4
 
-    # Load model
-    em_path = os.path.join(os.getenv('OS_COLOR'), 'IHOP', 'Emulators')
-    model_file = os.path.join(em_path, 'densenet_NMF3_L23', 
-                       'densenet_NMF_[512, 128, 128]_batchnorm_epochs_2500_p_0.05_lr_0.001.pth')
-    print(f"Loading model: {model_file}")
-    model = io.load_nn(model_file)
-
-    # Load Hydrolight
+    # Do it
     print("Loading Hydrolight data")
-    ab, Rs, _, _ = load_loisel_2023()
-    #ab, Rs, d_a, d_bb = ihop_io.load_loisel_2023_pca()
+    ab, Rs, d_a, d_bb = lfunc()
+    print(f"Loading model: {model_file}")
+    model = ihop_io.load_nn(model_file)
+
+    nwave = d_a['wave'].size
 
     # MCMC
     print("Loading MCMC")
-    #d = np.load(os.path.join(out_path, chain_file))
-    d = h5py.File(chain_file, 'r')
+    d = np.load(os.path.join(out_path, chain_file))
     chains = d['chains']
-    l23_idx = in_idx
-    #l23_idx = d['idx']
-    #obs_Rs = d['obs_Rs']
+    l23_idx = d['idx']
+    obs_Rs = d['obs_Rs']
 
     idx = l23_idx[in_idx]
     print(f'Working on: L23 index={idx}')
+
+    # Prep
+    if iop_type == 'pca':
+        rfunc = ihop_pca.reconstruct
+        wave = d_a['wavelength']
+    elif iop_type == 'nmf':
+        rfunc = ihop_nmf.reconstruct
+        wave = d_a['wave']
     
     # a
-    Y = chains[in_idx, chop_burn:, :, 0:3].reshape(-1,3)
-    orig, a_recon = ihop_pca.reconstruct(Y, d_a, idx)
+    Y = chains[in_idx, chop_burn:, :, 0:ncomp].reshape(-1,ncomp)
+    orig, a_recon = rfunc(Y, d_a, idx)
     a_mean = np.mean(a_recon, axis=0)
     a_std = np.std(a_recon, axis=0)
-    _, a_pca = ihop_pca.reconstruct(ab[idx][:3], d_a, idx)
+    _, a_pca = rfunc(ab[idx][:ncomp], d_a, idx)
 
     # Rs
-    allY = chains[in_idx, chop_burn:, :, :].reshape(-1,6)
-    all_pred = np.zeros((allY.shape[0], 81))
+    allY = chains[in_idx, chop_burn:, :, :].reshape(-1,ncomp*2)
+    all_pred = np.zeros((allY.shape[0], nwave))
     for kk in range(allY.shape[0]):
         Ys = allY[kk]
         pred_Rs = model.prediction(Ys, device)
@@ -180,14 +195,14 @@ def load_up(in_idx:int, chop_burn = -3000):
     NN_Rs = model.prediction(ab[idx], device)
 
     return d_a, idx, orig, a_mean, a_std, a_pca, obs_Rs,\
-        pred_Rs, std_pred, NN_Rs, Rs, ab, allY
+        pred_Rs, std_pred, NN_Rs, Rs, ab, allY, wave
 
-def fig_mcmc_fit(outfile='fig_mcmc_fit.png'):
+def fig_mcmc_fit(outfile='fig_mcmc_fit.png', iop_type='nmf'):
     # Load
     in_idx = 0
-    items = load_up(in_idx)
+    items = load_up(in_idx, iop_type=iop_type)
     d_a, idx, orig, a_mean, a_std, a_pca, obs_Rs,\
-        pred_Rs, std_pred, NN_Rs, Rs, ab, allY = items
+        pred_Rs, std_pred, NN_Rs, Rs, ab, allY, wave = items
 
     # #########################################################
     # Plot the solution
@@ -199,11 +214,10 @@ def fig_mcmc_fit(outfile='fig_mcmc_fit.png'):
     # a
     ax_a = plt.subplot(gs[0])
     def plot_spec(ax):
-        ax.plot(d_a['wavelength'], orig, 'bo', label='True')
-        ax.plot(d_a['wavelength'], a_mean, 'r-', label='Fit')
-        ax.plot(d_a['wavelength'], a_pca, 'k:', label='PCA')
-        ax.fill_between(
-            d_a['wavelength'], a_mean-a_std, a_mean+a_std, 
+        ax.plot(wave, orig, 'bo', label='True')
+        ax.plot(wave, a_mean, 'r-', label='Fit')
+        ax.plot(wave, a_pca, 'k:', label='PCA')
+        ax.fill_between(wave, a_mean-a_std, a_mean+a_std, 
             color='r', alpha=0.5) 
     plot_spec(ax_a)
     ax_a.set_xlabel('Wavelength (nm)')
@@ -211,7 +225,6 @@ def fig_mcmc_fit(outfile='fig_mcmc_fit.png'):
 
     # Zoom in
     # inset axes....
-    x1, x2, y1, y2 = -1.5, -0.9, -2.5, -1.9  # subregion of the original image
     asz = 0.4
     ax_zoom = ax_a.inset_axes(
         [0.15, 0.5, asz, asz])
@@ -225,20 +238,19 @@ def fig_mcmc_fit(outfile='fig_mcmc_fit.png'):
     # #########################################################
     # Rs
     ax_R = plt.subplot(gs[1])
-    ax_R.plot(d_a['wavelength'], Rs[idx], 'bo', label='True')
-    ax_R.plot(d_a['wavelength'], obs_Rs[in_idx], 'ks', label='Obs')
-    ax_R.plot(d_a['wavelength'], pred_Rs, 'rx', label='Model')
-    ax_R.plot(d_a['wavelength'], NN_Rs, 'g-', label='NN+True')
+    ax_R.plot(wave, Rs[idx], 'bo', label='True')
+    ax_R.plot(wave, obs_Rs[in_idx], 'ks', label='Obs')
+    ax_R.plot(wave, pred_Rs, 'rx', label='Model')
+    ax_R.plot(wave, NN_Rs, 'g-', label='NN+True')
 
-    ax_R.fill_between(
-        d_a['wavelength'], pred_Rs-std_pred, pred_Rs+std_pred,
+    ax_R.fill_between(wave,
+        pred_Rs-std_pred, pred_Rs+std_pred,
         color='r', alpha=0.5) 
 
     ax_R.set_xlabel('Wavelength (nm)')
     ax_R.set_ylabel(r'$R_s$')
 
     ax_R.legend()
-    
     
     # axes
     for ax in [ax_a, ax_R]:
