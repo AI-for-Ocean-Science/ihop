@@ -10,6 +10,7 @@ __pycache__/
 *.npz
 *.npy
 *.fits
+*.h5
 
 # Figures
 *.png
