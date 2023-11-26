@@ -303,6 +303,8 @@ def quick_test(iop_type:str='pca'):
     # Load Hydrolight
     print("Loading Hydrolight data")
     ab, Rs, d_a, d_bb, model = load_hydro(iop_type=iop_type)
+    wave = d_a['wavelength'] if iop_type == 'pca' else d_a['wave']
+    ncomp = ab.shape[1]//2
 
     pdict = dict(model=model)
     pdict['nwalkers'] = 16
@@ -310,7 +312,8 @@ def quick_test(iop_type:str='pca'):
     pdict['save_file'] = 'tmp.h5'
     pdict['perc'] = 5
 
-    idx = 1000
+    #idx = 1000
+    idx = 2554
     items = [Rs[idx], ab[idx], idx]
 
     t0 = time.time()
@@ -337,6 +340,30 @@ def quick_test(iop_type:str='pca'):
 
     fig = corner.corner(samples, labels=labels, truths=ab[idx])
     plt.show()
+
+    # Plot a
+    mean_ans = np.mean(samples, axis=0)
+    median_ans = np.median(samples, axis=0)
+    a_true = np.dot(ab[idx][0:ncomp], d_a['M'])
+    a_fits = np.dot(samples[:,0:ncomp], d_a['M'])
+
+    med_fits = np.median(a_fits, axis=0)
+    std_fits = np.std(a_fits, axis=0)
+
+    plt.clf()
+    ax = plt.gca()
+    ax.plot(wave, a_true, 'ko', label='True')
+    #ax.plot(wave, a_fit, 'b-', label='Fit')
+    ax.plot(wave, med_fits, 'b-', label='Fit')
+
+    ax.fill_between(wave,
+        med_fits-std_fits, med_fits+std_fits,
+        color='b', alpha=0.5) 
+    ax.legend()
+
+    plt.show()
+
+    embed(header='342 of fit_l23.py')
 
 
 def fig_bspline_tara(outfile='fig_bspline_tara.png'):
@@ -411,14 +438,14 @@ if __name__ == '__main__':
 
     # Testing
     #quick_test()
-    #quick_test(iop_type='nmf')
+    quick_test(iop_type='nmf')
 
     #another_test()
     #another_test(iop_type='nmf')
 
     # All of em
     #do_all_fits(iop_type='pca')
-    do_all_fits(iop_type='nmf', n_cores=20)
+    #do_all_fits(iop_type='nmf', n_cores=20)
 
     # Analysis
     #stats = analyze_l23('fit_a_L23_NN_Rs10.npz')

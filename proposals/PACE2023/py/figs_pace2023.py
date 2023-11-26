@@ -31,6 +31,82 @@ import pandas
 from IPython import embed
 
 
+# #############################################
+# Load
+def load_up(in_idx:int, chop_burn = -3000,
+            iop_type:str='nmf'):
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    # Chains
+    out_path = os.path.join(
+        os.getenv('OS_COLOR'), 'IHOP', 'L23',
+        iop_type.upper())
+    chain_file = 'fit_a_L23_NN_Rs10.npz'
+           
+    # Load prep
+    if iop_type == 'pca':
+        lfunc = load_loisel_2023_pca
+        em_path = os.path.join(os.getenv('OS_COLOR'), 'IHOP', 
+                               'Emulators', 'SimpleNet_PCA')
+        model_file += '/model_100000.pth'
+        ncomp = 3
+    elif iop_type == 'nmf':
+        # Model
+        em_path = os.path.join(os.getenv('OS_COLOR'), 'IHOP', 
+                               'Emulators')
+        model_file = os.path.join(
+            em_path, 'DenseNet_NM4',
+            'densenet_NMF_[512, 512, 512, 256]_epochs_2500_p_0.0_lr_0.01.pth')
+        lfunc = load_loisel_2023
+        ncomp = 4
+
+    # Do it
+    print("Loading Hydrolight data")
+    ab, Rs, d_a, d_bb = lfunc()
+    print(f"Loading model: {model_file}")
+    model = ihop_io.load_nn(model_file)
+
+    nwave = d_a['wave'].size
+
+    # MCMC
+    print("Loading MCMC")
+    d = np.load(os.path.join(out_path, chain_file))
+    chains = d['chains']
+    l23_idx = d['idx']
+    obs_Rs = d['obs_Rs']
+
+    idx = l23_idx[in_idx]
+    print(f'Working on: L23 index={idx}')
+
+    # Prep
+    if iop_type == 'pca':
+        rfunc = ihop_pca.reconstruct
+        wave = d_a['wavelength']
+    elif iop_type == 'nmf':
+        rfunc = ihop_nmf.reconstruct
+        wave = d_a['wave']
+    
+    # a
+    Y = chains[in_idx, chop_burn:, :, 0:ncomp].reshape(-1,ncomp)
+    orig, a_recon = rfunc(Y, d_a, idx)
+    a_mean = np.mean(a_recon, axis=0)
+    a_std = np.std(a_recon, axis=0)
+    _, a_pca = rfunc(ab[idx][:ncomp], d_a, idx)
+
+    # Rs
+    allY = chains[in_idx, chop_burn:, :, :].reshape(-1,ncomp*2)
+    all_pred = np.zeros((allY.shape[0], nwave))
+    for kk in range(allY.shape[0]):
+        Ys = allY[kk]
+        pred_Rs = model.prediction(Ys, device)
+        all_pred[kk,:] = pred_Rs
+
+    pred_Rs = np.median(all_pred, axis=0)
+    std_pred = np.std(all_pred, axis=0)
+    NN_Rs = model.prediction(ab[idx], device)
+
+    return d_a, idx, orig, a_mean, a_std, a_pca, obs_Rs,\
+        pred_Rs, std_pred, NN_Rs, Rs, ab, allY, wave
+
 def gen_cb(img, lbl, csz = 17.):
     cbaxes = plt.colorbar(img, pad=0., fraction=0.030)
     cbaxes.set_label(lbl, fontsize=csz)
@@ -121,81 +197,6 @@ def fig_l23_tara_pca(outfile='fig_l23_tara_pca.png',
 
 
 
-# #############################################
-# Load
-def load_up(in_idx:int, chop_burn = -3000,
-            iop_type:str='nmf'):
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    # Chains
-    out_path = os.path.join(
-        os.getenv('OS_COLOR'), 'IHOP', 'L23',
-        iop_type.upper())
-    chain_file = 'fit_a_L23_NN_Rs10.npz'
-           
-    # Load prep
-    if iop_type == 'pca':
-        lfunc = load_loisel_2023_pca
-        em_path = os.path.join(os.getenv('OS_COLOR'), 'IHOP', 
-                               'Emulators', 'SimpleNet_PCA')
-        model_file += '/model_100000.pth'
-        ncomp = 3
-    elif iop_type == 'nmf':
-        # Model
-        em_path = os.path.join(os.getenv('OS_COLOR'), 'IHOP', 
-                               'Emulators')
-        model_file = os.path.join(
-            em_path, 'DenseNet_NM4',
-            'densenet_NMF_[512, 512, 512, 256]_epochs_2500_p_0.0_lr_0.01.pth')
-        lfunc = load_loisel_2023
-        ncomp = 4
-
-    # Do it
-    print("Loading Hydrolight data")
-    ab, Rs, d_a, d_bb = lfunc()
-    print(f"Loading model: {model_file}")
-    model = ihop_io.load_nn(model_file)
-
-    nwave = d_a['wave'].size
-
-    # MCMC
-    print("Loading MCMC")
-    d = np.load(os.path.join(out_path, chain_file))
-    chains = d['chains']
-    l23_idx = d['idx']
-    obs_Rs = d['obs_Rs']
-
-    idx = l23_idx[in_idx]
-    print(f'Working on: L23 index={idx}')
-
-    # Prep
-    if iop_type == 'pca':
-        rfunc = ihop_pca.reconstruct
-        wave = d_a['wavelength']
-    elif iop_type == 'nmf':
-        rfunc = ihop_nmf.reconstruct
-        wave = d_a['wave']
-    
-    # a
-    Y = chains[in_idx, chop_burn:, :, 0:ncomp].reshape(-1,ncomp)
-    orig, a_recon = rfunc(Y, d_a, idx)
-    a_mean = np.mean(a_recon, axis=0)
-    a_std = np.std(a_recon, axis=0)
-    _, a_pca = rfunc(ab[idx][:ncomp], d_a, idx)
-
-    # Rs
-    allY = chains[in_idx, chop_burn:, :, :].reshape(-1,ncomp*2)
-    all_pred = np.zeros((allY.shape[0], nwave))
-    for kk in range(allY.shape[0]):
-        Ys = allY[kk]
-        pred_Rs = model.prediction(Ys, device)
-        all_pred[kk,:] = pred_Rs
-
-    pred_Rs = np.median(all_pred, axis=0)
-    std_pred = np.std(all_pred, axis=0)
-    NN_Rs = model.prediction(ab[idx], device)
-
-    return d_a, idx, orig, a_mean, a_std, a_pca, obs_Rs,\
-        pred_Rs, std_pred, NN_Rs, Rs, ab, allY, wave
 
 def fig_mcmc_fit(outfile='fig_mcmc_fit.png', iop_type='nmf'):
     # Load
