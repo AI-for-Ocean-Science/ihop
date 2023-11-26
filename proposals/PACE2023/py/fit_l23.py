@@ -300,10 +300,12 @@ def another_test(iop_type:str='pca'):
 
 def quick_test(iop_type:str='pca'):
 
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     # Load Hydrolight
     print("Loading Hydrolight data")
     ab, Rs, d_a, d_bb, model = load_hydro(iop_type=iop_type)
     wave = d_a['wavelength'] if iop_type == 'pca' else d_a['wave']
+    nwave = wave.size
     ncomp = ab.shape[1]//2
 
     pdict = dict(model=model)
@@ -360,7 +362,32 @@ def quick_test(iop_type:str='pca'):
         med_fits-std_fits, med_fits+std_fits,
         color='b', alpha=0.5) 
     ax.legend()
+    plt.show()
 
+    # ###########################################
+    # Plot Rs
+    model_Rs = model.prediction(ab[idx], device)
+    all_pred = np.zeros((samples.shape[0], nwave))
+    for kk in range(samples.shape[0]):
+        Ys = samples[kk]
+        pred_Rs = model.prediction(Ys, device)
+        all_pred[kk,:] = pred_Rs
+
+    fit_Rs = np.median(all_pred, axis=0)
+
+    plt.clf()
+    ax = plt.gca()
+    ax.plot(wave, Rs[idx], 'kx', label='True Rs')
+    ax.plot(wave, model_Rs, 'b-', label='Model Rs')
+    ax.plot(wave, fit_Rs, 'r-', label='Fit Rs')
+
+    ax.set_ylabel('Rs')
+    ax.set_xlabel('Wavelenegth (nm)')
+
+    #ax.fill_between(wave,
+    #    med_fits-std_fits, med_fits+std_fits,
+    #    color='b', alpha=0.5) 
+    ax.legend()
     plt.show()
 
     embed(header='342 of fit_l23.py')
