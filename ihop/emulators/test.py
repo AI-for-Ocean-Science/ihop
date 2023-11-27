@@ -89,12 +89,17 @@ def calc_stats(model_file:str, iop_type:str):
     stat_dict['per_bias'] = per_bias
     return stat_dict
 
-def nn_emulator_plot(model_file:str, iop_type:str):
+def nn_emulator_plot(model_file:str, iop_type:str,
+                     clobber:bool=False):
 
     out_path = os.path.join(
         resources.files('ihop'), 'emulators', 'QA')
     out_root = os.path.basename(model_file).split('.pt')[0]
     out_file = os.path.join(out_path, f'{out_root}.png')
+
+    if os.path.exists(out_file) and not clobber:
+        print(f"Skipping: File exists {out_file}")
+        return
 
     # Calculations
     model = ihop_io.load_nn(model_file)

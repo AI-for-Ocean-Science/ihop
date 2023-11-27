@@ -30,6 +30,23 @@ import pandas
 
 from IPython import embed
 
+def load_nmf(nmf_fit:str, N_NMF:int=None, iop:str='a'):
+
+    # Load
+    if nmf_fit == 'l23':
+        if N_NMF is None:
+            N_NMF = 5
+        path = os.path.join(resources.files('ihop'), 
+                    'data', 'NMF')
+        outroot = os.path.join(path, f'L23_NMF_{iop}_{N_NMF}')
+        nmf_file = outroot+'.npz'
+        #
+        d = np.load(nmf_file)
+    else:
+        raise IOError("Bad input")
+
+    return d
+
 
 # #############################################
 # Load
@@ -55,7 +72,7 @@ def load_up(in_idx:int, chop_burn = -3000,
                                'Emulators')
         model_file = os.path.join(
             em_path, 'DenseNet_NM4',
-            'densenet_NMF_[512, 512, 512, 256]_epochs_2500_p_0.0_lr_0.01.pth')
+            'densenet_NMF_[512, 512, 512, 256]_epochs_25000_p_0.0_lr_0.01.pth')
         lfunc = load_loisel_2023
         ncomp = 4
 
@@ -113,8 +130,10 @@ def gen_cb(img, lbl, csz = 17.):
     cbaxes.ax.tick_params(labelsize=csz)
 
 
-def fig_l23_tara_pca(outfile='fig_l23_tara_pca.png',
-                     show_spec:bool=False):
+def fig_l23_tara_pca_nmf(
+    outfile='fig_l23_tara_pca_nmf.png',
+    show_spec:bool=False,
+    nmf_fit:str='l23'):
 
     # Load up
     L23_Tara_pca_N20 = ihop_pca.load('pca_L23_X4Y0_Tara_a_N20.npz')
@@ -122,71 +141,66 @@ def fig_l23_tara_pca(outfile='fig_l23_tara_pca.png',
     L23_Tara_pca = ihop_pca.load(f'pca_L23_X4Y0_Tara_a_N{N}.npz')
     wave = L23_Tara_pca['wavelength']
 
+    # NMF
+    rmss = []
+    for n in range(1,10):
+        # load
+        d = load_nmf(nmf_fit, N_NMF=n+1)
+        N_NMF = d['M'].shape[0]
+        recon = np.dot(d['coeff'],
+                       d['M'])
+        #
+        dev = recon - d['spec']
+        rms = np.std(dev, axis=1)
+        # Average
+        avg_rms = np.mean(rms)
+        rmss.append(avg_rms)
 
-    if show_spec:
-        figsize=(12,6)
-    else:
-        figsize=(7,6)
+    # Figure
+    clrs = ['b', 'g']
+    figsize=(12,6)
     fig = plt.figure(figsize=figsize)
     plt.clf()
-    if show_spec:
-        gs = gridspec.GridSpec(1,2)
-    else:
-        gs = gridspec.GridSpec(1,1)
+    gs = gridspec.GridSpec(1,2)
 
     # #####################################################
-    # PDF
+    # PCA
     ax_var = plt.subplot(gs[0])
 
     ax_var.plot(np.arange(L23_Tara_pca_N20['explained_variance'].size)+1,
-        np.cumsum(L23_Tara_pca_N20['explained_variance']), 'o-')
-    ax_var.set_xlim(0., 10)
+        np.cumsum(L23_Tara_pca_N20['explained_variance']), 'o-',
+        color=clrs[0])
     ax_var.set_xlabel('Number of Components')
     ax_var.set_ylabel('Cumulative Explained Variance')
     # Horizontal line at 1
     ax_var.axhline(1., color='k', ls=':')
 
+
     axes = [ax_var]
 
-    if show_spec:
-        # #####################################################
-        # Reconstructions
-        ax_recon = plt.subplot(gs[1])
+    # #####################################################
+    # NMF
+    ax_nmf = plt.subplot(gs[1])
 
-        idx = 1000  # L23 
-        orig, recon = ihop_pca.reconstruct(
-            L23_Tara_pca['Y'][idx], L23_Tara_pca, idx)
-        lbl = 'L23'
-        ax_recon.plot(wave, orig,  label=lbl)
-        ax_recon.plot(wave, recon, 'r:', label=f'L23 Model (N={N})')
+    ax_nmf.plot(2+np.arange(N_NMF-1), rmss, 'o', color=clrs[1])
 
-        idx = 100000  # L23 
-        orig, recon = ihop_pca.reconstruct(
-            L23_Tara_pca['Y'][idx], L23_Tara_pca, idx)
-        lbl = 'Tara'
-        ax_recon.plot(wave, orig,  'g', label=lbl)
-        ax_recon.plot(wave, recon, color='orange', ls=':', label=f'Tara Model (N={N})')
+    ax_nmf.set_xlabel('Number of Components')
+    ax_nmf.set_ylabel(r'Average RMSE (m$^{-1}$)')
         
-        
-        #
-        ax_recon.set_xlabel('Wavelength (nm)')
-        ax_recon.set_ylabel(r'$a(\lambda)$')
-        ax_recon.set_ylim(0., 1.1*np.max(recon))
-        ax_recon.legend(fontsize=15.)
-        # Add it
-        axes.append(ax_recon)
-    
-    # Stats
-    #rms = np.sqrt(np.mean((var.a.data[idx] - a_recon3[idx])**2))
-    #max_dev = np.max(np.abs((var.a.data[idx] - a_recon3[idx])/a_recon3[idx]))
-    #ax.text(0.05, 0.7, f'RMS={rms:0.4f}, max '+r'$\delta$'+f'={max_dev:0.2f}',
-    #        transform=ax.transAxes,
-    #          fontsize=16., ha='left', color='k')  
+    ax_nmf.set_ylim(0., 0.0007)
 
+    #ax_nmf.set_yscale('log')
+
+    axes.append(ax_nmf)
 
     # Finish
-    for ax in axes:
-        plotting.set_fontsize(ax, 15)
+    for ss, ax in enumerate(axes):
+        plotting.set_fontsize(ax, 17)
+        ax.set_xlim(0., 10)
+        lbl = 'PCA' if ss == 0 else 'NMF'
+        ax.text(0.95, 0.05, lbl, color=clrs[ss],
+            transform=ax.transAxes,
+              fontsize=18, ha='right')
 
 
     
@@ -287,7 +301,7 @@ def main(flg):
 
     # PCA
     if flg & (2**0):
-        fig_l23_tara_pca()
+        fig_l23_tara_pca_nmf()
 
     # MCMC fit
     if flg & (2**1):
@@ -304,7 +318,7 @@ if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         flg = 0
-        #flg += 2 ** 0  # 1 -- PCA
+        #flg += 2 ** 0  # 1 -- PCA + NMF perf.
         #flg += 2 ** 1  # 2 -- MCMC fit
     else:
         flg = sys.argv[1]

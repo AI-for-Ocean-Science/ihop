@@ -46,7 +46,7 @@ def load_hydro(iop_type:str='pca'):
                                'IHOP', 'Emulators')
         model_file = os.path.join(
             em_path, 'DenseNet_NM4',
-            'densenet_NMF_[512, 512, 512, 256]_epochs_2500_p_0.0_lr_0.01.pth')
+            'densenet_NMF_[512, 512, 512, 256]_epochs_25000_p_0.0_lr_0.01.pth')
                                   
                        
         print(f"Loading model: {model_file}")
@@ -485,10 +485,10 @@ if __name__ == '__main__':
 
     # Testing
     #quick_test()
-    #quick_test(iop_type='nmf', fake=True)
+    quick_test(iop_type='nmf', fake=True)
 
     #another_test()
-    another_test(iop_type='nmf', fake=True)
+    #another_test(iop_type='nmf', fake=True)
 
     # All of em
     #do_all_fits(iop_type='pca')
