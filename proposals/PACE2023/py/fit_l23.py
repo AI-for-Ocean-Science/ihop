@@ -57,12 +57,13 @@ def load_hydro(iop_type:str='pca'):
     # Return
     return ab, Rs, d_a, d_bb, model
 
-def do_all_fits(n_cores:int=4, iop_type:str='pca'):
+def do_all_fits(n_cores:int=4, iop_type:str='pca',
+                fake:bool=False):
 
     for perc in [0, 5, 10, 15, 20]:
         print(f"Working on: perc={perc}")
         fit_fixed_perc(perc=perc, n_cores=n_cores, Nspec=100,
-                       iop_type=iop_type)
+                       iop_type=iop_type, fake=fake)
 
 def analyze_l23(chain_file, chop_burn:int=-4000,
                 iop_type:str='pca'):
@@ -240,7 +241,8 @@ def fit_one(items:list, pdict:dict=None):
     return sampler, idx
 
 def fit_fixed_perc(perc:int, n_cores:int, seed:int=1234,
-                   Nspec:int=100, iop_type:str='pca'):
+                   Nspec:int=100, iop_type:str='pca',
+                   fake:bool=False):
     # Outfile
     outfile = os.path.join(out_path,
         f'fit_a_L23_NN_Rs{perc:02d}')
@@ -248,18 +250,28 @@ def fit_fixed_perc(perc:int, n_cores:int, seed:int=1234,
     # Load Hydrolight
     print("Loading Hydrolight data")
     ab, Rs, d_a, d_bb, model = load_hydro(iop_type=iop_type)
+    nwave = Rs.shape[1]
     #ab, Rs, d_a, d_bb = ihop_io.load_loisel_2023_pca()
+
+    if fake:
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        use_Rs = np.zeros((ab.shape[0], nwave))
+        for kk in range(ab.shape[0]):
+            pred_Rs = model.prediction(ab[kk], device)
+            use_Rs[kk,:] = pred_Rs
+    else:
+        use_Rs = Rs
 
     # Select a random sample
     np.random.seed(seed)
-    idx = np.random.choice(np.arange(Rs.shape[0]), 
+    idx = np.random.choice(np.arange(use_Rs.shape[0]), 
                            Nspec, replace=False)
 
     # Add in random noise
-    r_sig = np.random.normal(size=Rs.shape)
+    r_sig = np.random.normal(size=use_Rs.shape)
     r_sig = np.minimum(r_sig, 3.)
     r_sig = np.maximum(r_sig, -3.)
-    Rs += (perc/100.) * Rs * r_sig
+    use_Rs += (perc/100.) * use_Rs * r_sig
 
     # MCMC
     pdict = dict(model=model)
@@ -272,7 +284,7 @@ def fit_fixed_perc(perc:int, n_cores:int, seed:int=1234,
     map_fn = partial(fit_one, pdict=pdict)
 
     # Prep
-    items = [(Rs[i], ab[i], i) for i in idx]
+    items = [(use_Rs[i], ab[i], i) for i in idx]
     
     # Parallel
     with ProcessPoolExecutor(max_workers=n_cores) as executor:
@@ -292,13 +304,15 @@ def fit_fixed_perc(perc:int, n_cores:int, seed:int=1234,
 
     # Save
     np.savez(outfile, chains=all_samples, idx=all_idx,
-             obs_Rs=Rs[all_idx])
+             obs_Rs=Rs[all_idx], use_Rs=use_Rs[all_idx])
     print(f"Wrote: {outfile}")
 
-def another_test(iop_type:str='pca'):
-    fit_fixed_perc(perc=10, n_cores=4, Nspec=8, iop_type=iop_type)
+def another_test(iop_type:str='pca',
+                 fake:bool=False):
+    fit_fixed_perc(perc=10, n_cores=4, Nspec=8, 
+                   iop_type=iop_type, fake=fake)
 
-def quick_test(iop_type:str='pca'):
+def quick_test(iop_type:str='pca', fake:bool=False):
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     # Load Hydrolight
@@ -314,9 +328,13 @@ def quick_test(iop_type:str='pca'):
     pdict['save_file'] = 'tmp.h5'
     pdict['perc'] = 5
 
-    #idx = 1000
-    idx = 2554
-    items = [Rs[idx], ab[idx], idx]
+    idx = 1000
+    #idx = 2554
+    if fake:
+        use_Rs = model.prediction(ab[idx], device)
+    else:
+        use_Rs = Rs[idx]
+    items = [use_Rs, ab[idx], idx]
 
     t0 = time.time()
     sampler, _ = fit_one(items, pdict=pdict)
@@ -377,7 +395,9 @@ def quick_test(iop_type:str='pca'):
 
     plt.clf()
     ax = plt.gca()
-    ax.plot(wave, Rs[idx], 'kx', label='True Rs')
+    ax.scatter(wave, Rs[idx], color='k', label='True Rs', 
+        s=5, facecolors='none')
+    ax.plot(wave, use_Rs, 'kx', label='Used Rs')
     ax.plot(wave, model_Rs, 'b-', label='Model Rs')
     ax.plot(wave, fit_Rs, 'r-', label='Fit Rs')
 
@@ -465,14 +485,14 @@ if __name__ == '__main__':
 
     # Testing
     #quick_test()
-    quick_test(iop_type='nmf')
+    #quick_test(iop_type='nmf', fake=True)
 
     #another_test()
-    #another_test(iop_type='nmf')
+    another_test(iop_type='nmf', fake=True)
 
     # All of em
     #do_all_fits(iop_type='pca')
-    #do_all_fits(iop_type='nmf', n_cores=20)
+    #do_all_fits(iop_type='nmf', n_cores=10, fake=True)
 
     # Analysis
     #stats = analyze_l23('fit_a_L23_NN_Rs10.npz')
