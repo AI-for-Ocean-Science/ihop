@@ -164,6 +164,7 @@ class DenseNet(nn.Module):
             batch_features = tensor.view(-1, nparam).to(device)
             outputs = self(batch_features)
 
+        embed(header='nn 167')
         outputs.cpu()
         pred = outputs * self.Rs_parm[1] + self.Rs_parm[0]
 
