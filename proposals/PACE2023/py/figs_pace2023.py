@@ -342,6 +342,7 @@ def fig_nmf_basis(outroot:str='fig_nmf_basis',
     plt.savefig(outfile, dpi=300)
     print(f"Saved: {outfile}")
 
+
 def main(flg):
     if flg== 'all':
         flg= np.sum(np.array([2 ** ii for ii in range(25)]))

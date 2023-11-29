@@ -12,10 +12,10 @@ from ihop.emulators import io
 from IPython import embed
 
 
-def log_prob(ab, Rs, model, device, scl_sig):
+def log_prob(ab, Rs, model, device, scl_sig, abs_sig):
     pred = model.prediction(ab, device)
-    #
-    sig = scl_sig * Rs
+    # Error
+    sig = scl_sig * Rs if scl_sig is not None else abs_sig
     #
     prob = -1*0.5 * np.sum( (pred-Rs)**2 / sig**2)
     if np.isnan(prob):
@@ -25,7 +25,8 @@ def log_prob(ab, Rs, model, device, scl_sig):
 
 
 def run_emcee_nn(nn_model, Rs, nwalkers:int=32, nsteps:int=20000,
-                 save_file:str=None, p0=None, scl_sig:float=0.05,
+                 save_file:str=None, p0=None, scl_sig:float=None,
+                 abs_sig:float=None,
                  skip_check:bool=False):
 
     # Device for NN
@@ -39,6 +40,8 @@ def run_emcee_nn(nn_model, Rs, nwalkers:int=32, nsteps:int=20000,
         warnings.warn("Assuming 8 inputs. REMOVE THIS")
         ndim = 8
 
+
+    # Initialize
     if p0 is None:
         p0 = np.random.rand(nwalkers, ndim)
     else:
@@ -60,7 +63,7 @@ def run_emcee_nn(nn_model, Rs, nwalkers:int=32, nsteps:int=20000,
 
     sampler = emcee.EnsembleSampler(
         nwalkers, ndim, log_prob, 
-        args=[Rs, nn_model, device, scl_sig],
+        args=[Rs, nn_model, device, scl_sig, abs_sig],
         backend=backend)
 
     # Burn in

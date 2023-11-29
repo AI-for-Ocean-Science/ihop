@@ -233,7 +233,8 @@ def fit_one(items:list, pdict:dict=None):
         pdict['model'], Rs,
         nwalkers=pdict['nwalkers'],
         nsteps=pdict['nsteps'],
-        scl_sig=pdict['perc']/100.,
+        scl_sig=pdict['scl_sig']/100. if pdict['scl_sig'] is not None else None,
+        abs_sig=pdict['abs_sig'] if pdict['abs_sig'] is not None else None,
         p0=ab,
         save_file=pdict['save_file'])
 
@@ -315,7 +316,8 @@ def another_test(iop_type:str='pca',
                    iop_type=iop_type, fake=fake)
 
 def quick_test(iop_type:str='pca', fake:bool=False,
-               perc:int=None, idx:int=1000):
+               perc:int=None, idx:int=1000,
+               max_perc:float=None):
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     # Load Hydrolight
@@ -331,7 +333,8 @@ def quick_test(iop_type:str='pca', fake:bool=False,
     pdict['nwalkers'] = 16
     pdict['nsteps'] = 20000
     pdict['save_file'] = 'tmp.h5'
-    pdict['perc'] = perc if perc is not None else 5
+    pdict['scl_sig'] = perc 
+    pdict['abs_sig'] = None
 
     if fake:
         use_Rs = model.prediction(ab[idx], device)
@@ -339,11 +342,19 @@ def quick_test(iop_type:str='pca', fake:bool=False,
         use_Rs = Rs[idx]
 
     # Add in random noise
-    if perc is not None:
+    if perc is not None or max_perc is not None:
         r_sig = np.random.normal(size=use_Rs.shape)
         r_sig = np.minimum(r_sig, 3.)
         r_sig = np.maximum(r_sig, -3.)
-        use_Rs += (perc/100.) * use_Rs * r_sig
+        if max_perc is not None:
+            # Absolute error
+            mx_Rs = max(use_Rs)
+            pdict['abs_sig'] = mx_Rs * max_perc / 100.
+            use_Rs += r_sig * pdict['abs_sig']
+            # Keep a floor -- FAKE!
+            #use_Rs = np.maximum(use_Rs, 1e-4)
+        else:
+            use_Rs += (perc/100.) * use_Rs * r_sig
 
     items = [use_Rs, ab[idx], idx]
 
@@ -365,6 +376,7 @@ def quick_test(iop_type:str='pca', fake:bool=False,
     print(f"Wrote: {outfile}")
 
     # Plots
+    #
     cidx = 0
     plt.clf()
     plt.hist(samples[:,cidx], 100, color='k', histtype='step')
@@ -506,7 +518,8 @@ if __name__ == '__main__':
 
     # Testing
     #quick_test()
-    quick_test(iop_type='nmf', fake=True, perc=5)
+    quick_test(iop_type='nmf', fake=True, max_perc=2,
+               idx=1000)
 
     #another_test()
     #another_test(iop_type='nmf', fake=True, n_cores=1)
