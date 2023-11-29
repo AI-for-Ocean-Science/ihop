@@ -303,7 +303,8 @@ def fig_corner(outfile='fig_corner.png'):
 
 
 def fig_nmf_basis(outroot:str='fig_nmf_basis',
-                 nmf_fit:str='l23', N_NMF:int=4):
+                 nmf_fit:str='l23', N_NMF:int=4,
+                 norm:bool=True):
 
     outfile = f'{outroot}_{N_NMF}.png'
 
@@ -320,9 +321,16 @@ def fig_nmf_basis(outroot:str='fig_nmf_basis',
         wave = d['wave']
 
         ax = plt.subplot(gs[ss])
+
         # Plot
         for ii in range(N_NMF):
-            ax.step(wave, M[ii], label=r'$\xi_'+f'{ii+1}'+'$')
+            # Normalize
+            if norm:
+                iwv = np.argmin(np.abs(wave-440.))
+                nrm = M[ii][iwv]
+            else:
+                nrm = 1.
+            ax.step(wave, M[ii]/nrm, label=r'$\xi_'+f'{ii+1}'+'$')
 
         ax.set_xlabel('Wavelength (nm)')
 
