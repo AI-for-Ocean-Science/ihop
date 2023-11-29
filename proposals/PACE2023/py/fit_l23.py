@@ -254,6 +254,7 @@ def fit_fixed_perc(perc:int, n_cores:int, seed:int=1234,
     #ab, Rs, d_a, d_bb = ihop_io.load_loisel_2023_pca()
 
     if fake:
+        print("Using fake Rs")
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         use_Rs = np.zeros((ab.shape[0], nwave))
         for kk in range(ab.shape[0]):
@@ -308,11 +309,13 @@ def fit_fixed_perc(perc:int, n_cores:int, seed:int=1234,
     print(f"Wrote: {outfile}")
 
 def another_test(iop_type:str='pca',
-                 fake:bool=False):
-    fit_fixed_perc(perc=10, n_cores=4, Nspec=8, 
+                 fake:bool=False,
+                 n_cores:int=4):
+    fit_fixed_perc(perc=10, n_cores=n_cores, Nspec=8, 
                    iop_type=iop_type, fake=fake)
 
-def quick_test(iop_type:str='pca', fake:bool=False):
+def quick_test(iop_type:str='pca', fake:bool=False,
+               perc:int=None, idx:int=1000):
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     # Load Hydrolight
@@ -322,18 +325,26 @@ def quick_test(iop_type:str='pca', fake:bool=False):
     nwave = wave.size
     ncomp = ab.shape[1]//2
 
+    outfile = f'quick_fit_{iop_type}'
+
     pdict = dict(model=model)
     pdict['nwalkers'] = 16
     pdict['nsteps'] = 20000
     pdict['save_file'] = 'tmp.h5'
-    pdict['perc'] = 5
+    pdict['perc'] = perc if perc is not None else 5
 
-    idx = 1000
-    #idx = 2554
     if fake:
         use_Rs = model.prediction(ab[idx], device)
     else:
         use_Rs = Rs[idx]
+
+    # Add in random noise
+    if perc is not None:
+        r_sig = np.random.normal(size=use_Rs.shape)
+        r_sig = np.minimum(r_sig, 3.)
+        r_sig = np.maximum(r_sig, -3.)
+        use_Rs += (perc/100.) * use_Rs * r_sig
+
     items = [use_Rs, ab[idx], idx]
 
     t0 = time.time()
@@ -342,8 +353,18 @@ def quick_test(iop_type:str='pca', fake:bool=False):
     dt = t1-t0
     print(f'Time: {dt} sec')
     samples = sampler.get_chain()
+    all_samples = samples.copy()
     samples = samples[-4000:,:,:].reshape((-1, samples.shape[-1]))
 
+    # Save
+    all_idx = [idx]
+    np.savez(outfile, chains=all_samples,
+             idx=all_idx,
+             obs_Rs=use_Rs.reshape((1,use_Rs.size)),
+    )
+    print(f"Wrote: {outfile}")
+
+    # Plots
     cidx = 0
     plt.clf()
     plt.hist(samples[:,cidx], 100, color='k', histtype='step')
@@ -485,14 +506,14 @@ if __name__ == '__main__':
 
     # Testing
     #quick_test()
-    quick_test(iop_type='nmf', fake=True)
+    quick_test(iop_type='nmf', fake=True, perc=5)
 
     #another_test()
-    #another_test(iop_type='nmf', fake=True)
+    #another_test(iop_type='nmf', fake=True, n_cores=1)
 
     # All of em
     #do_all_fits(iop_type='pca')
-    #do_all_fits(iop_type='nmf', n_cores=10, fake=True)
+    #do_all_fits(iop_type='nmf', n_cores=4, fake=True)
 
     # Analysis
     #stats = analyze_l23('fit_a_L23_NN_Rs10.npz')

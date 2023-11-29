@@ -164,8 +164,8 @@ class DenseNet(nn.Module):
             batch_features = tensor.view(-1, nparam).to(device)
             outputs = self(batch_features)
 
-        #outputs.cpu()
-        pred = outputs.cpu() * self.Rs_parm[1] + self.Rs_parm[0]
+        outputs.cpu()
+        pred = outputs * self.Rs_parm[1] + self.Rs_parm[0]
 
         # Convert to numpy
         pred = pred.numpy()
@@ -349,7 +349,6 @@ def build_densenet(hidden_list:list,
                     'loss': loss,}, PATH)
         torch.save(model, f'{root}.pth')
         print(f"Wrote: {root}.pt, {root}.pth")
-    del model
     return loss
 
 if __name__ == '__main__':

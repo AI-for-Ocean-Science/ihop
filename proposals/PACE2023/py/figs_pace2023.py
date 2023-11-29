@@ -51,13 +51,17 @@ def load_nmf(nmf_fit:str, N_NMF:int=None, iop:str='a'):
 # #############################################
 # Load
 def load_up(in_idx:int, chop_burn = -3000,
-            iop_type:str='nmf'):
+            iop_type:str='nmf', use_quick:bool=False):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     # Chains
     out_path = os.path.join(
         os.getenv('OS_COLOR'), 'IHOP', 'L23',
         iop_type.upper())
     chain_file = 'fit_a_L23_NN_Rs10.npz'
+
+    if use_quick:
+        out_path = './'
+        chain_file = 'quick_fit_nmf.npz'
            
     # Load prep
     if iop_type == 'pca':
@@ -88,6 +92,10 @@ def load_up(in_idx:int, chop_burn = -3000,
     print("Loading MCMC")
     d = np.load(os.path.join(out_path, chain_file))
     chains = d['chains']
+    if use_quick:
+        pass
+    else:
+        chains = chains[in_idx]
     l23_idx = d['idx']
     obs_Rs = d['obs_Rs']
 
@@ -103,14 +111,14 @@ def load_up(in_idx:int, chop_burn = -3000,
         wave = d_a['wave']
     
     # a
-    Y = chains[in_idx, chop_burn:, :, 0:ncomp].reshape(-1,ncomp)
+    Y = chains[chop_burn:, :, 0:ncomp].reshape(-1,ncomp)
     orig, a_recon = rfunc(Y, d_a, idx)
     a_mean = np.mean(a_recon, axis=0)
     a_std = np.std(a_recon, axis=0)
     _, a_pca = rfunc(ab[idx][:ncomp], d_a, idx)
 
     # Rs
-    allY = chains[in_idx, chop_burn:, :, :].reshape(-1,ncomp*2)
+    allY = chains[chop_burn:, :, :].reshape(-1,ncomp*2)
     all_pred = np.zeros((allY.shape[0], nwave))
     for kk in range(allY.shape[0]):
         Ys = allY[kk]
@@ -209,25 +217,23 @@ def fig_l23_tara_pca_nmf(
     print(f"Saved: {outfile}")
 
 
-
-
-
-def fig_mcmc_fit(outfile='fig_mcmc_fit.png', iop_type='nmf'):
+def fig_mcmc_fit(outfile='fig_mcmc_fit.png', iop_type='nmf',
+                 use_quick:bool=False):
     # Load
     in_idx = 0
-    items = load_up(in_idx, iop_type=iop_type)
+    items = load_up(in_idx, iop_type=iop_type, use_quick=use_quick)
     d_a, idx, orig, a_mean, a_std, a_pca, obs_Rs,\
         pred_Rs, std_pred, NN_Rs, Rs, ab, allY, wave = items
 
     # #########################################################
     # Plot the solution
 
-    fig = plt.figure(figsize=(12,6))
+    fig = plt.figure(figsize=(6,12))
     plt.clf()
-    gs = gridspec.GridSpec(1,2)
+    gs = gridspec.GridSpec(3,1)
     
     # a
-    ax_a = plt.subplot(gs[0])
+    ax_a = plt.subplot(gs[1])
     def plot_spec(ax):
         ax.plot(wave, orig, 'bo', label='True')
         ax.plot(wave, a_mean, 'r-', label='Fit')
@@ -252,9 +258,12 @@ def fig_mcmc_fit(outfile='fig_mcmc_fit.png', iop_type='nmf'):
 
     # #########################################################
     # Rs
-    ax_R = plt.subplot(gs[1])
+    ax_R = plt.subplot(gs[0])
     ax_R.plot(wave, Rs[idx], 'bo', label='True')
-    ax_R.plot(wave, obs_Rs[in_idx], 'ks', label='Obs')
+    if use_quick:
+        ax_R.plot(wave, obs_Rs[idx], 'ks', label='Obs')
+    else:
+        ax_R.plot(wave, obs_Rs[in_idx], 'ks', label='Obs')
     ax_R.plot(wave, pred_Rs, 'rx', label='Model')
     ax_R.plot(wave, NN_Rs, 'g-', label='NN+True')
 
@@ -293,6 +302,46 @@ def fig_corner(outfile='fig_corner.png'):
     print(f"Saved: {outfile}")
 
 
+def fig_nmf_basis(outroot:str='fig_nmf_basis',
+                 nmf_fit:str='l23', N_NMF:int=4):
+
+    outfile = f'{outroot}_{N_NMF}.png'
+
+
+    fig = plt.figure(figsize=(12,6))
+    gs = gridspec.GridSpec(1,2)
+
+    # a, bb
+    for ss, iop in enumerate(['a', 'bb']):
+
+        # load
+        d = load_nmf(nmf_fit, N_NMF=N_NMF, iop=iop)
+        M = d['M']
+        wave = d['wave']
+
+        ax = plt.subplot(gs[ss])
+        # Plot
+        for ii in range(N_NMF):
+            ax.step(wave, M[ii], label=r'$\xi_'+f'{ii+1}'+'$')
+
+        ax.set_xlabel('Wavelength (nm)')
+
+        lbl = r'$a(\lambda)$' if ss == 0 else r'$b_b(\lambda)$'
+        ax.set_ylabel(lbl+' Basis Functions')
+
+        ax.legend(fontsize=15)
+
+
+        #ax.text(0.95, 0.05, lbl, color='k',
+        #    transform=ax.transAxes,
+        #      fontsize=18, ha='right')
+
+        plotting.set_fontsize(ax, 15)
+
+    plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
+    plt.savefig(outfile, dpi=300)
+    print(f"Saved: {outfile}")
+
 def main(flg):
     if flg== 'all':
         flg= np.sum(np.array([2 ** ii for ii in range(25)]))
@@ -303,12 +352,16 @@ def main(flg):
     if flg & (2**0):
         fig_l23_tara_pca_nmf()
 
-    # MCMC fit
+    # NMF basis
     if flg & (2**1):
-        fig_mcmc_fit()
+        fig_nmf_basis()
 
     # MCMC fit
     if flg & (2**2):
+        fig_mcmc_fit(use_quick=True)
+
+    # MCMC fit
+    if flg & (2**3):
         fig_corner()
 
 
@@ -319,7 +372,8 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         flg = 0
         #flg += 2 ** 0  # 1 -- PCA + NMF perf.
-        #flg += 2 ** 1  # 2 -- MCMC fit
+        #flg += 2 ** 1  # 2 -- NMF basis functions
+        #flg += 2 ** 2  # 4 -- MCMC fit
     else:
         flg = sys.argv[1]
 
