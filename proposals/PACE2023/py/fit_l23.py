@@ -317,7 +317,11 @@ def another_test(iop_type:str='pca',
 
 def quick_test(iop_type:str='pca', fake:bool=False,
                perc:int=None, idx:int=1000,
-               max_perc:float=None):
+               max_perc:float=None,
+               seed=None):
+
+    if seed is not None:
+        np.random.seed(seed)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     # Load Hydrolight
@@ -369,12 +373,18 @@ def quick_test(iop_type:str='pca', fake:bool=False,
 
     # Save
     all_idx = [idx]
-    np.savez(outfile, chains=all_samples,
+    np.savez(outfile, 
+             chains=all_samples,
              idx=all_idx,
+             ab=ab[idx],
              obs_Rs=use_Rs.reshape((1,use_Rs.size)),
     )
     print(f"Wrote: {outfile}")
 
+    # ###########################################
+    # ###########################################
+    # ###########################################
+    # ###########################################
     # Plots
     #
     cidx = 0
@@ -390,6 +400,7 @@ def quick_test(iop_type:str='pca', fake:bool=False,
         labels=['a0', 'a1', 'a2', 'b0', 'b1', 'b2']
     elif iop_type == 'nmf':
         labels=['a0', 'a1', 'a2', 'a3', 'b0', 'b1', 'b2', 'b3']
+
 
     fig = corner.corner(samples, labels=labels, truths=ab[idx])
     plt.show()
@@ -519,7 +530,7 @@ if __name__ == '__main__':
     # Testing
     #quick_test()
     quick_test(iop_type='nmf', fake=True, max_perc=2,
-               idx=1000)
+               idx=1000, seed=12345)
 
     #another_test()
     #another_test(iop_type='nmf', fake=True, n_cores=1)

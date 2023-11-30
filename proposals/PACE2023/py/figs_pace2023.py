@@ -51,7 +51,8 @@ def load_nmf(nmf_fit:str, N_NMF:int=None, iop:str='a'):
 # #############################################
 # Load
 def load_up(in_idx:int, chop_burn = -3000,
-            iop_type:str='nmf', use_quick:bool=False):
+            iop_type:str='nmf', use_quick:bool=False,
+            chains_only:bool=False):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     # Chains
     out_path = os.path.join(
@@ -80,13 +81,6 @@ def load_up(in_idx:int, chop_burn = -3000,
         lfunc = load_loisel_2023
         ncomp = 4
 
-    # Do it
-    print("Loading Hydrolight data")
-    ab, Rs, d_a, d_bb = lfunc()
-    print(f"Loading model: {model_file}")
-    model = ihop_io.load_nn(model_file)
-
-    nwave = d_a['wave'].size
 
     # MCMC
     print("Loading MCMC")
@@ -98,9 +92,19 @@ def load_up(in_idx:int, chop_burn = -3000,
         chains = chains[in_idx]
     l23_idx = d['idx']
     obs_Rs = d['obs_Rs']
+    if chains_only:
+        return chains, d
 
     idx = l23_idx[in_idx]
     print(f'Working on: L23 index={idx}')
+
+    # Do it
+    print("Loading Hydrolight data")
+    ab, Rs, d_a, d_bb = lfunc()
+    print(f"Loading model: {model_file}")
+    model = ihop_io.load_nn(model_file)
+
+    nwave = d_a['wave'].size
 
     # Prep
     if iop_type == 'pca':
@@ -117,6 +121,13 @@ def load_up(in_idx:int, chop_burn = -3000,
     a_std = np.std(a_recon, axis=0)
     _, a_pca = rfunc(ab[idx][:ncomp], d_a, idx)
 
+    # bb
+    Y = chains[chop_burn:, :, ncomp:].reshape(-1,ncomp)
+    orig_bb, bb_recon = rfunc(Y, d_bb, idx)
+    bb_mean = np.mean(bb_recon, axis=0)
+    bb_std = np.std(bb_recon, axis=0)
+    #_, a_pca = rfunc(ab[idx][:ncomp], d_a, idx)
+
     # Rs
     allY = chains[chop_burn:, :, :].reshape(-1,ncomp*2)
     all_pred = np.zeros((allY.shape[0], nwave))
@@ -130,7 +141,9 @@ def load_up(in_idx:int, chop_burn = -3000,
     NN_Rs = model.prediction(ab[idx], device)
 
     return d_a, idx, orig, a_mean, a_std, a_pca, obs_Rs,\
-        pred_Rs, std_pred, NN_Rs, Rs, ab, allY, wave
+        pred_Rs, std_pred, NN_Rs, Rs, ab, allY, wave,\
+        orig_bb, bb_mean, bb_std
+            
 
 def gen_cb(img, lbl, csz = 17.):
     cbaxes = plt.colorbar(img, pad=0., fraction=0.030)
@@ -217,27 +230,31 @@ def fig_l23_tara_pca_nmf(
     print(f"Saved: {outfile}")
 
 
+# ############################################################
 def fig_mcmc_fit(outfile='fig_mcmc_fit.png', iop_type='nmf',
-                 use_quick:bool=False):
+                 use_quick:bool=False,
+                 show_zoom:bool=False):
     # Load
     in_idx = 0
     items = load_up(in_idx, iop_type=iop_type, use_quick=use_quick)
-    d_a, idx, orig, a_mean, a_std, a_pca, obs_Rs,\
-        pred_Rs, std_pred, NN_Rs, Rs, ab, allY, wave = items
+    d_a, idx, orig, a_mean, a_std, a_iop, obs_Rs,\
+        pred_Rs, std_pred, NN_Rs, Rs, ab, allY, wave,\
+        orig_bb, bb_mean, bb_std = items
 
     # #########################################################
     # Plot the solution
 
-    fig = plt.figure(figsize=(6,12))
+    fig = plt.figure(figsize=(8,12))
     plt.clf()
     gs = gridspec.GridSpec(3,1)
     
+    # #########################################################
     # a
     ax_a = plt.subplot(gs[1])
     def plot_spec(ax):
-        ax.plot(wave, orig, 'bo', label='True')
+        ax.plot(wave, orig, 'ko', label='True')
         ax.plot(wave, a_mean, 'r-', label='Fit')
-        ax.plot(wave, a_pca, 'k:', label='PCA')
+        #ax.plot(wave, a_iop, 'k:', label='PCA')
         ax.fill_between(wave, a_mean-a_std, a_mean+a_std, 
             color='r', alpha=0.5) 
     plot_spec(ax_a)
@@ -246,26 +263,40 @@ def fig_mcmc_fit(outfile='fig_mcmc_fit.png', iop_type='nmf',
 
     # Zoom in
     # inset axes....
-    asz = 0.4
-    ax_zoom = ax_a.inset_axes(
-        [0.15, 0.5, asz, asz])
-    plot_spec(ax_zoom)
-    ax_zoom.set_xlim(340.,550)
-    ax_zoom.set_ylim(0., 0.25)
-    #ax_zoom.set_ylim(340.,550)
-    ax_zoom.set_xlabel('Wavelength (nm)')
-    ax_zoom.set_ylabel(r'$a(\lambda)$')
+    if show_zoom:
+        asz = 0.4
+        ax_zoom = ax_a.inset_axes(
+            [0.15, 0.5, asz, asz])
+        plot_spec(ax_zoom)
+        ax_zoom.set_xlim(340.,550)
+        ax_zoom.set_ylim(0., 0.25)
+        #ax_zoom.set_ylim(340.,550)
+        ax_zoom.set_xlabel('Wavelength (nm)')
+        ax_zoom.set_ylabel(r'$a(\lambda)$')
+
+    # #########################################################
+    # b
+    ax_bb = plt.subplot(gs[2])
+    ax_bb.plot(wave, orig_bb, 'ko', label='True')
+    ax_bb.plot(wave, bb_mean, 'g-', label='Fit')
+    ax_bb.fill_between(wave, bb_mean-bb_std, bb_mean+bb_std, 
+            color='g', alpha=0.5) 
+
+    ax_bb.set_xlabel('Wavelength (nm)')
+    ax_bb.set_ylabel(r'$b_b(\lambda)$')
 
     # #########################################################
     # Rs
     ax_R = plt.subplot(gs[0])
-    ax_R.plot(wave, Rs[idx], 'bo', label='True')
+    ax_R.plot(wave, Rs[idx], 'kx', label='True')
     if use_quick:
-        ax_R.plot(wave, obs_Rs[idx], 'ks', label='Obs')
+        ax_R.plot(wave, obs_Rs[0], 'bs', label='Obs')
     else:
-        ax_R.plot(wave, obs_Rs[in_idx], 'ks', label='Obs')
-    ax_R.plot(wave, pred_Rs, 'rx', label='Model')
-    ax_R.plot(wave, NN_Rs, 'g-', label='NN+True')
+        ax_R.plot(wave, obs_Rs[in_idx], 'bs', label='Obs')
+    ax_R.plot(wave, pred_Rs, 'r-', label='Model', zorder=10)
+    ax_R.fill_between(wave, pred_Rs-std_pred, pred_Rs+std_pred, 
+            color='r', alpha=0.5, zorder=10) 
+    #ax_R.plot(wave, NN_Rs, 'g-', label='NN+True')
 
     ax_R.fill_between(wave,
         pred_Rs-std_pred, pred_Rs+std_pred,
@@ -277,22 +308,45 @@ def fig_mcmc_fit(outfile='fig_mcmc_fit.png', iop_type='nmf',
     ax_R.legend()
     
     # axes
-    for ax in [ax_a, ax_R]:
+    for ax in [ax_a, ax_R, ax_bb]:
         plotting.set_fontsize(ax, 15)
 
     plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
     plt.savefig(outfile, dpi=300)
     print(f"Saved: {outfile}")
 
-def fig_corner(outfile='fig_corner.png'):
+def fig_corner(iop:str, outroot='fig_corner', 
+               chop_burn = -3000):
+
+    outfile = f'{outroot}_{iop}.png'
+
+
     in_idx = 0
-    items = load_up(in_idx)
-    d_a, idx, orig, a_mean, a_std, a_pca, obs_Rs,\
-        pred_Rs, std_pred, NN_Rs, Rs, ab, allY = items
+    items = load_up(in_idx, iop_type='nmf', use_quick=True, 
+                    chains_only=True)
+    chains, d = items
+
+    ncomp = 4
+    if iop == 'a':
+        labels = [r'$A_1$', r'$A_2$', 
+                  r'$A_3$', r'$A_4$']
+        truths = d['ab'][0:4]
+        Y = chains[chop_burn:, :, 0:ncomp].reshape(-1,ncomp)
+
+    elif iop == 'bb':
+        labels = [r'$B_1$', r'$B_2$', 
+                  r'$B_3$', r'$B_4$']
+        truths = d['ab'][4:]
+        Y = chains[chop_burn:, :, ncomp:].reshape(-1,ncomp)
+    
+    fig = plt.figure(figsize=(8,12))
+    plt.clf()
+    #gs = gridspec.GridSpec(3,1)
     
     fig = corner.corner(
-        allY, labels=['a0', 'a1', 'a2', 'b0', 'b1', 'b2'],
-        truths=ab[idx],
+        Y, 
+        labels=labels,
+        truths=truths,
         label_kwargs={'fontsize':17},
         show_titles=True,
         title_kwargs={"fontsize": 12},
@@ -371,7 +425,7 @@ def main(flg):
 
     # MCMC fit
     if flg & (2**3):
-        fig_corner()
+        fig_corner(iop='a')
 
 
 # Command line execution
@@ -383,6 +437,7 @@ if __name__ == '__main__':
         #flg += 2 ** 0  # 1 -- PCA + NMF perf.
         #flg += 2 ** 1  # 2 -- NMF basis functions
         #flg += 2 ** 2  # 4 -- MCMC fit
+        #flg += 2 ** 3  # 8 -- Corner plot
     else:
         flg = sys.argv[1]
 
