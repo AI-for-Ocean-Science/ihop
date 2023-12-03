@@ -191,7 +191,7 @@ def fig_l23_tara_pca_nmf(
     ax_var.plot(np.arange(L23_Tara_pca_N20['explained_variance'].size)+1,
         np.cumsum(L23_Tara_pca_N20['explained_variance']), 'o-',
         color=clrs[0])
-    ax_var.set_xlabel('Number of Components')
+    ax_var.set_xlabel(r'Number of Components ($N_{\rm PCA}$)')
     ax_var.set_ylabel('Cumulative Explained Variance')
     # Horizontal line at 1
     ax_var.axhline(1., color='k', ls=':')
@@ -203,9 +203,9 @@ def fig_l23_tara_pca_nmf(
     # NMF
     ax_nmf = plt.subplot(gs[1])
 
-    ax_nmf.plot(2+np.arange(N_NMF-1), rmss, 'o', color=clrs[1])
+    ax_nmf.plot(2+np.arange(N_NMF-1), rmss, 'o-', color=clrs[1])
 
-    ax_nmf.set_xlabel('Number of Components')
+    ax_nmf.set_xlabel(r'Number of Components ($N_{\rm NMF}$)')
     ax_nmf.set_ylabel(r'Average RMSE (m$^{-1}$)')
         
     ax_nmf.set_ylim(0., 0.0007)
@@ -221,7 +221,7 @@ def fig_l23_tara_pca_nmf(
         lbl = 'PCA' if ss == 0 else 'NMF'
         ax.text(0.95, 0.05, lbl, color=clrs[ss],
             transform=ax.transAxes,
-              fontsize=18, ha='right')
+              fontsize=22, ha='right')
 
 
     
@@ -355,6 +355,63 @@ def fig_corner(iop:str, outroot='fig_corner',
     plt.savefig(outfile, dpi=300)
     print(f"Saved: {outfile}")
 
+def fig_nmf_pca_basis(outfile:str='fig_nmf_pca_basis.png',
+                 nmf_fit:str='l23', N_NMF:int=4,
+                 norm:bool=True):
+
+    fig = plt.figure(figsize=(12,6))
+    gs = gridspec.GridSpec(1,2)
+
+    # a, bb
+    for ss, itype in zip([0,1], ['PCA', 'NMF']):
+
+        # load
+        if ss == 0:
+            ab, Rs, d, d_bb = load_loisel_2023_pca()
+            wave = d['wavelength']
+            Ncomp = 3
+        elif ss == 1:
+            d = load_nmf(nmf_fit, N_NMF=N_NMF, iop='a')
+            wave = d['wave']
+            Ncomp = 4
+        M = d['M']
+        #embed(header='fig_nmf_pca_basis 376')
+
+        ax = plt.subplot(gs[ss])
+
+        # Plot
+        for ii in range(Ncomp):
+            # Normalize
+            if norm:
+                iwv = np.argmin(np.abs(wave-440.))
+                nrm = M[ii][iwv]
+            else:
+                nrm = 1.
+            ax.step(wave, M[ii]/nrm, label=f'{itype}:'+r'  $\xi_'+f'{ii+1}'+'$')
+
+        ax.set_xlabel('Wavelength (nm)')
+
+        lbl = 'PCA' if ss == 0 else 'NMF'
+        ax.set_ylabel(lbl+' Basis Functions')
+
+        ax.legend(fontsize=15)
+
+
+        if ss == 0:
+            xlbl, ha, flbl = 0.95, 'right', '(a)'
+        else:
+            xlbl, ha, flbl = 0.05, 'left', '(b)'
+
+        ax.text(xlbl, 0.05, flbl, color='k',
+            transform=ax.transAxes,
+              fontsize=18, ha=ha)
+
+        plotting.set_fontsize(ax, 18)
+
+    plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
+    plt.savefig(outfile, dpi=300)
+    print(f"Saved: {outfile}")
+
 
 def fig_nmf_basis(outroot:str='fig_nmf_basis',
                  nmf_fit:str='l23', N_NMF:int=4,
@@ -417,7 +474,7 @@ def main(flg):
 
     # NMF basis
     if flg & (2**1):
-        fig_nmf_basis()
+        fig_nmf_pca_basis()
 
     # MCMC fit
     if flg & (2**2):
@@ -427,6 +484,10 @@ def main(flg):
     if flg & (2**3):
         fig_corner(iop='a')
 
+    # NMF basis
+    #if flg & (2**1):
+    #    fig_nmf_basis()
+
 
 # Command line execution
 if __name__ == '__main__':
@@ -435,7 +496,7 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         flg = 0
         #flg += 2 ** 0  # 1 -- PCA + NMF perf.
-        #flg += 2 ** 1  # 2 -- NMF basis functions
+        #flg += 2 ** 1  # 2 -- NMF/PCA basis functions
         #flg += 2 ** 2  # 4 -- MCMC fit
         #flg += 2 ** 3  # 8 -- Corner plot
     else:
