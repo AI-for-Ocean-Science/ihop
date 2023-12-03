@@ -1,5 +1,8 @@
 """ NMF analysis of IOPs """
 
+import os
+from importlib import resources
+
 import numpy as np
 
 from oceancolor.iop import cross
@@ -50,3 +53,80 @@ def prep_loisel23(iop:str, min_wv:float=400., sigma:float=0.05,
 
     # Return
     return spec_nw, mask, err, wave, Rs
+
+def load_nmf(nmf_fit:str, N_NMF:int=None, iop:str='a'):
+
+    # Load
+    if nmf_fit == 'l23':
+        if N_NMF is None:
+            N_NMF = 5
+        path = os.path.join(resources.files('ihop'), 
+                            'data', 'NMF')
+        outroot = os.path.join(path, f'L23_NMF_{iop}_{N_NMF}')
+        nmf_file = outroot+'.npz'
+        #
+        d = np.load(nmf_file)
+    else:
+        raise IOError("Bad input")
+
+    return d
+
+def single_exp_var(nmf_fit:str, N_NMF:int, iop:str,
+                   col_wise=False):
+    data = load_nmf(nmf_fit, N_NMF=N_NMF, iop=iop)
+    
+    # transpose data matrix if it is col_wise.
+    if col_wise:
+        data = np.transpose(data)
+
+    # Calculate covariance matrix
+    cov_data = np.cov(data)
+
+    # Eigen decomposition 
+    values, vectors = np.linalg.eig(cov_data)
+
+    # Get explained variances
+    explained_variances = values / np.sum(values)
+    return explained_variances
+
+def exp_var():
+
+    print("Explained Variance Computation Starts.")
+
+    # bb
+    exp_var_list = []
+    index_list = []
+    for i in range(2, 11):
+        data_path = f"../data/L23_NMF_bb_{i}_coef.npy"
+        exp_var_i = exp_var(data_path)
+        exp_var_list.append(exp_var_i)
+        index_list.append(f"bb_{i}")
+    result_dict = {
+        "index_list": index_list,
+        "exp_var": exp_var_list,
+    }
+    df_exp_var = pd.DataFrame(result_dict)
+    df_exp_var.set_index("index_list", inplace=True)
+    file_save = "../data/exp_var_coef_L23_NMF_bb.csv"
+    df_exp_var.to_csv(file_save, header=False)
+
+    # a
+    exp_var_list = []
+    index_list = []
+    for i in range(2, 11):
+        data_path = f"../data/L23_NMF_a_{i}_coef.npy"
+        exp_var_i = exp_var(data_path)
+        exp_var_list.append(exp_var_i)
+        index_list.append(f"a_{i}")
+    result_dict = {
+        "index_list": index_list,
+        "exp_var": exp_var_list,
+    }
+    df_exp_var = pd.DataFrame(result_dict)
+    df_exp_var.set_index("index_list", inplace=True)
+    file_save = "../data/exp_var_coef_L23_NMF_a.csv"
+    df_exp_var.to_csv(file_save, header=False)    
+    print("Computation Ends Successfully!")
+    
+    
+    

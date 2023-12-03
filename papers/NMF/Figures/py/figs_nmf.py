@@ -31,24 +31,48 @@ import pandas
 
 from IPython import embed
 
-def load_nmf(nmf_fit:str, N_NMF:int=None, iop:str='a'):
 
-    # Load
-    if nmf_fit == 'l23':
-        if N_NMF is None:
-            N_NMF = 5
-        path = os.path.join(resources.files('ihop'), 
-                    'data', 'NMF')
-        outroot = os.path.join(path, f'L23_NMF_{iop}_{N_NMF}')
-        nmf_file = outroot+'.npz'
-        #
-        d = np.load(nmf_file)
-    else:
-        raise IOError("Bad input")
-
-    return d
 
 def fig_nmf_rmse(outfile:str='fig_nmf_rmse.png',
+                 nmf_fit:str='l23'):
+
+    # RMSE
+    rmss = []
+    for n in range(1,10):
+        # load
+        d = load_nmf(nmf_fit, N_NMF=n+1)
+        N_NMF = d['M'].shape[0]
+        recon = np.dot(d['coeff'],
+                       d['M'])
+        #
+        dev = recon - d['spec']
+        rms = np.std(dev, axis=1)
+        # Average
+        avg_rms = np.mean(rms)
+        rmss.append(avg_rms)
+
+    # Plot
+
+    fig = plt.figure(figsize=(6,6))
+    plt.clf()
+    ax = plt.gca()
+
+    ax.plot(2+np.arange(N_NMF-1), rmss, 'o')
+
+    ax.set_xlabel('Number of Components')
+    ax.set_ylabel(r'Average RMSE (m$^{-1}$)')
+
+    ax.set_yscale('log')
+    
+    # axes
+    plotting.set_fontsize(ax, 15)
+
+    plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
+    plt.savefig(outfile, dpi=300)
+    print(f"Saved: {outfile}")
+
+def fig_explained_variance(
+    outfile:str='fig_explained_variance.png',
                  nmf_fit:str='l23'):
 
     # RMSE
@@ -307,6 +331,10 @@ def main(flg):
     if flg & (2**4):
         fig_fit_cdom()
 
+    # Explained variance
+    if flg & (2**5):
+        fig_explain_variance()
+
 
 
 # Command line execution
@@ -320,6 +348,7 @@ if __name__ == '__main__':
         #flg += 2 ** 2  # 4 -- Indiv
         #flg += 2 ** 3  # 8 -- Coeff
         #flg += 2 ** 4  # 16 -- Fit CDOM
+        #flg += 2 ** 5  # 32 -- Explained variance
     else:
         flg = sys.argv[1]
 
