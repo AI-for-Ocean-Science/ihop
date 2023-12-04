@@ -57,7 +57,7 @@ def prep_loisel23(iop:str, min_wv:float=400., sigma:float=0.05,
 def load_nmf(nmf_fit:str, N_NMF:int=None, iop:str='a'):
 
     # Load
-    if nmf_fit == 'l23':
+    if nmf_fit == 'L23':
         if N_NMF is None:
             N_NMF = 5
         path = os.path.join(resources.files('ihop'), 
@@ -71,62 +71,88 @@ def load_nmf(nmf_fit:str, N_NMF:int=None, iop:str='a'):
 
     return d
 
-def single_exp_var(nmf_fit:str, N_NMF:int, iop:str,
-                   col_wise=False):
-    data = load_nmf(nmf_fit, N_NMF=N_NMF, iop=iop)
-    
-    # transpose data matrix if it is col_wise.
-    if col_wise:
-        data = np.transpose(data)
+def load_nmf_coef(nmf_fit:str, N_NMF:int=None, iop:str='a'):
 
-    # Calculate covariance matrix
-    cov_data = np.cov(data)
+    # Load
+    data_dir = "/home/jovyan/ihop/ihop"
+    if nmf_fit == 'L23':
+        if N_NMF is None:
+            N_NMF = 5
+        
+        path = os.path.join(data_dir, 'data', 'NMF')
+        outroot = os.path.join(path, f'L23_NMF_{iop}_{N_NMF}_coef')
+        nmf_file = outroot+'.npy'
+        #
+        h = np.load(nmf_file)
+        print(h.shape)
+    else:
+        raise IOError("Bad input")
 
-    # Eigen decomposition 
-    values, vectors = np.linalg.eig(cov_data)
+    return h
 
-    # Get explained variances
-    explained_variances = values / np.sum(values)
-    return explained_variances
+def load_nmf_comp(nmf_fit:str, N_NMF:int=None, iop:str='a'):
 
-def exp_var():
+    # Load
+    data_dir = "/home/jovyan/ihop/ihop"
+    if nmf_fit == 'L23':
+        if N_NMF is None:
+            N_NMF = 5
+        path = os.path.join(data_dir, 'data', 'NMF')
+        outroot = os.path.join(path, f'L23_NMF_{iop}_{N_NMF}_comp')
+        nmf_file = outroot+'.npy'
+        #
+        w = np.load(nmf_file)
+        print(w.shape)
+    else:
+        raise IOError("Bad input")
 
-    print("Explained Variance Computation Starts.")
+    return w
 
-    # bb
-    exp_var_list = []
-    index_list = []
+# To define the explained variance for NMF, we should 
+# use the following fomula (https://rdrr.io/cran/NMF/man/rss.html):
+# RSS = \sum_{i,j} (v_{ij} - V_{ij})^2
+# evar = 1 - \frac{RSS}{\sum_{i,j} v_{ij}^2}
+# where, V_{ij} is the target, and v_{ij} is the estimation.
+
+def evar_nmf(v_target:np.array, w:np.array, h:np.array):
+    v_est = np.dot(w, h)
+    rss = np.sum(np.square(v_est - v_target))
+    evar = 1 - rss / np.sum(np.square(v_est))
+    return (rss, evar)
+
+def evar_computation(nmf_fit:str, N_NMF:int=None, iop:str='a'):
+    v_target = load_nmf(nmf_fit, N_NMF, iop)
+    #######################################
+    h = d_npz['M']
+    w = d_npz['coeff']
+    # we think it should be, but given data
+    # requires above code
+    # h = d_npz['coeff']
+    # w = d_npz['M']
+    ######################################
+    rss, evar = evar_nmf(v_target, w, h)
+    return (rss, evar)
+
+def evar_for_all(save_path, iop:str='a'):
+    print("Computation Starts.")
+    evar_list, index_list = [], []
     for i in range(2, 11):
-        data_path = f"../data/L23_NMF_bb_{i}_coef.npy"
-        exp_var_i = exp_var(data_path)
-        exp_var_list.append(exp_var_i)
-        index_list.append(f"bb_{i}")
+        _, evar_i = evar_computation("L23", i, "a")
+        evar_list.append(evar_i)
+        index_list.append(i)
     result_dict = {
         "index_list": index_list,
         "exp_var": exp_var_list,
     }
     df_exp_var = pd.DataFrame(result_dict)
     df_exp_var.set_index("index_list", inplace=True)
-    file_save = "../data/exp_var_coef_L23_NMF_bb.csv"
-    df_exp_var.to_csv(file_save, header=False)
-
-    # a
-    exp_var_list = []
-    index_list = []
-    for i in range(2, 11):
-        data_path = f"../data/L23_NMF_a_{i}_coef.npy"
-        exp_var_i = exp_var(data_path)
-        exp_var_list.append(exp_var_i)
-        index_list.append(f"a_{i}")
-    result_dict = {
-        "index_list": index_list,
-        "exp_var": exp_var_list,
-    }
-    df_exp_var = pd.DataFrame(result_dict)
-    df_exp_var.set_index("index_list", inplace=True)
-    file_save = "../data/exp_var_coef_L23_NMF_a.csv"
-    df_exp_var.to_csv(file_save, header=False)    
+    df_exp_var.to_csv(save_path, header=False)    
     print("Computation Ends Successfully!")
-    
-    
-    
+
+if __name__ == "__main__":
+    path = os.path.join(resources.files('ihop'), 
+                        'data', 'NMF')
+    save_path_a = os.path.join(path, f'evar_L23_NMF_a.csv')
+    evar_for_all(save_path_a, 'a')
+    save_path_bb = os.path.join(path, f'evar_L23_NMF_bb.csv')
+    evar_for_all(save_path_bb, 'bb')
