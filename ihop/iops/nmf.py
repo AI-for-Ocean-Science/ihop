@@ -4,6 +4,8 @@ import os
 from importlib import resources
 
 import numpy as np
+import pandas
+from matplotlib import pyplot as plt
 from importlib import resources
 
 from oceancolor.iop import cross
@@ -185,9 +187,9 @@ def evar_for_all(save_path, iop:str='a'):
         index_list.append(i)
     result_dict = {
         "index_list": index_list,
-        "exp_var": exp_var_list,
+        "exp_var": evar_list,
     }
-    df_exp_var = pd.DataFrame(result_dict)
+    df_exp_var = pandas.DataFrame(result_dict)
     df_exp_var.set_index("index_list", inplace=True)
     df_exp_var.to_csv(save_path, header=False)    
     print("Computation Ends Successfully!")

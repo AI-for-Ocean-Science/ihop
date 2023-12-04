@@ -22,6 +22,7 @@ from ihop.iops import pca as ihop_pca
 from ihop.iops import nmf as ihop_nmf
 from ihop.iops.pca import load_loisel_2023_pca
 from ihop.iops.nmf import load_loisel_2023
+from ihop.iops.nmf import evar_computation
 
 mpl.rcParams['font.family'] = 'stixgeneral'
 
@@ -151,9 +152,10 @@ def gen_cb(img, lbl, csz = 17.):
     cbaxes.ax.tick_params(labelsize=csz)
 
 
+# #############################################
 def fig_l23_tara_pca_nmf(
     outfile='fig_l23_tara_pca_nmf.png',
-    show_spec:bool=False,
+    show_spec:bool=False, show_RMSE:bool=False,
     nmf_fit:str='l23'):
 
     # Load up
@@ -163,6 +165,7 @@ def fig_l23_tara_pca_nmf(
     wave = L23_Tara_pca['wavelength']
 
     # NMF
+    '''
     rmss = []
     for n in range(1,10):
         # load
@@ -176,6 +179,14 @@ def fig_l23_tara_pca_nmf(
         # Average
         avg_rms = np.mean(rms)
         rmss.append(avg_rms)
+    '''
+
+    # Variance
+    evar_list, index_list = [], []
+    for i in range(2, 11):
+        _, evar_i = evar_computation("L23", i, 'a')
+        evar_list.append(evar_i)
+        index_list.append(i)
 
     # Figure
     clrs = ['b', 'g']
@@ -203,12 +214,15 @@ def fig_l23_tara_pca_nmf(
     # NMF
     ax_nmf = plt.subplot(gs[1])
 
-    ax_nmf.plot(2+np.arange(N_NMF-1), rmss, 'o-', color=clrs[1])
+    #ax_nmf.plot(2+np.arange(N_NMF-1), rmss, 'o-', color=clrs[1])
+    ax_nmf.plot(index_list, evar_list, 'o-', color=clrs[1])
 
     ax_nmf.set_xlabel(r'Number of Components ($N_{\rm NMF}$)')
-    ax_nmf.set_ylabel(r'Average RMSE (m$^{-1}$)')
-        
-    ax_nmf.set_ylim(0., 0.0007)
+    ax_nmf.axhline(1., color='k', ls=':')
+
+    if show_RMSE:
+        ax_nmf.set_ylabel(r'Average RMSE (m$^{-1}$)')
+        ax_nmf.set_ylim(0., 0.0007)
 
     #ax_nmf.set_yscale('log')
 
@@ -218,7 +232,7 @@ def fig_l23_tara_pca_nmf(
     for ss, ax in enumerate(axes):
         plotting.set_fontsize(ax, 17)
         ax.set_xlim(0., 10)
-        lbl = 'PCA' if ss == 0 else 'NMF'
+        lbl = '(a) PCA' if ss == 0 else '(b) NMF'
         ax.text(0.95, 0.05, lbl, color=clrs[ss],
             transform=ax.transAxes,
               fontsize=22, ha='right')
