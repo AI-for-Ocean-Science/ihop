@@ -121,7 +121,8 @@ def evar_nmf(v_target:np.array, w:np.array, h:np.array):
     return (rss, evar)
 
 def evar_computation(nmf_fit:str, N_NMF:int=None, iop:str='a'):
-    v_target = load_nmf(nmf_fit, N_NMF, iop)
+    d_npz = load_nmf(nmf_fit, N_NMF, iop)
+    v_target = d_npz['spec']
     #######################################
     h = d_npz['M']
     w = d_npz['coeff']
