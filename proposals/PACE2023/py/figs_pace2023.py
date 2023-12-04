@@ -243,8 +243,9 @@ def fig_mcmc_fit(outfile='fig_mcmc_fit.png', iop_type='nmf',
 
     # #########################################################
     # Plot the solution
+    lgsz = 18.
 
-    fig = plt.figure(figsize=(8,12))
+    fig = plt.figure(figsize=(10,12))
     plt.clf()
     gs = gridspec.GridSpec(3,1)
     
@@ -253,13 +254,19 @@ def fig_mcmc_fit(outfile='fig_mcmc_fit.png', iop_type='nmf',
     ax_a = plt.subplot(gs[1])
     def plot_spec(ax):
         ax.plot(wave, orig, 'ko', label='True')
-        ax.plot(wave, a_mean, 'r-', label='Fit')
+        ax.plot(wave, a_mean, 'r-', label='Retrieval')
         #ax.plot(wave, a_iop, 'k:', label='PCA')
         ax.fill_between(wave, a_mean-a_std, a_mean+a_std, 
-            color='r', alpha=0.5) 
+            color='r', alpha=0.5, label='Uncertainty') 
     plot_spec(ax_a)
     ax_a.set_xlabel('Wavelength (nm)')
     ax_a.set_ylabel(r'$a(\lambda)$')
+
+    ax_a.text(0.05, 0.05, '(b)', color='k',
+            transform=ax_a.transAxes,
+              fontsize=18, ha='left')
+
+    ax_a.legend(fontsize=lgsz)
 
     # Zoom in
     # inset axes....
@@ -278,12 +285,17 @@ def fig_mcmc_fit(outfile='fig_mcmc_fit.png', iop_type='nmf',
     # b
     ax_bb = plt.subplot(gs[2])
     ax_bb.plot(wave, orig_bb, 'ko', label='True')
-    ax_bb.plot(wave, bb_mean, 'g-', label='Fit')
+    ax_bb.plot(wave, bb_mean, 'g-', label='Retrieval')
     ax_bb.fill_between(wave, bb_mean-bb_std, bb_mean+bb_std, 
-            color='g', alpha=0.5) 
+            color='g', alpha=0.5, label='Uncertainty') 
 
     ax_bb.set_xlabel('Wavelength (nm)')
     ax_bb.set_ylabel(r'$b_b(\lambda)$')
+
+    ax_bb.text(0.05, 0.05, '(c)', color='k',
+            transform=ax_bb.transAxes,
+              fontsize=18, ha='left')
+    ax_bb.legend(fontsize=lgsz)
 
     # #########################################################
     # Rs
@@ -305,13 +317,17 @@ def fig_mcmc_fit(outfile='fig_mcmc_fit.png', iop_type='nmf',
     ax_R.set_xlabel('Wavelength (nm)')
     ax_R.set_ylabel(r'$R_s$')
 
-    ax_R.legend()
+    ax_R.text(0.05, 0.05, '(a)', color='k',
+            transform=ax_R.transAxes,
+              fontsize=18, ha='left')
+
+    ax_R.legend(fontsize=lgsz)
     
     # axes
     for ax in [ax_a, ax_R, ax_bb]:
         plotting.set_fontsize(ax, 15)
 
-    plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
+    #plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
     plt.savefig(outfile, dpi=300)
     print(f"Saved: {outfile}")
 
@@ -461,6 +477,27 @@ def fig_nmf_basis(outroot:str='fig_nmf_basis',
     plt.savefig(outfile, dpi=300)
     print(f"Saved: {outfile}")
 
+def fig_a_bb_emulator(outfile:str='fig_a_bb_emulator.png',
+                 nmf_fit:str='l23', N_NMF:int=4,
+                 norm:bool=True):
+
+    fig = plt.figure(figsize=(12,6))
+    gs = gridspec.GridSpec(1,2)
+
+    # a
+    ax_a = plt.subplot(gs[0])
+    d = load_nmf(nmf_fit, N_NMF=N_NMF, iop='a')
+    wave = d['wave']
+    Ncomp = 4
+
+    # Plot one
+    embed(header='478 of figs')
+    
+
+    plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
+    plt.savefig(outfile, dpi=300)
+    print(f"Saved: {outfile}")
+
 
 def main(flg):
     if flg== 'all':
@@ -484,6 +521,10 @@ def main(flg):
     if flg & (2**3):
         fig_corner(iop='a')
 
+    # a, bb for emulator
+    if flg & (2**4):
+        fig_a_bb_emulator()
+
     # NMF basis
     #if flg & (2**1):
     #    fig_nmf_basis()
@@ -499,6 +540,7 @@ if __name__ == '__main__':
         #flg += 2 ** 1  # 2 -- NMF/PCA basis functions
         #flg += 2 ** 2  # 4 -- MCMC fit
         #flg += 2 ** 3  # 8 -- Corner plot
+        #flg += 2 ** 4  # 16 -- a, bb for emulator
     else:
         flg = sys.argv[1]
 
