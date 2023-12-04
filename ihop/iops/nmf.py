@@ -138,7 +138,7 @@ def evar_for_all(save_path, iop:str='a'):
     print("Computation Starts.")
     evar_list, index_list = [], []
     for i in range(2, 11):
-        _, evar_i = evar_computation("L23", i, "a")
+        _, evar_i = evar_computation("L23", i, iop)
         evar_list.append(evar_i)
         index_list.append(i)
     result_dict = {
@@ -150,10 +150,32 @@ def evar_for_all(save_path, iop:str='a'):
     df_exp_var.to_csv(save_path, header=False)    
     print("Computation Ends Successfully!")
 
+def evar_plot(save_path, iop:str='a'):
+    print("Computation Starts.")
+    evar_list, index_list = [], []
+    for i in range(2, 11):
+        _, evar_i = evar_computation("L23", i, iop)
+        evar_list.append(evar_i)
+        index_list.append(i)
+    plt.figure(figsize=(10, 8))
+    plt.plot(index_list, evar_list, '-o', color='blue')
+    plt.axhline(y = 1.0, color ="red", linestyle ="--") 
+    plt.xlabel("Dim of Feature space", fontsize=15)
+    plt.ylabel("Explained Variance", fontsize=15)
+    plt.savefig(save_path, dpi=300)
+    plt.close()
+    print("Plot Ends Successfully!")
+
 if __name__ == "__main__":
-    path = os.path.join(resources.files('ihop'), 
-                        'data', 'NMF')
+    path = os.path.join(
+        resources.files('ihop'), 
+        'data', 'NMF'
+    )
     save_path_a = os.path.join(path, f'evar_L23_NMF_a.csv')
     evar_for_all(save_path_a, 'a')
     save_path_bb = os.path.join(path, f'evar_L23_NMF_bb.csv')
     evar_for_all(save_path_bb, 'bb')
+    plot_path_a = os.path.join(path, f'evar_L23_NMF_a.pdf')
+    evar_plot(plot_path_a, iop='a')
+    plot_path_bb = os.path.join(path, f'evar_L23_NMF_bb.pdf')
+    evar_plot(plot_path_bb, iop='bb')
