@@ -479,20 +479,30 @@ def fig_nmf_basis(outroot:str='fig_nmf_basis',
 
 def fig_a_bb_emulator(outfile:str='fig_a_bb_emulator.png',
                  nmf_fit:str='l23', N_NMF:int=4,
-                 norm:bool=True):
+                 idx:int=2300):
 
-    fig = plt.figure(figsize=(12,6))
+    fig = plt.figure(figsize=(12,5))
     gs = gridspec.GridSpec(1,2)
 
+    axs = []
+    for ss in range(2):
+        iop = 'a' if ss == 0 else 'bb'
+        clr = 'b' if ss == 0 else 'g'
     # a
-    ax_a = plt.subplot(gs[0])
-    d = load_nmf(nmf_fit, N_NMF=N_NMF, iop='a')
-    wave = d['wave']
-    Ncomp = 4
+        ax = plt.subplot(gs[ss])
+        d = load_nmf(nmf_fit, N_NMF=N_NMF, iop=iop)
+        wave = d['wave']
+        Ncomp = 4
 
-    # Plot one
-    embed(header='478 of figs')
+        ax.plot(wave, d['spec'][idx], '-', color=clr)
+        ax.set_xlabel('Wavelength (nm)')
+        ylbl = r'$a(\lambda)$' if ss == 0 else r'$b_b(\lambda)$'
+        ax.set_ylabel(ylbl)
+        #
+        axs.append(ax)
     
+    for ax in axs:
+        plotting.set_fontsize(ax, 19) 
 
     plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
     plt.savefig(outfile, dpi=300)
