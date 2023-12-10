@@ -15,8 +15,11 @@ pca_path = os.path.join(resources.files('ihop'),
 def load(pca_file:str):
     return np.load(os.path.join(pca_path, pca_file))
 
-def load_loisel_2023_pca():
+def load_loisel_2023_pca(N_PCA:int=3):
     """ Load the PCA-based parameterization of IOPs from Loisel 2023
+
+    Args:
+        N_PCA (int, optional): Number of PCA components. Defaults to 3.
 
     Returns:
         tuple: 
@@ -29,8 +32,8 @@ def load_loisel_2023_pca():
     # Load up data
     l23_path = os.path.join(resources.files('ihop'),
                             'data', 'PCA')
-    l23_a_file = os.path.join(l23_path, 'pca_L23_X4Y0_a_N3.npz')
-    l23_bb_file = os.path.join(l23_path, 'pca_L23_X4Y0_bb_N3.npz')
+    l23_a_file = os.path.join(l23_path, f'pca_L23_X4Y0_a_N{N_PCA}.npz')
+    l23_bb_file = os.path.join(l23_path, f'pca_L23_X4Y0_bb_N{N_PCA}.npz')
 
     d_a = np.load(l23_a_file)
     d_bb = np.load(l23_bb_file)
