@@ -9,17 +9,21 @@ from oceancolor.utils import pca
 
 from ihop.hydrolight import loisel23
 
+from IPython import embed
+
 pca_path = os.path.join(resources.files('ihop'),
                             'data', 'PCA')
 
-def load(pca_file:str):
+def load(pca_file:str, pca_path:str=pca_path):
     return np.load(os.path.join(pca_path, pca_file))
 
-def load_loisel_2023_pca(N_PCA:int=3):
+def load_loisel_2023_pca(N_PCA:int=3, l23_path:str=None):
     """ Load the PCA-based parameterization of IOPs from Loisel 2023
 
     Args:
         N_PCA (int, optional): Number of PCA components. Defaults to 3.
+        l23_path (str, optional): Path to PCA files. Defaults to None.
+            If None, uses the default path of ihop/data/PCA
 
     Returns:
         tuple: 
@@ -30,7 +34,8 @@ def load_loisel_2023_pca(N_PCA:int=3):
     """
 
     # Load up data
-    l23_path = os.path.join(resources.files('ihop'),
+    if l23_path is None:
+        l23_path = os.path.join(resources.files('ihop'),
                             'data', 'PCA')
     l23_a_file = os.path.join(l23_path, f'pca_L23_X4Y0_a_N{N_PCA}.npz')
     l23_bb_file = os.path.join(l23_path, f'pca_L23_X4Y0_bb_N{N_PCA}.npz')
@@ -54,8 +59,12 @@ def load_data(data_path, back_scatt:str='bb'):
     labels_data = data["Rs"]
     return features_data, labels_data
 
+
 def generate_l23_pca(clobber:bool=False, Ncomp:int=3,
-                     X:int=4, Y:int=0):
+                     X:int=4, Y:int=0,
+                     outroot:str='pca_L23',
+                     pca_path:str=pca_path,
+                     min_wv:float=None, high_cut:float=None):
     """ Generate PCA models for IOPs in Loisel 2023 data
 
     Args:
@@ -63,20 +72,33 @@ def generate_l23_pca(clobber:bool=False, Ncomp:int=3,
         Ncomp (int, optional): Number of PCA components. Defaults to 3.
         X (int, optional): X. Defaults to 4.
         Y (int, optional): Y. Defaults to 0.
+        outroot (str, optional): Output root. Defaults to 'pca_L23'.
+        pca_path (str, optional): Path for output PCA files. Defaults to pca_path.
+        min_wv (float, optional): Minimum wavelength. Defaults to None.
+        high_cut (float, optional): High cut wavelength. Defaults to None.
     """
 
     # Load up the data
     ds = loisel23.load_ds(X, Y)
 
+
     # Loop on IOPs
     for iop in ['a', 'b', 'bb']:
-        outfile = os.path.join(pca_path, f'pca_L23_X{X}Y{Y}_{iop}_N{Ncomp}.npz')
-        if not os.path.exists(outfile) or clobber:
-            pca.fit_normal(ds[iop].data, Ncomp, save_outputs=outfile,
-                           extra_arrays={'Rs':ds.Rrs.data,
-                                         'wavelength':ds.Lambda.data})
+        # Prep
+        outfile = os.path.join(pca_path, f'{outroot}_X{X}Y{Y}_{iop}_N{Ncomp}.npz')
+        # Cut on wavelength?
+        data = ds[iop].data
+        gd_wv = np.ones_like(ds.Lambda.data, dtype=bool)
+        if min_wv is not None:
+            gd_wv = gd_wv & (ds.Lambda.data >= min_wv)
+        if high_cut is not None:
+            gd_wv = gd_wv & (ds.Lambda.data <= high_cut)
 
-    # L23 positive, definite
+        # Do it
+        if not os.path.exists(outfile) or clobber:
+            pca.fit_normal(data[:,gd_wv], Ncomp, save_outputs=outfile,
+                           extra_arrays={'Rs':ds.Rrs.data[:,gd_wv],
+                                         'wavelength':ds.Lambda.data[gd_wv]})
 
 def generate_l23_tara_pca(clobber:bool=False, return_N:int=None):
     """ Generate a PCA for L23 + Tara
