@@ -7,8 +7,6 @@ from importlib import resources
 
 from oceancolor.utils import pca
 
-from ihop.hydrolight import loisel23
-
 from IPython import embed
 
 pca_path = os.path.join(resources.files('ihop'),
