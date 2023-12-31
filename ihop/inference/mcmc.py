@@ -13,6 +13,20 @@ from IPython import embed
 
 
 def log_prob(ab, Rs, model, device, scl_sig, abs_sig):
+    """
+    Calculate the logarithm of the probability of the given parameters.
+
+    Args:
+        ab (array-like): The parameters to be used in the model prediction.
+        Rs (array-like): The observed values.
+        model (object): The model object with a `prediction` method.
+        device (str): The device to be used for the model prediction.
+        scl_sig (float or None): The scaling factor for the error. If None, absolute error is used.
+        abs_sig (float): The absolute error.
+
+    Returns:
+        float: The logarithm of the probability.
+    """
     pred = model.prediction(ab, device)
     # Error
     sig = scl_sig * Rs if scl_sig is not None else abs_sig
@@ -28,7 +42,23 @@ def run_emcee_nn(nn_model, Rs, nwalkers:int=32, nsteps:int=20000,
                  save_file:str=None, p0=None, scl_sig:float=None,
                  abs_sig:float=None,
                  skip_check:bool=False):
+    """
+    Run the emcee sampler for neural network inference.
 
+    Args:
+        nn_model (torch.nn.Module): The neural network model.
+        Rs (numpy.ndarray): The input data.
+        nwalkers (int, optional): The number of walkers in the ensemble. Defaults to 32.
+        nsteps (int, optional): The number of steps to run the sampler. Defaults to 20000.
+        save_file (str, optional): The file path to save the backend. Defaults to None.
+        p0 (numpy.ndarray, optional): The initial positions of the walkers. Defaults to None.
+        scl_sig (float, optional): The scaling factor for the sigma parameter. Defaults to None.
+        abs_sig (float, optional): The absolute value of the sigma parameter. Defaults to None.
+        skip_check (bool, optional): Whether to skip the initial state check. Defaults to False.
+
+    Returns:
+        emcee.EnsembleSampler: The emcee sampler object.
+    """
     # Device for NN
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
