@@ -35,7 +35,7 @@ class MyDataset(Dataset):
 class SimpleNet(nn.Module):
     def __init__(self, ninput:int, noutput:int,
                  nhidden1:int, nhidden2:int,
-                 ab_parm:tuple, 
+                 ab_norm:tuple, 
                  Rs_parm:tuple):
         super(SimpleNet, self).__init__()
         # Save
@@ -44,7 +44,7 @@ class SimpleNet(nn.Module):
         self.nhidden1 = nhidden1
         self.nhidden2 = nhidden2
 
-        self.ab_parm = ab_parm
+        self.ab_norm = ab_norm
         self.Rs_parm = Rs_parm
 
         # Architecture
@@ -79,7 +79,7 @@ class SimpleNet(nn.Module):
 
     def prediction(self, sample, device):
         # Normalize the inputs
-        norm_sample = (sample - self.ab_parm[0])/self.ab_parm[1]
+        norm_sample = (sample - self.ab_norm[0])/self.ab_norm[1]
         tensor = torch.Tensor(norm_sample)
 
         self.eval()
@@ -96,19 +96,48 @@ class SimpleNet(nn.Module):
         return pred.flatten()
 
 class DenseNet(nn.Module):
-    def __init__(
-        self, d_input:int, d_output:int,
-        hidden_list:list, drop_on:bool,
-        p_drop:float, batchnorm:bool,
-        ab_parm:tuple, Rs_parm:tuple
-    ):
+    """
+    A class representing a DenseNet neural network model.
+
+    Args:
+        d_input (int): The number of input features.
+        d_output (int): The number of output features.
+        hidden_list (list): A list of integers representing the number of hidden units in each layer.
+        drop_on (bool): Whether to apply dropout regularization.
+        p_drop (float): The probability of dropping a neuron during dropout.
+        batchnorm (bool): Whether to apply batch normalization.
+        ab_norm (tuple): A tuple containing the mean and standard deviation used for input normalization.
+        Rs_parm (tuple): A tuple containing the scaling parameters used for output denormalization.
+
+    Attributes:
+        ab_norm (tuple): A tuple containing the mean and standard deviation used for input normalization.
+        Rs_parm (tuple): A tuple containing the scaling parameters used for output denormalization.
+        ninput (int): The number of input features.
+        noutput (int): The number of output features.
+        num_layers (int): The total number of layers in the network.
+        block_layers (nn.ModuleList): A list of layer blocks in the network.
+
+    Methods:
+        layer_block: Creates a layer block with the specified configuration.
+        forward: Performs forward propagation through the network.
+        prediction: Generates predictions for a given input sample.
+
+    """
+
+    def __init__(self, d_input:int, d_output:int, 
+                 hidden_list:list, drop_on:bool, 
+                 p_drop:float, batchnorm:bool, 
+                 ab_norm:tuple, Rs_parm:tuple):
+        # Init
         super(DenseNet, self).__init__()
+
         # Save
-        self.ab_parm = ab_parm
+        self.ab_norm = ab_norm
         self.Rs_parm = Rs_parm
         self.ninput = d_input
         self.noutput = d_output
         self.num_layers = len(hidden_list) + 1
+
         # Build the layers
         block_layers = []
         d_in = d_input
@@ -127,6 +156,20 @@ class DenseNet(nn.Module):
         self.block_layers = nn.ModuleList(block_layers)
         
     def layer_block(self, d_in, d_out, drop_on, p_drop, batchnorm):
+        """
+        Creates a layer block with the specified configuration.
+
+        Args:
+            d_in (int): The number of input features for the layer block.
+            d_out (int): The number of output features for the layer block.
+            drop_on (bool): Whether to apply dropout regularization.
+            p_drop (float): The probability of dropping a neuron during dropout.
+            batchnorm (bool): Whether to apply batch normalization.
+
+        Returns:
+            nn.Sequential: The layer block.
+
+        """
         if drop_on and batchnorm:
             block_i = nn.Sequential(
                 nn.Linear(in_features=d_in, out_features=d_out),
@@ -148,14 +191,35 @@ class DenseNet(nn.Module):
         return block_i
 
     def forward(self, x):
+        """
+        Performs forward propagation through the network.
+
+        Args:
+            x (torch.Tensor): The input tensor.
+
+        Returns:
+            torch.Tensor: The output tensor.
+
+        """
         for i in range(self.num_layers):
             layer_i = self.block_layers[i]
             x = layer_i(x)
         return x
 
     def prediction(self, sample, device):
+        """
+        Generates predictions for a given input sample.
+
+        Args:
+            sample (numpy.ndarray): The input sample.
+            device: The device to perform the prediction on.
+
+        Returns:
+            numpy.ndarray: The predicted output.
+
+        """
         # Normalize the inputs
-        norm_sample = (sample - self.ab_parm[0])/self.ab_parm[1]
+        norm_sample = (sample - self.ab_norm[0])/self.ab_norm[1]
         nparam = norm_sample.size
         tensor = torch.Tensor(norm_sample)
 
@@ -173,7 +237,16 @@ class DenseNet(nn.Module):
         return pred.flatten()
 
 def preprocess_data(data):
+    """
+    Preprocesses the input data by normalizing it.
 
+    Args:
+        data (numpy.ndarray): The input data to be preprocessed.
+
+    Returns:
+        tuple: A tuple containing the preprocessed data, mean, and standard deviation.
+
+    """
     # Normalize
     mean = data.mean(axis=0)
     std = data.std(axis=0)
@@ -183,21 +256,22 @@ def preprocess_data(data):
 
 def perform_training(model, dataset, ishape:int, tshape:int,
                      train_kwargs, lr, nepochs:int=100):
-    """ Performs training of a model
+    """
+    Perform training of a neural network model using the given dataset.
 
     Args:
-        model (_type_): _description_
-        dataset (_type_): _description_
-        ishape (int): Shape of the input
-        tshape (int): Shape of the target
-        train_kwargs (_type_): _description_
-        lr (float): learning rate
-        nepochs (int, optional): _description_. Defaults to 100.
+        model (torch.nn.Module): The neural network model to be trained.
+        dataset (torch.utils.data.Dataset): The dataset used for training.
+        ishape (int): The input shape of the data.
+        tshape (int): The target shape of the data.
+        train_kwargs (dict): Additional keyword arguments for the data loader.
+        lr (float): The learning rate for the optimizer.
+        nepochs (int, optional): The number of training epochs. Defaults to 100.
 
     Returns:
-        _type_: _description_
-    """
+        tuple: A tuple containing the final epoch number, the final loss value, and the optimizer.
 
+    """
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     optimizer = optim.Adadelta(model.parameters(), lr=lr)
@@ -303,6 +377,23 @@ def build_densenet(hidden_list:list,
                    batchnorm:bool,
                    save:bool,
                    root:str='model'):
+    """
+    Builds a DenseNet model for training and saves the model if specified.
+
+    Args:
+        hidden_list (list): List of integers specifying the number of hidden units in each layer.
+        nepochs (int): Number of training epochs.
+        dataset (str): Name of the dataset to load.
+        lr (float): Learning rate for the optimizer.
+        dropout_on (bool): Flag indicating whether to use dropout layers.
+        p_dropout (float): Dropout probability.
+        batchnorm (bool): Flag indicating whether to use batch normalization layers.
+        save (bool): Flag indicating whether to save the trained model.
+        root (str, optional): Root name for the saved model files. Defaults to 'model'.
+
+    Returns:
+        float: The loss value after training.
+    """
     ### The DenseNet with dropout and batchnorm layers.
     
     # Load up data
@@ -349,6 +440,7 @@ def build_densenet(hidden_list:list,
                     'loss': loss,}, PATH)
         torch.save(model, f'{root}.pth')
         print(f"Wrote: {root}.pt, {root}.pth")
+    # Return
     return loss
 
 if __name__ == '__main__':
