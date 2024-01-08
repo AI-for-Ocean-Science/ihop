@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from ihop.hydrolight import loisel23
+from oceancolor.hydrolight import loisel23
 
 from IPython import embed
 

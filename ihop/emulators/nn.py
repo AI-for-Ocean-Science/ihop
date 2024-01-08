@@ -95,7 +95,7 @@ class DenseNet(nn.Module):
     A class representing a DenseNet neural network model.
 
     Args:
-        d_input (int): The number of input features.
+        d_input (int): The number of input features. generic
         d_output (int): The number of output features.
         hidden_list (list): A list of integers representing the number of hidden units in each layer.
         drop_on (bool): Whether to apply dropout regularization.

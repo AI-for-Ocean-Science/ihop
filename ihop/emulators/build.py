@@ -7,10 +7,14 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
+from oceancolor.hydrolight import loisel23
+
 from ihop.iops.pca import load_loisel_2023_pca
 from ihop.iops.pca import load_data
-from ihop.iops.nmf import load_loisel_2023
+#from ihop.iops.nmf import load_loisel_2023
 from ihop.emulators.nn import MyDataset, DenseNet, SimpleNet
+
+from IPython import embed
 
 def build_quick_nn_l23(nepochs:int,
                        root:str='model',
@@ -73,6 +77,7 @@ def build_densenet(hidden_list:list,
                    p_dropout:float,
                    batchnorm:bool,
                    save:bool,
+                   include_chl:bool=True,
                    root:str='model'):
     """
     Builds a DenseNet model for training and saves the model if specified.
@@ -87,6 +92,7 @@ def build_densenet(hidden_list:list,
         batchnorm (bool): Flag indicating whether to use batch normalization layers.
         save (bool): Flag indicating whether to save the trained model.
         root (str, optional): Root name for the saved model files. Defaults to 'model'.
+        include_chl (bool, optional): Flag indicating whether to include chlorophyll in the input data. Defaults to True.
 
     Returns:
         float: The loss value after training.
@@ -104,15 +110,33 @@ def build_densenet(hidden_list:list,
         print("Load Data from path of dataset")    
         ab, Rs = load_data(dataset)
 
+    # Chl
+    if include_chl: 
+        if dataset[0:3] == 'L23':
+            # Load
+            ds_l23 = loisel23.load_ds(4, 0)
+            # Chl
+            Chl = loisel23.calc_Chl(ds_l23)
+        else:
+            raise ValueError(f"Chl not available for dataset: {dataset}")
+
     target = Rs
-    nparam = ab.shape[1]
+
+    # Number of parameters
+    nparam = ab.shape[1] + 1 if include_chl else ab.shape[1]
 
     # Preprocess
     pre_ab, mean_ab, std_ab = preprocess_data(ab)
     pre_targ, mean_targ, std_targ = preprocess_data(target)
 
+    # Chl
+    if include_chl:
+        inputs = np.concatenate((pre_ab, Chl.reshape(Chl.size,1)), axis=1)
+    else:
+        inputs = pre_ab
+
     # Dataset
-    dataset = MyDataset(pre_ab, pre_targ)
+    dataset = MyDataset(inputs, pre_targ)
 
     # Model
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -224,13 +248,18 @@ def preprocess_data(data):
 
 if __name__ == '__main__':
 
+    '''
     # Train
     build_quick_nn_l23(100, root='model_100')
     #build_quick_nn_l23(20000, root='model_20000')
     build_quick_nn_l23(100000, root='model_100000')
+    '''
     #####################################################################
-    hidden_list, epochs, lr, p_drop = [512, 512, 256], 2500, 1e-2, 0.0
-    build_densenet(hidden_list, epochs, lr, True, p_drop, True, False)
+    #hidden_list, epochs, lr, p_drop = [512, 512, 256], 2500, 1e-2, 0.0
+    hidden_list, epochs, lr, p_drop = [512, 512, 256], 100, 1e-2, 0.0
+    build_densenet(hidden_list, epochs, 'L23_PCA',
+                   lr, True, p_drop, True, True,
+                   include_chl=True)
     ### loss for above model is: 0.001996453170879529.
     #####################################################################
     
