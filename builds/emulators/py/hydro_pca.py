@@ -11,7 +11,9 @@ def l23_pca(include_chl:bool=True, X:int=4, Y:int=0,
     nepochs:int=100, lr:float=1e-2, p_drop:float=0.):
 
     #include_chl (bool, optional): Flag indicating whether to include chlorophyll in the input data. Defaults to True.
-    root = f'dense_l23_pca_X{X}Y{Y}_{hidden_list[0]}_{hidden_list[1]}_{hidden_list[2]}'
+    root = f'dense_l23_pca_X{X}Y{Y}'
+    for item in hidden_list:
+        root += f'_{item}'
     if include_chl:
         root += '_chl'
 
@@ -47,4 +49,4 @@ def l23_pca(include_chl:bool=True, X:int=4, Y:int=0,
 if __name__ == '__main__':
 
     # L23
-    l23_pca(hidden_list=[512, 512, 256])
+    l23_pca(hidden_list=[512, 512, 512, 256])
