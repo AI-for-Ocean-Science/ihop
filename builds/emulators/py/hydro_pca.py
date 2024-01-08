@@ -37,16 +37,8 @@ def l23_pca(include_chl:bool=True, X:int=4, Y:int=0,
                    lr, dropout_on=False,
                    batchnorm=True, save=True, root=root)
     
-    '''
-    elif dataset == 'L23_NMF':
-        print("Loading L23_NMF")
-        ab, Rs, _, _ = load_loisel_2023()
-    else:
-        print("Load Data from path of dataset")    
-        ab, Rs = load_data(dataset)
-    '''
-
 if __name__ == '__main__':
 
     # L23
-    l23_pca(hidden_list=[512, 512, 512, 256])
+    l23_pca(hidden_list=[512, 512, 512, 256],
+            nepochs=2500)
