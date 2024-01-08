@@ -3,6 +3,7 @@
 import os
 import warnings
 
+from multiprocessing import Pool
 import numpy as np
 import emcee
 
@@ -40,7 +41,7 @@ def log_prob(ab, Rs, model, device, scl_sig, abs_sig):
 
 def run_emcee_nn(nn_model, Rs, nwalkers:int=32, nsteps:int=20000,
                  save_file:str=None, p0=None, scl_sig:float=None,
-                 abs_sig:float=None,
+                 abs_sig:float=None, do_parallel:bool=False,
                  skip_check:bool=False):
     """
     Run the emcee sampler for neural network inference.
@@ -55,6 +56,7 @@ def run_emcee_nn(nn_model, Rs, nwalkers:int=32, nsteps:int=20000,
         scl_sig (float, optional): The scaling factor for the sigma parameter. Defaults to None.
         abs_sig (float, optional): The absolute value of the sigma parameter. Defaults to None.
         skip_check (bool, optional): Whether to skip the initial state check. Defaults to False.
+        do_parallel (bool, optional): Whether to use parallelization. Defaults to False.
 
     Returns:
         emcee.EnsembleSampler: The emcee sampler object.
@@ -91,21 +93,30 @@ def run_emcee_nn(nn_model, Rs, nwalkers:int=32, nsteps:int=20000,
     else:
         backend = None
 
+    # Wrap in this 
+    if not do_parallel:
+        # Set NCPU = 1
+        ncpu = 1
+        
+    #with Pool() as pool:
+    # Init
     sampler = emcee.EnsembleSampler(
-        nwalkers, ndim, log_prob, 
+        nwalkers, ndim, log_prob,
         args=[Rs, nn_model, device, scl_sig, abs_sig],
-        backend=backend)
+        backend=backend)#, pool=pool)
 
     # Burn in
     print("Running burn-in")
     state = sampler.run_mcmc(p0, 1000,
-        skip_initial_state_check=skip_check)
+        skip_initial_state_check=skip_check,
+        progress=True)
     sampler.reset()
 
     # Run
     print("Running full model")
     sampler.run_mcmc(state, nsteps,
-        skip_initial_state_check=skip_check)
+        skip_initial_state_check=skip_check,
+        progress=True)
 
     print(f"All done: Wrote {save_file}")
 

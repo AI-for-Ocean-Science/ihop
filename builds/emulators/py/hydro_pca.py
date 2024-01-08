@@ -40,5 +40,7 @@ def l23_pca(include_chl:bool=True, X:int=4, Y:int=0,
 if __name__ == '__main__':
 
     # L23
+    #  Ran on Nautilus
     l23_pca(hidden_list=[512, 512, 512, 256],
-            nepochs=2500)
+            nepochs=2500) 
+        # epoch : 2500/2500, loss = 0.001642
