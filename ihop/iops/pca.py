@@ -6,6 +6,9 @@ import numpy as np
 from importlib import resources
 
 from oceancolor.utils import pca
+from oceancolor.hydrolight import loisel23
+
+from cnmf.oceanography.iops import tara_matched_to_l23
 
 from IPython import embed
 
@@ -99,7 +102,7 @@ def generate_l23_pca(clobber:bool=False, Ncomp:int=3,
         if not os.path.exists(outfile) or clobber:
             pca.fit_normal(data[:,gd_wv], Ncomp, save_outputs=outfile,
                            extra_arrays={'Rs':ds.Rrs.data[:,gd_wv],
-                                         'wavelength':ds.Lambda.data[gd_wv]})
+                                         'wave':ds.Lambda.data[gd_wv]})
 
 def generate_l23_tara_pca(clobber:bool=False, return_N:int=None):
     """ Generate a PCA for L23 + Tara
@@ -117,7 +120,7 @@ def generate_l23_tara_pca(clobber:bool=False, return_N:int=None):
     """
 
     # Load up
-    wave_grid, tara_a_water, l23_a = loisel23.tara_matched_to_l23()
+    wave_grid, tara_a_water, l23_a = tara_matched_to_l23()
 
     # N components
     data = np.append(l23_a, tara_a_water, axis=0)
@@ -132,15 +135,21 @@ def generate_l23_tara_pca(clobber:bool=False, return_N:int=None):
                 return data, wave_grid, pca_fit
 
 def reconstruct(Y, pca_dict, idx):
-    # Grab the orginal
+    """
+    Reconstructs the original data point from the PCA-encoded representation.
+
+    Args:
+        Y (ndarray): The PCA-encoded representation of the data point.
+        pca_dict (dict): A dictionary containing the PCA transformation parameters.
+        idx (int): The index of the data point to reconstruct.
+
+    Returns:
+        tuple: A tuple containing the original data point and its reconstructed version.
+    """
+    # Grab the original
     orig = pca_dict['data'][idx]
 
     # Reconstruct
     recon = np.dot(Y, pca_dict['M']) + pca_dict['mean']
 
-    return orig, recon 
-
-
-if __name__ == '__main__':
-    #generate_l23_pca(clobber=clobber)
-    generate_l23_tara_pca()
+    return orig, recon

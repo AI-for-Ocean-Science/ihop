@@ -42,5 +42,5 @@ if __name__ == '__main__':
     # L23
     #  Ran on Nautilus
     l23_pca(hidden_list=[512, 512, 512, 256],
-            nepochs=2500) 
+            nepochs=25000) 
         # epoch : 2500/2500, loss = 0.001642
