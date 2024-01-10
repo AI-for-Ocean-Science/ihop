@@ -44,3 +44,4 @@ if __name__ == '__main__':
     l23_pca(hidden_list=[512, 512, 512, 256],
             nepochs=25000) 
         # epoch : 2500/2500, loss = 0.001642
+        # epoch : 25000/25000, loss = 0.000570

@@ -64,15 +64,18 @@ def fig_emulator_rmse(emulator:str,
     # RMSE
     rmse = np.sqrt(np.mean(dev**2, axis=0))
 
+    # Mean Rs
+    mean_Rs = np.mean(targets, axis=0)
+
     # Plot
     figsize=(8,6)
     fig = plt.figure(figsize=figsize)
     plt.clf()
-    gs = gridspec.GridSpec(1,1)
+    gs = gridspec.GridSpec(3,1)
 
     # #####################################################
-    # PCA
-    ax= plt.subplot(gs[0])
+    # Absolute
+    ax= plt.subplot(gs[0:2])
 
     ax.plot(wave, rmse, 'o')
 
@@ -89,6 +92,11 @@ def fig_emulator_rmse(emulator:str,
         transform=ax.transAxes,
         fontsize=22, ha='right')
 
+    # Relative
+    ax_rel = plt.subplot(gs[2])
+    ax_rel.plot(wave, rmse/mean_Rs, 'o', color='k')
+    ax_rel.set_xlabel('Wavelength [nm]')
+    ax_rel.set_ylabel('Relative RMSE')
     
     plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
     plt.savefig(outfile, dpi=300)
