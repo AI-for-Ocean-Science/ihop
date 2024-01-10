@@ -75,28 +75,36 @@ def fig_emulator_rmse(emulator:str,
 
     # #####################################################
     # Absolute
-    ax= plt.subplot(gs[0:2])
+    ax_abs = plt.subplot(gs[0:2])
 
-    ax.plot(wave, rmse, 'o')
+    ax_abs.plot(wave, rmse, 'o')
 
-    ax.set_xlabel('Wavelength [nm]')
-    ax.set_ylabel('RMSE')
+    ax_abs.set_ylabel(r'Absolute RMSE (m$^{-1}$)')
+    ax_abs.tick_params(labelbottom=False)  # Hide x-axis labels
 
-    plotting.set_fontsize(ax, 17)
+
     #ax.set_xlim(1., 10)
     #ax.set_ylim(1e-5, 0.01)
     #ax.set_yscale('log')
     #ax.legend(fontsize=15)
 
-    ax.text(0.95, 0.90, emulator, color='k',
-        transform=ax.transAxes,
+    ax_abs.text(0.95, 0.90, emulator, color='k',
+        transform=ax_abs.transAxes,
         fontsize=22, ha='right')
 
     # Relative
     ax_rel = plt.subplot(gs[2])
     ax_rel.plot(wave, rmse/mean_Rs, 'o', color='k')
-    ax_rel.set_xlabel('Wavelength [nm]')
     ax_rel.set_ylabel('Relative RMSE')
+    ax_rel.set_ylim(0., 0.023)
+
+    # Finish
+    for ss, ax in enumerate([ax_abs, ax_rel]):
+        plotting.set_fontsize(ax, 17)
+        if ss == 1:
+            ax.set_xlabel('Wavelength [nm]')
+        # Grid
+        ax.grid(True, which='major', axis='both', linestyle='--', alpha=0.5)
     
     plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
     plt.savefig(outfile, dpi=300)
