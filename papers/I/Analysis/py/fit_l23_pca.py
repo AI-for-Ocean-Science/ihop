@@ -34,6 +34,7 @@ def load(X:int=4, Y:int=0):
 
     # Load model
     model_file = os.path.join(os.getenv('OS_COLOR'), 'IHOP', 'Emulators',
+        'DenseNet_PCA',
         'dense_l23_pca_X4Y0_512_512_512_256_chl.pth')
     model = ihop_io.load_nn(model_file)
     return ab, Chl, Rs, d_a, d_bb, model
@@ -82,7 +83,7 @@ def analyze_l23(chain_file, chop_burn:int=-4000,
         dev = np.abs(a_mean-orig)/a_mean
         imax_dev = np.argmax(dev)
         max_dev = dev[imax_dev]
-        mxwv = d_a['wavelength'][imax_dev]
+        mxwv = d_a['wave'][imax_dev]
 
         # Save
         all_rms.append(rms)
@@ -146,11 +147,11 @@ def check_one(chain_file:str, in_idx:int, chop_burn:int=-3000):
     # Plot the solution
     plt.clf()
     ax = plt.gca()
-    ax.plot(d_a['wavelength'], orig, 'bo', label='True')
-    ax.plot(d_a['wavelength'], a_mean, 'r-', label='Fit')
-    ax.plot(d_a['wavelength'], a_pca, 'k:', label='PCA')
+    ax.plot(d_a['wave'], orig, 'bo', label='True')
+    ax.plot(d_a['wave'], a_mean, 'r-', label='Fit')
+    ax.plot(d_a['wave'], a_pca, 'k:', label='PCA')
     ax.fill_between(
-        d_a['wavelength'], a_mean-a_std, a_mean+a_std, 
+        d_a['wave'], a_mean-a_std, a_mean+a_std, 
         color='r', alpha=0.5) 
 
     ax.set_xlabel('Wavelength (nm)')
@@ -177,13 +178,13 @@ def check_one(chain_file:str, in_idx:int, chop_burn:int=-3000):
     # Compare Rs
     plt.clf()
     ax = plt.gca()
-    ax.plot(d_a['wavelength'], Rs[idx], 'bo', label='True')
-    ax.plot(d_a['wavelength'], obs_Rs[in_idx], 'ks', label='Obs')
-    ax.plot(d_a['wavelength'], pred_Rs, 'rx', label='Model')
-    ax.plot(d_a['wavelength'], NN_Rs, 'g-', label='NN+True')
+    ax.plot(d_a['wave'], Rs[idx], 'bo', label='True')
+    ax.plot(d_a['wave'], obs_Rs[in_idx], 'ks', label='Obs')
+    ax.plot(d_a['wave'], pred_Rs, 'rx', label='Model')
+    ax.plot(d_a['wave'], NN_Rs, 'g-', label='NN+True')
 
     ax.fill_between(
-        d_a['wavelength'], pred_Rs-std_pred, pred_Rs+std_pred,
+        d_a['wave'], pred_Rs-std_pred, pred_Rs+std_pred,
         color='r', alpha=0.5) 
 
     ax.set_xlabel('Wavelength (nm)')
@@ -222,13 +223,29 @@ def fit_one(items:list, pdict:dict=None, do_parallel:bool=True):
 def fit_fixed_perc(perc:int, n_cores:int, seed:int=1234,
                    Nspec:int=100, iop_type:str='pca',
                    fake:bool=False):
+    """
+    Fits a model using fixed percentage perturbation on the input data.
+
+    Args:
+        perc (int): The percentage of perturbation to apply to the input data.
+        n_cores (int): The number of CPU cores to use for parallel processing.
+        seed (int, optional): The random seed for reproducibility. Defaults to 1234.
+        Nspec (int, optional): The number of random samples to select. Defaults to 100.
+        iop_type (str, optional): The type of IOP (Inherent Optical Property) to use. Defaults to 'pca'.
+        fake (bool, optional): Whether to use fake Rs values. Defaults to False.
+
+    Returns:
+        None
+    """
+    #os.environ["OMP_NUM_THREADS"] = "1"
+
     # Outfile
     outfile = os.path.join(out_path,
         f'fit_a_L23_NN_Rs{perc:02d}')
 
     # Load Hydrolight
     print("Loading Hydrolight data")
-    ab, Rs, d_a, d_bb, model = load_hydro(iop_type=iop_type)
+    ab, Chl, Rs, d_a, d_bb, model = load()#iop_type=iop_type)
     nwave = Rs.shape[1]
     #ab, Rs, d_a, d_bb = ihop_io.load_loisel_2023_pca()
 
@@ -244,7 +261,7 @@ def fit_fixed_perc(perc:int, n_cores:int, seed:int=1234,
 
     # Select a random sample
     np.random.seed(seed)
-    idx = np.random.choice(np.arange(use_Rs.shape[0]), 
+    idx = np.random.choice(np.arange(use_Rs.shape[0]),
                            Nspec, replace=False)
 
     # Add in random noise
@@ -258,13 +275,14 @@ def fit_fixed_perc(perc:int, n_cores:int, seed:int=1234,
     pdict['nwalkers'] = 16
     pdict['nsteps'] = 10000
     pdict['save_file'] = None
-    pdict['perc'] = perc
+    pdict['scl_sig'] = perc
+    pdict['abs_sig'] = None
 
     # Setup for parallel
     map_fn = partial(fit_one, pdict=pdict)
 
     # Prep
-    items = [(use_Rs[i], ab[i], i) for i in idx]
+    items = [(use_Rs[i], ab[i].tolist()+[Chl[i]], i) for i in idx]
     
     # Parallel
     with ProcessPoolExecutor(max_workers=n_cores) as executor:
@@ -290,7 +308,16 @@ def fit_fixed_perc(perc:int, n_cores:int, seed:int=1234,
 def another_test(iop_type:str='pca',
                  fake:bool=False,
                  n_cores:int=4):
-    fit_fixed_perc(perc=10, n_cores=n_cores, Nspec=8, 
+    """
+    Perform another test using the specified IOP type, fake flag, and number of cores.
+
+    Args:
+        iop_type (str, optional): The type of IOP to use for the test. Default is 'pca'.
+        fake (bool, optional): Flag indicating whether to use fake data for the test. Default is False.
+        n_cores (int, optional): The number of CPU cores to use for parallel processing. Default is 4.
+
+    """
+    fit_fixed_perc(perc=10, n_cores=n_cores, Nspec=8,
                    iop_type=iop_type, fake=fake)
 
 def quick_test(iop_type:str='pca', fake:bool=False,
@@ -321,7 +348,7 @@ def quick_test(iop_type:str='pca', fake:bool=False,
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     # Load Hydrolight
     ab, Chl, Rs, d_a, d_bb, model = load()#iop_type=iop_type)
-    wave = d_a['wavelength'] if iop_type == 'pca' else d_a['wave']
+    wave = d_a['wave'] if iop_type == 'pca' else d_a['wave']
     nwave = wave.size
     ncomp = ab.shape[1]//2
 
@@ -454,11 +481,11 @@ def quick_test(iop_type:str='pca', fake:bool=False,
 if __name__ == '__main__':
 
     # Testing
-    quick_test(perc=5)
+    #quick_test(perc=5)
     #quick_test(iop_type='nmf', fake=True, max_perc=2,
     #           idx=1000, seed=12345)
 
-    #another_test()
+    another_test(n_cores=2)
     #another_test(iop_type='nmf', fake=True, n_cores=1)
 
     # All of em
