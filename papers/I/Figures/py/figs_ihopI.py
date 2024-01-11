@@ -112,7 +112,7 @@ def fig_emulator_rmse(emulator:str,
 
 
 # ############################################################
-def fig_mcmc_fit(outfile='fig_mcmc_fit.png', iop_type='nmf',
+def fig_mcmc_fit(outfile='fig_mcmc_fit.png', iop_type='pca',
                  use_quick:bool=False,
                  show_zoom:bool=False):
     # Load

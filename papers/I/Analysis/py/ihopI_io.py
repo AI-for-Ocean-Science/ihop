@@ -14,7 +14,7 @@ from ihop.iops import nmf as ihop_nmf
 
 from IPython import embed
 
-def load_l23_data_model(X:int=4, Y:int=0, decomp:str='pca'):
+def load_l23_data_model(X:int=4, Y:int=0, iop_type:str='pca'):
     """
     Load L2.3 data and model.
 
@@ -22,7 +22,7 @@ def load_l23_data_model(X:int=4, Y:int=0, decomp:str='pca'):
         X (int): simulation scenario   
         Y (int):  solar zenith angle used in the simulation, and 
             represents a value of 00, 30, or 60 degrees.
-        decomp (str): Decomposition method.
+        iop_type (str): Decomposition method.
 
     Returns:
         tuple: Tuple containing ab, Chl, Rs, d_a, d_bb, and model.
@@ -40,7 +40,7 @@ def load_l23_data_model(X:int=4, Y:int=0, decomp:str='pca'):
     Chl = loisel23.calc_Chl(ds_l23)
 
     # Load model
-    if decomp == 'pca':
+    if iop_type == 'pca':
         model_file = os.path.join(os.getenv('OS_COLOR'), 'IHOP', 'Emulators',
             'DenseNet_PCA',
             'dense_l23_pca_X4Y0_512_512_512_256_chl.pth')
@@ -93,9 +93,8 @@ def load_l23_fit(in_idx:int, chop_burn = -3000,
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     # Chains
     out_path = os.path.join(
-        os.getenv('OS_COLOR'), 'IHOP', 'L23',
-        iop_type.upper())
-    chain_file = 'fit_a_L23_NN_Rs10.npz'
+        os.getenv('OS_COLOR'), 'IHOP', 'Fits', 'L23')
+    chain_file = f'fit_L23_{iop_type.upper()}_NN_Rs10.npz'
 
     if use_quick:
         out_path = './'
@@ -124,7 +123,7 @@ def load_l23_fit(in_idx:int, chop_burn = -3000,
     # Parse
     nwave = d_a['wave'].size
     wave = d_a['wave']
-    ncomp = ab.shape[0]//2 + 1 # Chl
+    ncomp = 3
 
     # Prep
     if iop_type == 'pca':
@@ -146,10 +145,8 @@ def load_l23_fit(in_idx:int, chop_burn = -3000,
     bb_std = np.std(bb_recon, axis=0)
     #_, a_pca = rfunc(ab[idx][:ncomp], d_a, idx)
 
-    embed(header='io 147')
-
     # Rs
-    allY = chains[chop_burn:, :, :].reshape(-1,ncomp*2)
+    allY = chains[chop_burn:, :, :].reshape(-1,ncomp*2+1) # Chl
     all_pred = np.zeros((allY.shape[0], nwave))
     for kk in range(allY.shape[0]):
         Ys = allY[kk]
@@ -158,7 +155,7 @@ def load_l23_fit(in_idx:int, chop_burn = -3000,
 
     pred_Rs = np.median(all_pred, axis=0)
     std_pred = np.std(all_pred, axis=0)
-    NN_Rs = model.prediction(ab[idx], device)
+    NN_Rs = model.prediction(ab[idx].tolist() + [Chl[idx]], device)
 
     return d_a, idx, orig, a_mean, a_std, a_pca, obs_Rs,\
         pred_Rs, std_pred, NN_Rs, Rs, ab, allY, wave,\
