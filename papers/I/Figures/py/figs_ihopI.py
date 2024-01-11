@@ -227,7 +227,9 @@ def fig_rmse_vs_sig(outfile:str='fig_rmse_vs_sig.png',
         rfunc = ihop_nmf.reconstruct
 
     all_l23_rmse = []
-    all_perc = [0, 5, 10, 15, 20]
+    all_l23_sig = []
+    #all_perc = [0, 5, 10, 15, 20]
+    all_perc = [0, 5, 10, 20]
     for perc in all_perc:
         print(f"Working on: {perc}%")
         # L23
@@ -254,36 +256,39 @@ def fig_rmse_vs_sig(outfile:str='fig_rmse_vs_sig.png',
         rmse_l23 = np.sqrt(np.mean(dev**2, axis=0))
         # Save
         all_l23_rmse.append(rmse_l23)
+        all_l23_sig.append(np.mean(mcmc_std, axis=0))
         
 
     # Plot
     figsize=(8,6)
     fig = plt.figure(figsize=figsize)
     plt.clf()
-    gs = gridspec.GridSpec(1,1)
+    gs = gridspec.GridSpec(2,2)
 
     # #####################################################
     # Absolute
     #ax_abs = plt.subplot(gs[0:2])
-    ax_abs = plt.subplot(gs[0])
-
+    all_ax = []
     for ss, rmse_l23 in enumerate(all_l23_rmse):
-        ax_abs.plot(wave, rmse_l23, 'o', label=f'{all_perc[ss]}%')
+        ax= plt.subplot(gs[ss])
 
-    ax_abs.set_ylabel(r'Absolute RMSE (m$^{-1}$)')
+        ax.plot(wave, rmse_l23, 'o', label=f'{all_perc[ss]}%: RMSE')
+        ax.plot(wave, all_l23_sig[ss], '*', label=f'{all_perc[ss]}%: MCMC std')
+
+        ax.set_ylabel(r'RMSE in $a(\lambda)$ (m$^{-1}$)')
     #ax_abs.tick_params(labelbottom=False)  # Hide x-axis labels
+        all_ax.append(ax)
+        ax.legend(fontsize=10)
 
 
     #ax.set_xlim(1., 10)
     #ax.set_ylim(1e-5, 0.01)
     #ax.set_yscale('log')
-    ax_abs.legend(fontsize=15)
 
     # Finish
-    for ss, ax in enumerate([ax_abs]):
-        plotting.set_fontsize(ax, 17)
-        if ss == 0:
-            ax.set_xlabel('Wavelength [nm]')
+    for ss, ax in enumerate(all_ax):
+        plotting.set_fontsize(ax, 13)
+        ax.set_xlabel('Wavelength [nm]')
         # Grid
         ax.grid(True, which='major', axis='both', linestyle='--', alpha=0.5)
     
