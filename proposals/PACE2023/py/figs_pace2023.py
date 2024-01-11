@@ -54,6 +54,36 @@ def load_nmf(nmf_fit:str, N_NMF:int=None, iop:str='a'):
 def load_up(in_idx:int, chop_burn = -3000,
             iop_type:str='nmf', use_quick:bool=False,
             chains_only:bool=False):
+    """
+    Load data and perform calculations for the IHOP project.
+
+    Args:
+        in_idx (int): The index of the data to work on.
+        chop_burn (int, optional): The number of burn-in samples to discard from the MCMC chains. Defaults to -3000.
+        iop_type (str, optional): The type of IOP (Inherent Optical Property) model to use. Defaults to 'nmf'.
+        use_quick (bool, optional): Whether to use a quick fit or not. Defaults to False.
+        chains_only (bool, optional): Whether to return only the MCMC chains or not. Defaults to False.
+
+    Returns:
+        tuple: A tuple containing various data arrays and values:
+            - d_a (dict): Hydrolight data for absorption coefficients.
+            - idx (int): The L23 index.
+            - orig (numpy.ndarray): Original data.
+            - a_mean (numpy.ndarray): Mean of the reconstructed absorption coefficients.
+            - a_std (numpy.ndarray): Standard deviation of the reconstructed absorption coefficients.
+            - a_pca (numpy.ndarray): Reconstructed absorption coefficients using PCA.
+            - obs_Rs (numpy.ndarray): Observed remote sensing reflectance.
+            - pred_Rs (numpy.ndarray): Predicted remote sensing reflectance.
+            - std_pred (numpy.ndarray): Standard deviation of the predicted remote sensing reflectance.
+            - NN_Rs (numpy.ndarray): Remote sensing reflectance predicted by the neural network model.
+            - Rs (numpy.ndarray): Remote sensing reflectance.
+            - ab (numpy.ndarray): Absorption coefficients.
+            - allY (numpy.ndarray): All MCMC samples.
+            - wave (numpy.ndarray): Wavelength data.
+            - orig_bb (numpy.ndarray): Original data for backscattering coefficients.
+            - bb_mean (numpy.ndarray): Mean of the reconstructed backscattering coefficients.
+            - bb_std (numpy.ndarray): Standard deviation of the reconstructed backscattering coefficients.
+    """
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     # Chains
     out_path = os.path.join(

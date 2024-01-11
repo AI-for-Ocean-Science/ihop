@@ -13,31 +13,19 @@ import torch
 
 import corner
 
-from oceancolor.hydrolight import loisel23
 
 from ihop.inference import mcmc
 from ihop.emulators import io as ihop_io
 from ihop.iops import pca as ihop_pca
-from ihop.iops.pca import load_loisel_2023_pca
 
 from IPython import embed
 
 out_path = os.path.join(
-        os.getenv('OS_COLOR'), 'IHOP', 'L23')
+        os.getenv('OS_COLOR'), 'IHOP', 'Fits', 'L23')
 
-def load(X:int=4, Y:int=0):
-    print("Loading... ")
-    ab, Rs, d_a, d_bb = load_loisel_2023_pca()
-    # Chl
-    ds_l23 = loisel23.load_ds(X, Y)
-    Chl = loisel23.calc_Chl(ds_l23)
 
-    # Load model
-    model_file = os.path.join(os.getenv('OS_COLOR'), 'IHOP', 'Emulators',
-        'DenseNet_PCA',
-        'dense_l23_pca_X4Y0_512_512_512_256_chl.pth')
-    model = ihop_io.load_nn(model_file)
-    return ab, Chl, Rs, d_a, d_bb, model
+
+
 
 def do_all_fits(n_cores:int=4, iop_type:str='pca',
                 fake:bool=False):
@@ -319,7 +307,7 @@ def fit_fixed_perc(perc:int, n_cores:int, seed:int=1234,
         all_samples[ss,:,:,:] = samples[ss]
 
     # Save
-    embed(header='fit_l23.py 311')
+    #embed(header='fit_l23.py 311')
     np.savez(outfile, chains=all_samples, idx=all_idx,
              obs_Rs=Rs[all_idx], use_Rs=use_Rs[all_idx])
     print(f"Wrote: {outfile}")
