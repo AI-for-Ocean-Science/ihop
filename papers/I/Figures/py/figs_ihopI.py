@@ -19,6 +19,8 @@ from oceancolor.utils import plotting
 
 from ihop.emulators import io as ihop_io
 from ihop.iops.pca import load_loisel_2023_pca
+from ihop.iops import pca as ihop_pca
+from ihop.iops import nmf as ihop_nmf
 
 
 mpl.rcParams['font.family'] = 'stixgeneral'
@@ -27,6 +29,7 @@ mpl.rcParams['font.family'] = 'stixgeneral'
 sys.path.append(os.path.abspath("../Analysis/py"))
 import ihopI_io
 
+from IPython import embed
 
 
 def fig_emulator_rmse(emulator:str,
@@ -212,6 +215,83 @@ def fig_mcmc_fit(outfile='fig_mcmc_fit.png', iop_type='pca',
     plt.savefig(outfile, dpi=300)
     print(f"Saved: {outfile}")
 
+# ############################################################
+# ############################################################
+def fig_rmse_vs_sig(outfile:str='fig_rmse_vs_sig.png', 
+                    iop_type:str='pca', chop_burn:int=-3000):
+
+    # Prep
+    if iop_type == 'pca':
+        rfunc = ihop_pca.reconstruct
+    elif iop_type == 'nmf':
+        rfunc = ihop_nmf.reconstruct
+
+    all_l23_rmse = []
+    all_perc = [0, 5, 10, 15, 20]
+    for perc in all_perc:
+        print(f"Working on: {perc}%")
+        # L23
+        chains, d, ab, Chl, d_a = ihopI_io.load_l23_fit(
+            None, iop_type='pca', chains_only=True,
+            perc=perc)
+        l23_idx = d['idx']
+        ncomp = 3
+        wave = d_a['wave']
+        dev = np.zeros((chains.shape[0], wave.size))
+        mcmc_std = np.zeros((chains.shape[0], wave.size))
+        #embed(header='242 of figs')
+        for in_idx in range(chains.shape[0]):
+            idx = l23_idx[in_idx]
+            ichains = chains[in_idx]
+            Y = ichains[chop_burn:, :, 0:ncomp].reshape(-1,ncomp)
+            orig, a_recon = rfunc(Y, d_a, idx)
+            a_mean = np.mean(a_recon, axis=0)
+            #
+            mcmc_std[in_idx,:] = np.std(a_recon, axis=0)
+            dev[in_idx,:] = orig - a_mean
+            #_, a_pca = rfunc(ab[idx][:ncomp], d_a, idx)
+        # RMSE
+        rmse_l23 = np.sqrt(np.mean(dev**2, axis=0))
+        # Save
+        all_l23_rmse.append(rmse_l23)
+        
+
+    # Plot
+    figsize=(8,6)
+    fig = plt.figure(figsize=figsize)
+    plt.clf()
+    gs = gridspec.GridSpec(1,1)
+
+    # #####################################################
+    # Absolute
+    #ax_abs = plt.subplot(gs[0:2])
+    ax_abs = plt.subplot(gs[0])
+
+    for ss, rmse_l23 in enumerate(all_l23_rmse):
+        ax_abs.plot(wave, rmse_l23, 'o', label=f'{all_perc[ss]}%')
+
+    ax_abs.set_ylabel(r'Absolute RMSE (m$^{-1}$)')
+    #ax_abs.tick_params(labelbottom=False)  # Hide x-axis labels
+
+
+    #ax.set_xlim(1., 10)
+    #ax.set_ylim(1e-5, 0.01)
+    #ax.set_yscale('log')
+    ax_abs.legend(fontsize=15)
+
+    # Finish
+    for ss, ax in enumerate([ax_abs]):
+        plotting.set_fontsize(ax, 17)
+        if ss == 0:
+            ax.set_xlabel('Wavelength [nm]')
+        # Grid
+        ax.grid(True, which='major', axis='both', linestyle='--', alpha=0.5)
+    
+    plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
+    plt.savefig(outfile, dpi=300)
+    print(f"Saved: {outfile}")
+
+
 def main(flg):
     if flg== 'all':
         flg= np.sum(np.array([2 ** ii for ii in range(25)]))
@@ -228,7 +308,7 @@ def main(flg):
 
     # L23 IHOP performance vs. perc error
     if flg & (2**22):
-        fig_emulator_rmse('L23_PCA')
+        fig_rmse_vs_sig()
 
 
 # Command line execution
@@ -245,8 +325,9 @@ if __name__ == '__main__':
         #flg += 2 ** 5  # 32 -- L23,Tara compare NMF basis functions
         #flg += 2 ** 6  # 64 -- Fit l23 basis functions
 
-        #flg += 2 ** 20  # RMSE
-        flg += 2 ** 21  # Single MCMC fit (example)
+        #flg += 2 ** 20  # RMSE of emulator
+        #flg += 2 ** 21  # Single MCMC fit (example)
+        flg += 2 ** 22  # RMSE of L23 fits
 
         #flg += 2 ** 2  # 4 -- Indiv
         #flg += 2 ** 3  # 8 -- Coeff

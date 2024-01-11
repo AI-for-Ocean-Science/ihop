@@ -55,7 +55,7 @@ def load_l23_data_model(X:int=4, Y:int=0, iop_type:str='pca'):
 # Load
 def load_l23_fit(in_idx:int, chop_burn = -3000,
             iop_type:str='nmf', use_quick:bool=False,
-            chains_only:bool=False,
+            chains_only:bool=False, perc:int=10,
             X:int=4, Y:int=0):
     """
     Load data and perform calculations for the IHOP project.
@@ -69,6 +69,7 @@ def load_l23_fit(in_idx:int, chop_burn = -3000,
         X (int): simulation scenario   
         Y (int):  solar zenith angle used in the simulation, and 
             represents a value of 00, 30, or 60 degrees.
+        perc (int, optional): The percentile to use for the MCMC chains. Defaults to 10.
 
     Returns:
         tuple: A tuple containing various data arrays and values:
@@ -94,7 +95,7 @@ def load_l23_fit(in_idx:int, chop_burn = -3000,
     # Chains
     out_path = os.path.join(
         os.getenv('OS_COLOR'), 'IHOP', 'Fits', 'L23')
-    chain_file = f'fit_L23_{iop_type.upper()}_NN_Rs10.npz'
+    chain_file = f'fit_L23_{iop_type.upper()}_NN_Rs{perc:02d}.npz'
 
     if use_quick:
         out_path = './'
@@ -105,17 +106,18 @@ def load_l23_fit(in_idx:int, chop_burn = -3000,
                                              X=X, Y=Y)
            
     # MCMC
-    print("Loading MCMC")
+    print(f"Loading MCMC: {chain_file}")
     d = np.load(os.path.join(out_path, chain_file))
     chains = d['chains']
     if use_quick:
         pass
     else:
-        chains = chains[in_idx]
+        if in_idx is not None:
+            chains = chains[in_idx]
     l23_idx = d['idx']
     obs_Rs = d['obs_Rs']
     if chains_only:
-        return chains, d
+        return chains, d, ab, Chl, d_a
 
     idx = l23_idx[in_idx]
     print(f'Working on: L23 index={idx}')
