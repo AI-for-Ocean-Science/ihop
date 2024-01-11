@@ -120,6 +120,9 @@ def main(flg):
     if flg & (2**20):
         fig_emulator_rmse('L23_PCA')
 
+    # L23 IHOP performance vs. perc error
+    if flg & (2**20):
+        fig_emulator_rmse('L23_PCA')
 
 
 # Command line execution
@@ -136,7 +139,8 @@ if __name__ == '__main__':
         #flg += 2 ** 5  # 32 -- L23,Tara compare NMF basis functions
         #flg += 2 ** 6  # 64 -- Fit l23 basis functions
 
-        flg += 2 ** 20  # 1 -- RMSE
+        #flg += 2 ** 20  # RMSE
+        flg += 2 ** 21  # RMSE
 
         #flg += 2 ** 2  # 4 -- Indiv
         #flg += 2 ** 3  # 8 -- Coeff
