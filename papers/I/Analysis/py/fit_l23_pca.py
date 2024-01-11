@@ -41,6 +41,17 @@ def load(X:int=4, Y:int=0):
 
 def do_all_fits(n_cores:int=4, iop_type:str='pca',
                 fake:bool=False):
+    """
+    Perform fits for different percentages.
+
+    Args:
+        n_cores (int): Number of CPU cores to use for parallel processing.
+        iop_type (str): Type of IOP (Input/Output Parameters) to use.
+        fake (bool): Flag indicating whether to use fake data.
+
+    Returns:
+        None
+    """
 
     for perc in [0, 5, 10, 15, 20]:
         print(f"Working on: perc={perc}")
@@ -200,7 +211,17 @@ def check_one(chain_file:str, in_idx:int, chop_burn:int=-3000):
         truths=ab[idx])
     plt.show() 
 
-def fit_one(items:list, pdict:dict=None, do_parallel:bool=True):
+def fit_one(items:list, pdict:dict=None):
+    """
+    Fits a model to a set of input data using the MCMC algorithm.
+
+    Args:
+        items (list): A list containing the input data, response data, and index.
+        pdict (dict, optional): A dictionary containing the model and fitting parameters. Defaults to None.
+
+    Returns:
+        tuple: A tuple containing the MCMC sampler object and the index.
+    """
     # Unpack
     Rs, inputs, idx = items
     ndim = pdict['model'].ninput
@@ -214,8 +235,7 @@ def fit_one(items:list, pdict:dict=None, do_parallel:bool=True):
         scl_sig=pdict['scl_sig']/100. if pdict['scl_sig'] is not None else None,
         abs_sig=pdict['abs_sig'] if pdict['abs_sig'] is not None else None,
         p0=inputs,
-        save_file=pdict['save_file'],
-        do_parallel=do_parallel)
+        save_file=pdict['save_file'])
 
     # Return
     return sampler, idx
@@ -234,14 +254,12 @@ def fit_fixed_perc(perc:int, n_cores:int, seed:int=1234,
         iop_type (str, optional): The type of IOP (Inherent Optical Property) to use. Defaults to 'pca'.
         fake (bool, optional): Whether to use fake Rs values. Defaults to False.
 
-    Returns:
-        None
     """
     #os.environ["OMP_NUM_THREADS"] = "1"
 
     # Outfile
     outfile = os.path.join(out_path,
-        f'fit_a_L23_NN_Rs{perc:02d}')
+        f'fit_L23_PCA_NN_Rs{perc:02d}')
 
     # Load Hydrolight
     print("Loading Hydrolight data")
@@ -301,6 +319,7 @@ def fit_fixed_perc(perc:int, n_cores:int, seed:int=1234,
         all_samples[ss,:,:,:] = samples[ss]
 
     # Save
+    embed(header='fit_l23.py 311')
     np.savez(outfile, chains=all_samples, idx=all_idx,
              obs_Rs=Rs[all_idx], use_Rs=use_Rs[all_idx])
     print(f"Wrote: {outfile}")
@@ -323,7 +342,6 @@ def another_test(iop_type:str='pca',
 def quick_test(iop_type:str='pca', fake:bool=False,
                perc:int=None, idx:int=1000,
                max_perc:float=None, 
-               do_parallel:bool=True,
                seed=None):
     """
     Perform a quick test for fitting using the specified parameters.
@@ -384,7 +402,7 @@ def quick_test(iop_type:str='pca', fake:bool=False,
     items = [use_Rs, inputs, idx]
 
     t0 = time.time()
-    sampler, _ = fit_one(items, pdict=pdict, do_parallel=do_parallel)
+    sampler, _ = fit_one(items, pdict=pdict)
     t1 = time.time()
     dt = t1-t0
     print(f'Time: {dt} sec')
@@ -485,11 +503,11 @@ if __name__ == '__main__':
     #quick_test(iop_type='nmf', fake=True, max_perc=2,
     #           idx=1000, seed=12345)
 
-    another_test(n_cores=2)
+    #another_test(n_cores=2)
     #another_test(iop_type='nmf', fake=True, n_cores=1)
 
     # All of em
-    #do_all_fits(iop_type='pca')
+    do_all_fits(iop_type='pca', n_cores=1)
     #do_all_fits(iop_type='nmf', n_cores=4, fake=True)
 
     # Analysis
