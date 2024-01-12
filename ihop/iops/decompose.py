@@ -9,11 +9,16 @@ from oceancolor.utils import pca
 from oceancolor.hydrolight import loisel23
 
 from cnmf.oceanography.iops import tara_matched_to_l23
+from cnmf import nmf_imaging
+from cnmf import io as cnmf_io
 
 from IPython import embed
 
+# Globals
 pca_path = os.path.join(resources.files('ihop'),
                             'data', 'PCA')
+nmf_path = os.path.join(resources.files('ihop'),
+                            'data', 'NMF')
 
 def load(pca_file:str, pca_path:str=pca_path):
     return np.load(os.path.join(pca_path, pca_file))
@@ -63,6 +68,49 @@ def load_data(data_path, back_scatt:str='bb'):
     labels_data = data["Rs"]
     return features_data, labels_data
 
+def generate_nmf(iop_data:np.ndarray, mask:np.ndarray, 
+                 err:np.ndarray,
+                 outfile:str,
+                 Ncomp:int,
+                 clobber:bool=False, 
+                 nmf_path:str=nmf_path,
+                 normalize:bool=True,
+                 wave:np.ndarray=None,
+                 Rs:np.ndarray=None,
+                 seed:int=12345):
+    """ Generate NMF model for input IOP 
+
+    Args:
+        iop_data (np.ndarray): IOP data (n_samples, n_features, 1)
+        mask (np.ndarray): Mask (n_samples, n_features, 1)
+        err (np.ndarray): Error (n_samples, n_features, 1)
+        outroot (str): Output root.
+        Ncomp (int): Number of PCA components. Defaults to 3.
+        clobber (bool, optional): Clobber existing model? Defaults to False.
+        nmf_path (str, optional): Path for output NMF files. Defaults to nmf_path.
+        seed (int, optional): Random seed. Defaults to 12345.
+        wave (np.ndarray, optional): Wavelengths. Defaults to None.
+            Only for convenience in the saved file
+        Rs (np.ndarray, optional): Rrs. Defaults to None.
+            Only for convenience in the saved file
+    """
+    # Prep
+    outfile = os.path.join(nmf_path, outfile)
+    outroot = outfile.replace('.npz','')
+    # Decompose
+    comps = nmf_imaging.NMFcomponents(
+        ref=iop_data, mask=mask, ref_err=err,
+        n_components=Ncomp,
+        path_save=outroot, oneByOne=True,
+        normalize=normalize,
+        seed=seed)
+    # Gather up
+    M = np.load(outroot+'_comp.npy').T
+    coeff = np.load(outroot+'_coef.npy').T
+
+    # Save
+    cnmf_io.save_nmf(outfile, M, coeff, iop_data[...,0],
+                     mask[...,0], err[...,0], wave, Rs)
 
 def generate_pca(iop_data:np.ndarray,
                  outroot:str,
@@ -119,17 +167,17 @@ def generate_l23_tara_pca(clobber:bool=False, return_N:int=None):
             if return_N is not None and return_N == N:
                 return data, wave_grid, pca_fit
 
-def reconstruct(Y, pca_dict, idx):
+def reconstruct_pca(Y:np.ndarray, pca_dict:dict, idx:int):
     """
     Reconstructs the original data point from the PCA-encoded representation.
 
     Args:
-        Y (ndarray): The PCA-encoded representation of the data point.
+        Y (np.ndarray): The PCA-encoded representation of the data point.
         pca_dict (dict): A dictionary containing the PCA transformation parameters.
         idx (int): The index of the data point to reconstruct.
 
     Returns:
-        tuple: A tuple containing the original data point and its reconstructed version.
+        tuple: A tuple containing the original data and its reconstructed version.
     """
     # Grab the original
     orig = pca_dict['data'][idx]

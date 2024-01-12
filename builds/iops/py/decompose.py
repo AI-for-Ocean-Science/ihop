@@ -2,20 +2,13 @@
 
 import os
 
-#from ihop.iops.pca import generate_l23_pca
-#from ihop.iops.pca import generate_l23_tara_pca
+
+from cnmf.oceanography import iops as cnmf_iops
 
 from ihop.training_sets import load_rs
 from ihop.iops.decompose import generate_pca
+from ihop.iops.decompose import generate_nmf
 
-def load_training(datasets:list):
-
-    # L23?
-    if 'L23' in datasets:
-    # Load
-        spec_nw, mask, err, wave, Rs = iops.prep_loisel23(
-        iop, min_wv=min_wv, remove_water=True,
-        high_cut=high_cut)
         
 def pca_loisel23(X:int=4, Y:int=0, Ncomp:int=3,
                  clobber:bool=False):
@@ -23,7 +16,7 @@ def pca_loisel23(X:int=4, Y:int=0, Ncomp:int=3,
     # Load training data
     d = load_rs.loisel23_rs(X=X, Y=Y)
 
-    # PCA
+    # Loop on IOP
     for iop in ['a', 'bb']:
         # Prep
         outroot = f'pca_L23_X{X}Y{Y}_{iop}'
@@ -32,9 +25,29 @@ def pca_loisel23(X:int=4, Y:int=0, Ncomp:int=3,
                      extras={'Rs':d['Rs'], 'wave':d['wave']},
                      clobber=clobber)
 
+def nmf_loisel23(X:int=4, Y:int=0, Ncomp:int=3,
+                 clobber:bool=False): 
+
+    # Load training data
+    d = load_rs.loisel23_rs(X=X, Y=Y)
+
+    # Loop on IOP
+    for iop in ['a', 'bb']:
+        # Prep
+        outfile = f'nmf_L23_X{X}Y{Y}_{iop}_N{Ncomp:02d}.npz'
+        new_spec, mask, err  = cnmf_iops.prep(d['inputs'][iop],
+                                              sigma=0.05)
+        # Do it
+        generate_nmf(new_spec, mask, err, outfile, Ncomp, 
+                     clobber=clobber,
+                     normalize=True,
+                     wave=d['wave'],
+                     Rs=d['Rs'])
+            
     
 if __name__ == '__main__':
 
     # L23
-    pca_loisel23(clobber=True)
+    #pca_loisel23(clobber=True)
+    nmf_loisel23(clobber=True)
     #generate_l23_tara_pca()  # Broken
