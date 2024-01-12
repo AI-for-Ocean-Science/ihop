@@ -19,6 +19,7 @@ def pca_loisel23(X:int=4, Y:int=0, Ncomp:int=3,
     # Loop on IOP
     for iop in ['a', 'bb']:
         # Prep
+        # TODO -- Replace this with loisel23_filenames in iops.decompose.py
         outroot = f'pca_L23_X{X}Y{Y}_{iop}'
         # Do it
         generate_pca(d['inputs'][iop], outroot, Ncomp,
@@ -34,6 +35,7 @@ def nmf_loisel23(X:int=4, Y:int=0, Ncomp:int=3,
     # Loop on IOP
     for iop in ['a', 'bb']:
         # Prep
+        # TODO -- Replace this with loisel23_filenames in iops.decompose.py
         outfile = f'nmf_L23_X{X}Y{Y}_{iop}_N{Ncomp:02d}.npz'
         new_spec, mask, err  = cnmf_iops.prep(d['inputs'][iop],
                                               sigma=0.05)

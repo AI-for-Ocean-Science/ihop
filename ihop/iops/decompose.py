@@ -20,19 +20,37 @@ pca_path = os.path.join(resources.files('ihop'),
 nmf_path = os.path.join(resources.files('ihop'),
                             'data', 'NMF')
 
-def load(pca_file:str, pca_path:str=pca_path):
-    return np.load(os.path.join(pca_path, pca_file))
-
-def load_loisel_2023_pca(N_PCA:int=3, l23_path:str=None,
-    X:int=4, Y:int=0):
-    """ Load the PCA-based parameterization of IOPs from Loisel 2023
+def loisel23_filenames(decomp:str, Ncomp:int,
+                       X:int, Y:int):
+    """
+    Generate filenames for Loisel23 decomposition.
 
     Args:
-        N_PCA (int, optional): Number of PCA components. Defaults to 3.
-        l23_path (str, optional): Path to PCA files. Defaults to None.
-            If None, uses the default path of ihop/data/PCA
-        X (int, optional): X. Defaults to 4.
-        Y (int, optional): Y. Defaults to 0.
+        decomp (str): The decomposition type. pca, nmf
+        Ncomp (int): The number of components.
+        X (int): simulation scenario   
+        Y (int):  solar zenith angle used in the simulation, and 
+
+    Returns:
+        tuple: A tuple containing the filenames for L23_a and L23_bb.
+    """
+    # Load up data
+    d_path = os.path.join(resources.files('ihop'),
+                            'data', decomp.upper())
+    l23_a_file = os.path.join(d_path, f'{decomp}_L23_X{X}Y{Y}_a_N{Ncomp}.npz')
+    l23_bb_file = os.path.join(d_path, f'{decomp}_L23_X{X}Y{Y}_bb_N{Ncomp}.npz')
+
+    # Return
+    return l23_a_file, l23_bb_file
+
+def load_loisel2023(decomp:str, Ncomp:int=3, X:int=4, Y:int=0):
+    """ Load the NMF or PCA-based parameterization of IOPs from Loisel 2023
+
+    Args:
+        decomp (str): The decomposition type. pca, nmf
+        Ncomp (int, optional): Number of components. Defaults to 3.
+        X (int, optional): simulation scenario   
+        Y (int, optional):  solar zenith angle used in the simulation, and 
 
     Returns:
         tuple: 
@@ -41,32 +59,25 @@ def load_loisel_2023_pca(N_PCA:int=3, l23_path:str=None,
             - **d_a** (*dict*) -- dict of PCA 
             - **d_bb** (*dict*) -- dict of PCA
     """
-    # Load up data
-    if l23_path is None:
-        l23_path = os.path.join(resources.files('ihop'),
-                            'data', 'PCA')
-    l23_a_file = os.path.join(l23_path, f'pca_L23_X{X}Y{Y}_a_N{N_PCA}.npz')
-    l23_bb_file = os.path.join(l23_path, f'pca_L23_X{X}Y{Y}_bb_N{N_PCA}.npz')
+    # Filenames
+    l23_a_file, l23_bb_file = loisel23_filenames(
+        decomp, Ncomp, X, Y)
 
     # Load up
     d_a = np.load(l23_a_file)
     d_bb = np.load(l23_bb_file)
-    nparam = d_a['Y'].shape[1]+d_bb['Y'].shape[1]
-    ab = np.zeros((d_a['Y'].shape[0], nparam))
-    ab[:,0:d_a['Y'].shape[1]] = d_a['Y']
-    ab[:,d_a['Y'].shape[1]:] = d_bb['Y']
+    key = 'Y' if decomp == 'pca' else 'coeff'
 
+    nparam = d_a[key].shape[1]+d_bb[key].shape[1]
+    ab = np.zeros((d_a[key].shape[0], nparam))
+    ab[:,0:d_a[key].shape[1]] = d_a[key]
+    ab[:,d_a[key].shape[1]:] = d_bb[key]
+
+    # Rs
     Rs = d_a['Rs']
 
     # Return
     return ab, Rs, d_a, d_bb
-
-def load_data(data_path, back_scatt:str='bb'):
-    # Load up data
-    data = np.load(data_path)
-    features_data = data["abb"]
-    labels_data = data["Rs"]
-    return features_data, labels_data
 
 def generate_nmf(iop_data:np.ndarray, mask:np.ndarray, 
                  err:np.ndarray,
