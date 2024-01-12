@@ -37,8 +37,8 @@ def loisel23_filenames(decomp:str, Ncomp:int,
     # Load up data
     d_path = os.path.join(resources.files('ihop'),
                             'data', decomp.upper())
-    l23_a_file = os.path.join(d_path, f'{decomp}_L23_X{X}Y{Y}_a_N{Ncomp}.npz')
-    l23_bb_file = os.path.join(d_path, f'{decomp}_L23_X{X}Y{Y}_bb_N{Ncomp}.npz')
+    l23_a_file = os.path.join(d_path, f'{decomp}_L23_X{X}Y{Y}_a_N{Ncomp:02d}.npz')
+    l23_bb_file = os.path.join(d_path, f'{decomp}_L23_X{X}Y{Y}_bb_N{Ncomp:02d}.npz')
 
     # Return
     return l23_a_file, l23_bb_file

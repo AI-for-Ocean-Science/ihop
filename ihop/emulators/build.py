@@ -7,10 +7,6 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
-
-from ihop.iops.pca import load_loisel_2023_pca
-from ihop.iops.pca import load_data
-#from ihop.iops.nmf import load_loisel_2023
 from ihop.emulators.nn import MyDataset, DenseNet, SimpleNet
 from ihop.emulators import preprocess
 
