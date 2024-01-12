@@ -23,13 +23,17 @@ def emulate_l23(decomp:str, include_chl:bool=True, X:int=4, Y:int=0,
         lr (float, optional): Learning rate for the neural network. Defaults to 1e-2.
         p_drop (float, optional): Dropout probability for the neural network. Defaults to 0.
     """
-    root = f'dense_l23_{decomp}_X{X}Y{Y}'
+    # Load data
+    ab, Rs, _, _ = load_loisel2023(decomp)
+    Ncomp = ab.shape[1]//2
+
+    # Outfile
+    root = f'dense_l23_{decomp}_X{X}Y{Y}_N{Ncomp:02d}'
     for item in hidden_list:
         root += f'_{item}'
     if include_chl:
         root += '_chl'
 
-    ab, Rs, _, _ = load_loisel2023(decomp)
 
     if include_chl: 
         ds_l23 = loisel23.load_ds(X, Y)
@@ -59,7 +63,8 @@ def main(flg):
     # L23 + NMF 
     if flg & (2**1):
         emulate_l23('nmf', hidden_list=[512, 512, 512, 256],
-            nepochs=25000) 
+            nepochs=100) 
+            #nepochs=25000) 
 
 
 # Command line execution
