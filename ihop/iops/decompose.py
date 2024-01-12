@@ -1,4 +1,4 @@
-""" PCA-based parameterization of IOPs """
+""" Parameterizations of IOPs, i.e. decompositions """
 
 import os
 import numpy as np
@@ -64,45 +64,30 @@ def load_data(data_path, back_scatt:str='bb'):
     return features_data, labels_data
 
 
-def generate_l23_pca(clobber:bool=False, Ncomp:int=3,
-                     X:int=4, Y:int=0,
-                     outroot:str='pca_L23',
-                     pca_path:str=pca_path,
-                     min_wv:float=None, high_cut:float=None):
-    """ Generate PCA models for IOPs in Loisel 2023 data
+def generate_pca(iop_data:np.ndarray,
+                 outroot:str,
+                 Ncomp:int,
+                 clobber:bool=False, 
+                 extras:dict=None,
+                 pca_path:str=pca_path):
+    """ Generate PCA model for input IOP 
 
     Args:
+        iop_data (np.ndarray): IOP data (n_samples, n_features)
+        outroot (str): Output root.
+        Ncomp (int): Number of PCA components. Defaults to 3.
         clobber (bool, optional): Clobber existing model? Defaults to False.
-        Ncomp (int, optional): Number of PCA components. Defaults to 3.
-        X (int, optional): X. Defaults to 4.
-        Y (int, optional): Y. Defaults to 0.
-        outroot (str, optional): Output root. Defaults to 'pca_L23'.
         pca_path (str, optional): Path for output PCA files. Defaults to pca_path.
-        min_wv (float, optional): Minimum wavelength. Defaults to None.
-        high_cut (float, optional): High cut wavelength. Defaults to None.
+        extras (dict, optional): Extra arrays to save. Defaults to None.
     """
 
-    # Load up the data
-    ds = loisel23.load_ds(X, Y)
+    # Prep
+    outfile = os.path.join(pca_path, f'{outroot}_N{Ncomp}.npz')
 
-
-    # Loop on IOPs
-    for iop in ['a', 'b', 'bb']:
-        # Prep
-        outfile = os.path.join(pca_path, f'{outroot}_X{X}Y{Y}_{iop}_N{Ncomp}.npz')
-        # Cut on wavelength?
-        data = ds[iop].data
-        gd_wv = np.ones_like(ds.Lambda.data, dtype=bool)
-        if min_wv is not None:
-            gd_wv = gd_wv & (ds.Lambda.data >= min_wv)
-        if high_cut is not None:
-            gd_wv = gd_wv & (ds.Lambda.data <= high_cut)
-
-        # Do it
-        if not os.path.exists(outfile) or clobber:
-            pca.fit_normal(data[:,gd_wv], Ncomp, save_outputs=outfile,
-                           extra_arrays={'Rs':ds.Rrs.data[:,gd_wv],
-                                         'wave':ds.Lambda.data[gd_wv]})
+    # Do it
+    if not os.path.exists(outfile) or clobber:
+        pca.fit_normal(iop_data, Ncomp, save_outputs=outfile,
+                       extra_arrays=extras)
 
 def generate_l23_tara_pca(clobber:bool=False, return_N:int=None):
     """ Generate a PCA for L23 + Tara
