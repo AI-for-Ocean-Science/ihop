@@ -1,8 +1,10 @@
 # https://www.techrepublic.com/article/how-to-create-a-docker-image-and-push-it-to-docker-hub/
 # https://medium.com/faun/how-to-build-a-docker-container-from-scratch-docker-basics-a-must-know-395cba82897b
 # Login to docker: docker login -u profxj
+# Login: docker login gitlab.nrp-nautilus.io
 #docker build -t ihop_nvidia -f ../ihop/dockers/ihop.docker .
 #docker tag ihop_nvidia:latest profxj/ihop_nvidia:latest
+#docker tag ihop_nvidia:latest  gitlab.nrp-nautilus.io/profx/ihop:latest
 #docker push profxj/ihop_nvidia:latest
 # Testing: docker exec -it <container> /bin/bash
 
