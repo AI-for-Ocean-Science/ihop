@@ -23,7 +23,7 @@ spec:
                   - NVIDIA-GeForce-RTX-3090
       containers:
       - name: container
-        image: profxj/ihop_nvidia:latest  # UPDATE
+        image: profxj/ihop_nvidia:latest  # On docker hub
         imagePullPolicy: Always
         resources:
           requests:
