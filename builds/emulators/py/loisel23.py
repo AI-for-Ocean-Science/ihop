@@ -55,16 +55,17 @@ def main(flg):
     # L23 + PCA
     if flg & (2**0):
         emulate_l23('pca', hidden_list=[512, 512, 512, 256],
-            nepochs=25000) 
-        #  Ran on Nautilus
+            nepochs=25000)
+        #  Ran on Nautilus Jupyter
         # epoch : 2500/2500, loss = 0.001642
         # epoch : 25000/25000, loss = 0.000570
 
     # L23 + NMF 
     if flg & (2**1):
         emulate_l23('nmf', hidden_list=[512, 512, 512, 256],
-            nepochs=25000) 
-            #nepochs=100) 
+            nepochs=25000)
+            #nepochs=100)
+        #  Ran on Nautilus Jupyter
 
 
 # Command line execution
