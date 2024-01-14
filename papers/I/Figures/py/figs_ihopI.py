@@ -18,9 +18,6 @@ from oceancolor.hydrolight import loisel23
 from oceancolor.utils import plotting 
 
 from ihop.emulators import io as ihop_io
-from ihop.iops.pca import load_loisel_2023_pca
-from ihop.iops import pca as ihop_pca
-from ihop.iops import nmf as ihop_nmf
 
 
 mpl.rcParams['font.family'] = 'stixgeneral'
@@ -36,27 +33,14 @@ def fig_emulator_rmse(emulator:str,
                       outfile:str='fig_emulator_rmse.png'):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    # Load dataset
-    if emulator == 'L23_PCA':
-        emulator_file = os.path.join(os.getenv('OS_COLOR'),
-                                     'IHOP',
-                                     'Emulators',
-                                     'DenseNet_PCA',
-                                     'dense_l23_pca_X4Y0_512_512_512_256_chl.pth')
-        #
-        X,Y = 4,0
-        ab, Rs, d_a, _ = load_loisel_2023_pca()
+    if emulator[0:3] == 'L23':
+        decomp = emulator[4:].lower()
+        ab, Chl, Rs, d_a, d_bb, model = ihopI_io.load_l23_data_model(decomp=decomp)
         wave = d_a['wave']
-        # Data
-        ds_l23 = loisel23.load_ds(X, Y)
-        # Chl
-        Chl = loisel23.calc_Chl(ds_l23)
-        # Concatenate
-        inputs = np.concatenate((ab, Chl.reshape(Chl.size,1)), axis=1)
-        targets = Rs
 
-    # Load emulator
-    model = ihop_io.load_nn(emulator_file)
+    # Concatenate
+    inputs = np.concatenate((ab, Chl.reshape(Chl.size,1)), axis=1)
+    targets = Rs
 
     # Predict and compare
     dev = np.zeros_like(targets)
@@ -306,6 +290,7 @@ def main(flg):
     # Example spectra
     if flg & (2**20):
         fig_emulator_rmse('L23_PCA')
+        #fig_emulator_rmse('L23_NMF')
 
     # L23 IHOP performance vs. perc error
     if flg & (2**21):
@@ -330,9 +315,9 @@ if __name__ == '__main__':
         #flg += 2 ** 5  # 32 -- L23,Tara compare NMF basis functions
         #flg += 2 ** 6  # 64 -- Fit l23 basis functions
 
-        #flg += 2 ** 20  # RMSE of emulator
+        flg += 2 ** 20  # RMSE of emulator
         #flg += 2 ** 21  # Single MCMC fit (example)
-        flg += 2 ** 22  # RMSE of L23 fits
+        #flg += 2 ** 22  # RMSE of L23 fits
 
         #flg += 2 ** 2  # 4 -- Indiv
         #flg += 2 ** 3  # 8 -- Coeff

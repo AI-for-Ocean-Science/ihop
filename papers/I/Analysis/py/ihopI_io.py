@@ -7,14 +7,12 @@ import torch
 
 from oceancolor.hydrolight import loisel23
 
-from ihop.iops.pca import load_loisel_2023_pca
+from ihop.iops.decompose import load_loisel2023
 from ihop.emulators import io as ihop_io
-from ihop.iops import pca as ihop_pca
-from ihop.iops import nmf as ihop_nmf
 
 from IPython import embed
 
-def load_l23_data_model(X:int=4, Y:int=0, iop_type:str='pca'):
+def load_l23_data_model(X:int=4, Y:int=0, decomp:str='pca'):
     """
     Load L2.3 data and model.
 
@@ -22,7 +20,7 @@ def load_l23_data_model(X:int=4, Y:int=0, iop_type:str='pca'):
         X (int): simulation scenario   
         Y (int):  solar zenith angle used in the simulation, and 
             represents a value of 00, 30, or 60 degrees.
-        iop_type (str): Decomposition method.
+        decomp (str): Decomposition method.
 
     Returns:
         tuple: Tuple containing ab, Chl, Rs, d_a, d_bb, and model.
@@ -34,20 +32,24 @@ def load_l23_data_model(X:int=4, Y:int=0, iop_type:str='pca'):
             - model (torch.nn.Module): Neural network model.
     """
     print("Loading... ")
-    ab, Rs, d_a, d_bb = load_loisel_2023_pca()
+    ab, Rs, d_a, d_bb = load_loisel2023(decomp)
     # Chl
     ds_l23 = loisel23.load_ds(X, Y)
     Chl = loisel23.calc_Chl(ds_l23)
 
     # Load model
-    if iop_type == 'pca':
-        model_file = os.path.join(os.getenv('OS_COLOR'), 'IHOP', 'Emulators',
-            'DenseNet_PCA',
+    if decomp == 'pca':
+        emulator_file = os.path.join(
+            os.getenv('OS_COLOR'), 'IHOP', 'Emulators', 'DenseNet_PCA', 
             'dense_l23_pca_X4Y0_512_512_512_256_chl.pth')
+    elif decomp == 'nmf':
+        emulator_file = os.path.join(
+            os.getenv('OS_COLOR'), 'IHOP', 'Emulators', 'DenseNet_NMF', 
+            'dense_l23_nmf_X4Y0_512_512_512_256_chl.pth')
     else:
         raise ValueError("Bad decomp")
     # Load
-    model = ihop_io.load_nn(model_file)
+    model = ihop_io.load_nn(emulator_file)
     # Return
     return ab, Chl, Rs, d_a, d_bb, model
 

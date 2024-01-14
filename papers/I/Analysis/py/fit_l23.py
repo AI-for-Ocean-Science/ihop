@@ -16,15 +16,12 @@ import corner
 
 from ihop.inference import mcmc
 from ihop.emulators import io as ihop_io
-from ihop.iops import pca as ihop_pca
+#from ihop.iops import pca as ihop_pca
 
 from IPython import embed
 
 out_path = os.path.join(
         os.getenv('OS_COLOR'), 'IHOP', 'Fits', 'L23')
-
-
-
 
 
 def do_all_fits(n_cores:int=4, iop_type:str='pca',
@@ -247,11 +244,11 @@ def fit_fixed_perc(perc:int, n_cores:int, seed:int=1234,
 
     # Outfile
     outfile = os.path.join(out_path,
-        f'fit_L23_PCA_NN_Rs{perc:02d}')
+        f'fit_L23_{iop_type.upper()}_NN_Rs{perc:02d}')
 
     # Load Hydrolight
     print("Loading Hydrolight data")
-    ab, Chl, Rs, d_a, d_bb, model = load()#iop_type=iop_type)
+    ab, Chl, Rs, d_a, d_bb, model = load(iop_type=iop_type)
     nwave = Rs.shape[1]
     #ab, Rs, d_a, d_bb = ihop_io.load_loisel_2023_pca()
 
