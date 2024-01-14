@@ -63,8 +63,8 @@ def main(flg):
     # L23 + NMF 
     if flg & (2**1):
         emulate_l23('nmf', hidden_list=[512, 512, 512, 256],
-            nepochs=100) 
-            #nepochs=25000) 
+            nepochs=25000) 
+            #nepochs=100) 
 
 
 # Command line execution
