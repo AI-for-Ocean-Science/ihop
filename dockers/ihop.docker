@@ -13,7 +13,8 @@
 # PyTorch 1.8.1+
 # torchvision 0.8.1+
 
-FROM nvidia/cuda:12.3.1-runtime-ubuntu22.04
+#FROM nvidia/cuda:12.3.1-runtime-ubuntu22.04
+FROM gitlab-registry.nrp-nautilus.io/prp/jupyter-stack/tensorflow
 
 ENV DEBIAN_FRONTEND="noninteractive" TZ="US"
 
@@ -70,3 +71,14 @@ RUN git clone https://github.com/AI-for-Ocean-Science/ihop.git
 
 # Other bits and dependencies
 #RUN cd ulmo; python setup.py develop
+
+
+#Events:
+#  Type     Reason     Age    From               Message
+#  ----     ------     ----   ----               -------
+#  Normal   Scheduled  4m11s  default-scheduler  Successfully assigned ai-os/xavier-ihop-emulator-l23-nmf-ch9k8 to k8s-3090-01.calit2.optiputer.net
+#  Normal   Pulling    4m11s  kubelet            Pulling image "profxj/ihop_nvidia:latest"
+#  Normal   Pulled     40s    kubelet            Successfully pulled image "profxj/ihop_nvidia:latest" in 3m30.930982999s (3m30.93098753s including waiting)
+#  Normal   Created    40s    kubelet            Created container container
+#  Warning  Failed     38s    kubelet            Error: failed to create containerd task: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: error running hook #0: error running hook: exit status 1, stdout: , stderr: Auto-detected mode as 'legacy'
+#nvidia-container-cli: requirement error: unsatisfied condition: cuda>=12.3, please update your driver to a newer version, or use an earlier cuda container: unknown
