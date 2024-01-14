@@ -15,7 +15,7 @@ import corner
 
 
 from ihop.inference import mcmc
-from ihop.emulators import io as ihop_io
+from ihop import io as ihop_io
 #from ihop.iops import pca as ihop_pca
 
 from IPython import embed
@@ -24,14 +24,13 @@ out_path = os.path.join(
         os.getenv('OS_COLOR'), 'IHOP', 'Fits', 'L23')
 
 
-def do_all_fits(n_cores:int=4, iop_type:str='pca',
-                fake:bool=False):
+def do_all_fits(n_cores:int=4, decomp:str='pca'):
     """
     Perform fits for different percentages.
 
     Args:
         n_cores (int): Number of CPU cores to use for parallel processing.
-        iop_type (str): Type of IOP (Input/Output Parameters) to use.
+        decomp (str): Type of IOP (Input/Output Parameters) to use.
         fake (bool): Flag indicating whether to use fake data.
 
     Returns:
@@ -41,7 +40,7 @@ def do_all_fits(n_cores:int=4, iop_type:str='pca',
     for perc in [0, 5, 10, 15, 20]:
         print(f"Working on: perc={perc}")
         fit_fixed_perc(perc=perc, n_cores=n_cores, Nspec=100,
-                       iop_type=iop_type, fake=fake)
+                       decomp=decomp)
 
 def analyze_l23(chain_file, chop_burn:int=-4000,
                 iop_type:str='pca'):
@@ -226,8 +225,8 @@ def fit_one(items:list, pdict:dict=None):
     return sampler, idx
 
 def fit_fixed_perc(perc:int, n_cores:int, seed:int=1234,
-                   Nspec:int=100, iop_type:str='pca',
-                   fake:bool=False):
+                   Nspec:int=100, decomp:str='pca'):
+                   
     """
     Fits a model using fixed percentage perturbation on the input data.
 
@@ -236,7 +235,7 @@ def fit_fixed_perc(perc:int, n_cores:int, seed:int=1234,
         n_cores (int): The number of CPU cores to use for parallel processing.
         seed (int, optional): The random seed for reproducibility. Defaults to 1234.
         Nspec (int, optional): The number of random samples to select. Defaults to 100.
-        iop_type (str, optional): The type of IOP (Inherent Optical Property) to use. Defaults to 'pca'.
+        decomp (str, optional): The type of IOP (Inherent Optical Property) to use. Defaults to 'pca'.
         fake (bool, optional): Whether to use fake Rs values. Defaults to False.
 
     """
@@ -244,23 +243,16 @@ def fit_fixed_perc(perc:int, n_cores:int, seed:int=1234,
 
     # Outfile
     outfile = os.path.join(out_path,
-        f'fit_L23_{iop_type.upper()}_NN_Rs{perc:02d}')
+        f'fit_L23_{decomp.upper()}_NN_Rs{perc:02d}')
 
     # Load Hydrolight
     print("Loading Hydrolight data")
-    ab, Chl, Rs, d_a, d_bb, model = load(iop_type=iop_type)
+    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_data(decomp=decomp)
+    Ncomp = ab.shape[1]//2
+    emulator, e_file = ihop_io.load_l23_emulator(Ncomp, decomp=decomp)
     nwave = Rs.shape[1]
-    #ab, Rs, d_a, d_bb = ihop_io.load_loisel_2023_pca()
 
-    if fake:
-        print("Using fake Rs")
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        use_Rs = np.zeros((ab.shape[0], nwave))
-        for kk in range(ab.shape[0]):
-            pred_Rs = model.prediction(ab[kk], device)
-            use_Rs[kk,:] = pred_Rs
-    else:
-        use_Rs = Rs
+    use_Rs = Rs
 
     # Select a random sample
     np.random.seed(seed)
@@ -274,7 +266,7 @@ def fit_fixed_perc(perc:int, n_cores:int, seed:int=1234,
     use_Rs += (perc/100.) * use_Rs * r_sig
 
     # MCMC
-    pdict = dict(model=model)
+    pdict = dict(model=emulator)
     pdict['nwalkers'] = 16
     pdict['nsteps'] = 10000
     pdict['save_file'] = None
@@ -492,7 +484,8 @@ if __name__ == '__main__':
     #another_test(iop_type='nmf', fake=True, n_cores=1)
 
     # All of em
-    do_all_fits(iop_type='pca', n_cores=1)
+    #do_all_fits(decomp='pca', n_cores=1)
+    do_all_fits(decomp='nmf', n_cores=1)
     #do_all_fits(iop_type='nmf', n_cores=4, fake=True)
 
     # Analysis

@@ -17,25 +17,28 @@ import matplotlib.gridspec as gridspec
 from oceancolor.hydrolight import loisel23
 from oceancolor.utils import plotting 
 
-from ihop.emulators import io as ihop_io
+from ihop import io as ihop_io
 
 
 mpl.rcParams['font.family'] = 'stixgeneral'
 
 # Local
 sys.path.append(os.path.abspath("../Analysis/py"))
-import ihopI_io
+#import ihopI_io
 
 from IPython import embed
 
 
-def fig_emulator_rmse(emulator:str,
+def fig_emulator_rmse(model:str, 
                       outfile:str='fig_emulator_rmse.png'):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    if emulator[0:3] == 'L23':
-        decomp = emulator[4:].lower()
-        ab, Chl, Rs, d_a, d_bb, model = ihopI_io.load_l23_data_model(decomp=decomp)
+    if model[0:3] == 'L23':
+        decomp = model[4:].lower()
+        ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_data(decomp=decomp)
+        Ncomp = ab.shape[1]//2
+        emulator, e_file = ihop_io.load_l23_emulator(Ncomp, decomp=decomp)
+        print(f"Using: {e_file} for the emulator")
         wave = d_a['wave']
 
     # Concatenate
@@ -45,7 +48,7 @@ def fig_emulator_rmse(emulator:str,
     # Predict and compare
     dev = np.zeros_like(targets)
     for ss in range(targets.shape[0]):
-        dev[ss,:] = targets[ss] - model.prediction(inputs[ss],
+        dev[ss,:] = targets[ss] - emulator.prediction(inputs[ss],
                                                    device)
     
     # RMSE
@@ -75,7 +78,7 @@ def fig_emulator_rmse(emulator:str,
     #ax.set_yscale('log')
     #ax.legend(fontsize=15)
 
-    ax_abs.text(0.95, 0.90, emulator, color='k',
+    ax_abs.text(0.95, 0.90, model, color='k',
         transform=ax_abs.transAxes,
         fontsize=22, ha='right')
 
@@ -104,7 +107,7 @@ def fig_mcmc_fit(outfile='fig_mcmc_fit.png', iop_type='pca',
                  show_zoom:bool=False):
     # Load
     in_idx = 0
-    items = ihopI_io.load_l23_fit( in_idx, iop_type=iop_type, use_quick=use_quick)
+    items = ihop_io.load_l23_fit( in_idx, iop_type=iop_type, use_quick=use_quick)
     d_a, idx, orig, a_mean, a_std, a_iop, obs_Rs,\
         pred_Rs, std_pred, NN_Rs, Rs, ab, allY, wave,\
         orig_bb, bb_mean, bb_std = items
@@ -217,7 +220,7 @@ def fig_rmse_vs_sig(outfile:str='fig_rmse_vs_sig.png',
     for perc in all_perc:
         print(f"Working on: {perc}%")
         # L23
-        chains, d, ab, Chl, d_a = ihopI_io.load_l23_fit(
+        chains, d, ab, Chl, d_a = ihop_io.load_l23_fit(
             None, iop_type='pca', chains_only=True,
             perc=perc)
         l23_idx = d['idx']

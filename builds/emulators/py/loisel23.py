@@ -66,6 +66,7 @@ def main(flg):
             nepochs=25000)
             #nepochs=100)
         #  Ran on Nautilus Jupyter
+        # epoch : 25000/25000, loss = 0.000885
 
 
 # Command line execution
