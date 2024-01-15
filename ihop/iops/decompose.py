@@ -178,6 +178,8 @@ def generate_l23_tara_pca(clobber:bool=False, return_N:int=None):
             if return_N is not None and return_N == N:
                 return data, wave_grid, pca_fit
 
+
+
 def reconstruct_pca(Y:np.ndarray, pca_dict:dict, idx:int):
     """
     Reconstructs the original data point from the PCA-encoded representation.
@@ -195,5 +197,25 @@ def reconstruct_pca(Y:np.ndarray, pca_dict:dict, idx:int):
 
     # Reconstruct
     recon = np.dot(Y, pca_dict['M']) + pca_dict['mean']
+
+    return orig, recon
+
+def reconstruct_nmf(Y:np.ndarray, nmf_dict:dict, idx:int):
+    """
+    Reconstructs the original data point from the PCA-encoded representation.
+
+    Args:
+        Y (np.ndarray): The NMF-encoded representation of the data point.
+        pca_dict (dict): A dictionary containing the NMF transformation parameters.
+        idx (int): The index of the data point to reconstruct.
+
+    Returns:
+        tuple: A tuple containing the original data and its reconstructed version.
+    """
+    # Grab the original
+    orig = nmf_dict['spec'][idx]
+
+    # Reconstruct
+    recon = np.dot(Y, nmf_dict['M'])
 
     return orig, recon

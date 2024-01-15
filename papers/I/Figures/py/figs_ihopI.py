@@ -18,75 +18,81 @@ from oceancolor.hydrolight import loisel23
 from oceancolor.utils import plotting 
 
 from ihop import io as ihop_io
+from ihop.iops import decompose 
 
 
 mpl.rcParams['font.family'] = 'stixgeneral'
 
 # Local
 sys.path.append(os.path.abspath("../Analysis/py"))
-#import ihopI_io
+import reconstruct
 
 from IPython import embed
 
 
-def fig_emulator_rmse(model:str, 
+def fig_emulator_rmse(models:list, 
                       outfile:str='fig_emulator_rmse.png'):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    if model[0:3] == 'L23':
-        decomp = model[4:].lower()
-        ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_data(decomp=decomp)
-        Ncomp = ab.shape[1]//2
-        emulator, e_file = ihop_io.load_l23_emulator(Ncomp, decomp=decomp)
-        print(f"Using: {e_file} for the emulator")
-        wave = d_a['wave']
-
-    # Concatenate
-    inputs = np.concatenate((ab, Chl.reshape(Chl.size,1)), axis=1)
-    targets = Rs
-
-    # Predict and compare
-    dev = np.zeros_like(targets)
-    for ss in range(targets.shape[0]):
-        dev[ss,:] = targets[ss] - emulator.prediction(inputs[ss],
-                                                   device)
-    
-    # RMSE
-    rmse = np.sqrt(np.mean(dev**2, axis=0))
-
-    # Mean Rs
-    mean_Rs = np.mean(targets, axis=0)
-
-    # Plot
+    # Init the Plot
     figsize=(8,6)
     fig = plt.figure(figsize=figsize)
     plt.clf()
     gs = gridspec.GridSpec(3,1)
-
-    # #####################################################
-    # Absolute
+    ax_rel = plt.subplot(gs[2])
     ax_abs = plt.subplot(gs[0:2])
 
-    ax_abs.plot(wave, rmse, 'o')
+    clrs = ['k', 'b', 'r', 'g']
+    for ss, model in enumerate(models):
+        clr = clrs[ss]
+        if model[0:3] == 'L23':
+            decomp = model[4:].lower()
+            ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_data(decomp=decomp)
+            Ncomp = ab.shape[1]//2
+            emulator, e_file = ihop_io.load_l23_emulator(Ncomp, decomp=decomp)
+            print(f"Using: {e_file} for the emulator")
+            wave = d_a['wave']
 
-    ax_abs.set_ylabel(r'Absolute RMSE (m$^{-1}$)')
-    ax_abs.tick_params(labelbottom=False)  # Hide x-axis labels
+        # Concatenate
+        inputs = np.concatenate((ab, Chl.reshape(Chl.size,1)), axis=1)
+        targets = Rs
 
+        # Predict and compare
+        dev = np.zeros_like(targets)
+        for ss in range(targets.shape[0]):
+            dev[ss,:] = targets[ss] - emulator.prediction(inputs[ss],
+                                                    device)
+        
+        # RMSE
+        rmse = np.sqrt(np.mean(dev**2, axis=0))
 
-    #ax.set_xlim(1., 10)
-    #ax.set_ylim(1e-5, 0.01)
-    #ax.set_yscale('log')
-    #ax.legend(fontsize=15)
+        # Mean Rs
+        mean_Rs = np.mean(targets, axis=0)
 
-    ax_abs.text(0.95, 0.90, model, color='k',
-        transform=ax_abs.transAxes,
-        fontsize=22, ha='right')
+        # #####################################################
+        # Absolute
 
-    # Relative
-    ax_rel = plt.subplot(gs[2])
-    ax_rel.plot(wave, rmse/mean_Rs, 'o', color='k')
-    ax_rel.set_ylabel('Relative RMSE')
-    ax_rel.set_ylim(0., 0.023)
+        ax_abs.plot(wave, rmse, 'o', color=clr, label=f'{model}')
+
+        ax_abs.set_ylabel(r'Absolute RMSE (m$^{-1}$)')
+        ax_abs.tick_params(labelbottom=False)  # Hide x-axis labels
+
+        ax_abs.legend(fontsize=15)
+
+        #ax.set_xlim(1., 10)
+        #ax.set_ylim(1e-5, 0.01)
+        #ax.set_yscale('log')
+        #ax.legend(fontsize=15)
+
+        #ax_abs.text(0.95, 0.90, model, color='k',
+        #    transform=ax_abs.transAxes,
+        #    fontsize=22, ha='right')
+
+        # #####################################################
+        # Relative
+        ax_rel.plot(wave, rmse/mean_Rs, '*', color=clr)
+        ax_rel.set_ylabel('Relative RMSE')
+        ax_rel.set_ylim(0., 0.023)
 
     # Finish
     for ss, ax in enumerate([ax_abs, ax_rel]):
@@ -102,14 +108,20 @@ def fig_emulator_rmse(model:str,
 
 
 # ############################################################
-def fig_mcmc_fit(outfile='fig_mcmc_fit.png', iop_type='pca',
+def fig_mcmc_fit(outfile='fig_mcmc_fit.png', decomp='pca',
                  use_quick:bool=False,
                  show_zoom:bool=False):
     # Load
     in_idx = 0
-    items = ihop_io.load_l23_fit( in_idx, iop_type=iop_type, use_quick=use_quick)
-    d_a, idx, orig, a_mean, a_std, a_iop, obs_Rs,\
-        pred_Rs, std_pred, NN_Rs, Rs, ab, allY, wave,\
+    Ncomp = 3
+    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_data(decomp=decomp)
+    d_chains = ihop_io.load_l23_chains(decomp, perc=10)
+    emulator, e_file = ihop_io.load_l23_emulator(Ncomp, decomp=decomp)
+
+    # Reconstruct
+    items = reconstruct.one_spectrum(in_idx, ab, Chl, d_chains, d_a, d_bb, emulator, decomp)
+    idx, orig, a_mean, a_std, a_iop, obs_Rs,\
+        pred_Rs, std_pred, NN_Rs, allY, wave,\
         orig_bb, bb_mean, bb_std = items
 
     # #########################################################
@@ -204,14 +216,16 @@ def fig_mcmc_fit(outfile='fig_mcmc_fit.png', iop_type='pca',
 
 # ############################################################
 # ############################################################
-def fig_rmse_vs_sig(outfile:str='fig_rmse_vs_sig.png', 
-                    iop_type:str='pca', chop_burn:int=-3000):
+def fig_rmse_vs_sig(outroot:str='fig_rmse_vs_sig',
+                    decomp:str='pca', chop_burn:int=-3000):
 
     # Prep
-    if iop_type == 'pca':
-        rfunc = ihop_pca.reconstruct
-    elif iop_type == 'nmf':
-        rfunc = ihop_nmf.reconstruct
+    if decomp == 'pca':
+        rfunc = decompose.reconstruct_pca
+    elif decomp == 'nmf':
+        rfunc = decompose.reconstruct_nmf
+
+    outfile = outroot + f'_{decomp}.png'
 
     all_l23_rmse = []
     all_l23_sig = []
@@ -220,10 +234,10 @@ def fig_rmse_vs_sig(outfile:str='fig_rmse_vs_sig.png',
     for perc in all_perc:
         print(f"Working on: {perc}%")
         # L23
-        chains, d, ab, Chl, d_a = ihop_io.load_l23_fit(
-            None, iop_type='pca', chains_only=True,
-            perc=perc)
-        l23_idx = d['idx']
+        ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_data(decomp=decomp)
+        d_chains = ihop_io.load_l23_chains(decomp, perc=perc)
+        chains = d_chains['chains']
+        l23_idx = d_chains['idx']
         ncomp = 3
         wave = d_a['wave']
         dev = np.zeros((chains.shape[0], wave.size))
@@ -292,8 +306,8 @@ def main(flg):
 
     # Example spectra
     if flg & (2**20):
-        fig_emulator_rmse('L23_PCA')
-        #fig_emulator_rmse('L23_NMF')
+        #fig_emulator_rmse('L23_PCA')
+        fig_emulator_rmse(['L23_NMF', 'L23_PCA'])
 
     # L23 IHOP performance vs. perc error
     if flg & (2**21):
@@ -301,7 +315,8 @@ def main(flg):
 
     # L23 IHOP performance vs. perc error
     if flg & (2**22):
-        fig_rmse_vs_sig()
+        #fig_rmse_vs_sig()
+        fig_rmse_vs_sig(decomp='nmf')
 
 
 # Command line execution
@@ -318,8 +333,8 @@ if __name__ == '__main__':
         #flg += 2 ** 5  # 32 -- L23,Tara compare NMF basis functions
         #flg += 2 ** 6  # 64 -- Fit l23 basis functions
 
-        flg += 2 ** 20  # RMSE of emulator
-        #flg += 2 ** 21  # Single MCMC fit (example)
+        #flg += 2 ** 20  # RMSE of emulators
+        flg += 2 ** 21  # Single MCMC fit (example)
         #flg += 2 ** 22  # RMSE of L23 fits
 
         #flg += 2 ** 2  # 4 -- Indiv
