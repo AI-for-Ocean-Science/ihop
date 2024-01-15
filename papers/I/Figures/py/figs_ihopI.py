@@ -13,12 +13,15 @@ from matplotlib import pyplot as plt
 import matplotlib as mpl
 import matplotlib.gridspec as gridspec
 
+import seaborn as sns
 
 from oceancolor.hydrolight import loisel23
 from oceancolor.utils import plotting 
 
 from ihop import io as ihop_io
 from ihop.iops import decompose 
+
+from cnmf import stats as cnmf_stats
 
 
 mpl.rcParams['font.family'] = 'stixgeneral'
@@ -29,6 +32,79 @@ import reconstruct
 
 from IPython import embed
 
+# Number of components
+Ncomp = 3
+
+
+
+def fig_basis_functions(decomp:str,
+                        outfile:str='fig_basis_functions.png', 
+                        norm:bool=False):
+
+    # Load
+    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_decomposition(decomp, Ncomp)
+    wave = d_a['wave']
+
+    # Seaborn
+    sns.set(style="whitegrid",
+            rc={"lines.linewidth": 2.5})
+            # 'axes.edgecolor': 'black'
+    sns.set_palette("pastel")
+    sns.set_context("paper")
+    #sns.set_context("poster", linewidth=3)
+    #sns.set_palette("husl")
+
+    fig = plt.figure(figsize=(12,6))
+    gs = gridspec.GridSpec(1,2)
+
+
+    for ss, IOP in enumerate(['a', 'bb']):
+        ax = plt.subplot(gs[ss])
+        d = d_a if IOP == 'a' else d_bb
+        M = d['M']
+        # Variance
+        evar_i = cnmf_stats.evar_computation(
+            d['spec'], d['coeff'], d['M'])
+        # Plot
+        for ii in range(Ncomp):
+            # Normalize
+            if norm:
+                iwv = np.argmin(np.abs(wave-440.))
+                nrm = M[ii][iwv]
+            else:
+                nrm = 1.
+            # Step plot
+            sns.lineplot(x=wave, y=M[ii]/nrm, 
+                            label=r'$W_'+f'{ii+1}'+r'^{\rm '+IOP+r'}$',
+                            ax=ax, lw=2)#, drawstyle='steps-pre')
+            #ax.step(wave, M[ii]/nrm, label=f'{itype}:'+r'  $\xi_'+f'{ii+1}'+'$')
+
+        # Thick line around the border of the axis
+        ax.spines['top'].set_linewidth(2)
+        
+        # Horizontal line at 0
+        ax.axhline(0., color='k', ls='--')
+
+        # Labels
+        ax.set_xlabel('Wavelength (nm)')
+        #ax.set_xlim(400., 720.)
+
+        lIOP = r'$a(\lambda)$' if IOP == 'a' else r'$b_b(\lambda)$'
+        ax.set_ylabel(f'NMF Basis Functions for {lIOP}')
+
+        # Variance
+        ax.text(0.5, 0.5, f'Explained variance: {100*evar_i:.2f}%',
+            transform=ax.transAxes,
+            fontsize=13, ha='center')
+
+        loc = 'upper right' if ss == 1 else 'upper left'
+        ax.legend(fontsize=15, loc=loc)
+
+        plotting.set_fontsize(ax, 18)
+
+    plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
+    plt.savefig(outfile, dpi=300)
+    print(f"Saved: {outfile}")
 
 def fig_emulator_rmse(models:list, 
                       outfile:str='fig_emulator_rmse.png'):
@@ -48,9 +124,9 @@ def fig_emulator_rmse(models:list,
         clr = clrs[ss]
         if model[0:3] == 'L23':
             decomp = model[4:].lower()
-            ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_data(decomp=decomp)
+            ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_decomposition(decomp, Ncomp)
             Ncomp = ab.shape[1]//2
-            emulator, e_file = ihop_io.load_l23_emulator(Ncomp, decomp=decomp)
+            emulator, e_file = ihop_io.load_l23_emulator(decomp, Ncomp)
             print(f"Using: {e_file} for the emulator")
             wave = d_a['wave']
 
@@ -127,9 +203,9 @@ def fig_mcmc_fit(outfile='fig_mcmc_fit.png', decomp='pca',
     # Load
     in_idx = 0
     Ncomp = 3
-    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_data(decomp=decomp)
+    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_decomposition(decomp, Ncomp)
     d_chains = ihop_io.load_l23_chains(decomp, perc=10)
-    emulator, e_file = ihop_io.load_l23_emulator(Ncomp, decomp=decomp)
+    emulator, e_file = ihop_io.load_l23_emulator(decomp, Ncomp)
 
     # Reconstruct
     items = reconstruct.one_spectrum(in_idx, ab, Chl, d_chains, d_a, d_bb, emulator, decomp)
@@ -247,7 +323,7 @@ def fig_rmse_vs_sig(outroot:str='fig_rmse_vs_sig',
     for perc in all_perc:
         print(f"Working on: {perc}%")
         # L23
-        ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_data(decomp=decomp)
+        ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_decomposition(decomp, Ncomp)
         d_chains = ihop_io.load_l23_chains(decomp, perc=perc)
         chains = d_chains['chains']
         l23_idx = d_chains['idx']
@@ -317,6 +393,11 @@ def main(flg):
     else:
         flg= int(flg)
 
+    # Decomposition
+    if flg & (2**19):
+        #fig_emulator_rmse('L23_PCA')
+        fig_basis_functions('nmf')
+
     # Example spectra
     if flg & (2**20):
         #fig_emulator_rmse('L23_PCA')
@@ -346,7 +427,8 @@ if __name__ == '__main__':
         #flg += 2 ** 5  # 32 -- L23,Tara compare NMF basis functions
         #flg += 2 ** 6  # 64 -- Fit l23 basis functions
 
-        flg += 2 ** 20  # RMSE of emulators
+        flg += 2 ** 19  # Basis functions of the decomposition
+        #flg += 2 ** 20  # RMSE of emulators
         #flg += 2 ** 21  # Single MCMC fit (example)
         #flg += 2 ** 22  # RMSE of L23 fits
 

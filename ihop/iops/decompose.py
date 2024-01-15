@@ -43,12 +43,12 @@ def loisel23_filenames(decomp:str, Ncomp:int,
     # Return
     return l23_a_file, l23_bb_file
 
-def load_loisel2023(decomp:str, Ncomp:int=3, X:int=4, Y:int=0):
+def load_loisel2023(decomp:str, Ncomp:int, X:int=4, Y:int=0):
     """ Load the NMF or PCA-based parameterization of IOPs from Loisel 2023
 
     Args:
         decomp (str): The decomposition type. pca, nmf
-        Ncomp (int, optional): Number of components. Defaults to 3.
+        Ncomp (int): Number of components.
         X (int, optional): simulation scenario   
         Y (int, optional):  solar zenith angle used in the simulation, and 
 
