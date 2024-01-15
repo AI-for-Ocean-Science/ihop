@@ -38,8 +38,9 @@ def fig_emulator_rmse(models:list,
     figsize=(8,6)
     fig = plt.figure(figsize=figsize)
     plt.clf()
-    gs = gridspec.GridSpec(3,1)
+    gs = gridspec.GridSpec(4,1)
     ax_rel = plt.subplot(gs[2])
+    ax_bias = plt.subplot(gs[3])
     ax_abs = plt.subplot(gs[0:2])
 
     clrs = ['k', 'b', 'r', 'g']
@@ -62,6 +63,9 @@ def fig_emulator_rmse(models:list,
         for ss in range(targets.shape[0]):
             dev[ss,:] = targets[ss] - emulator.prediction(inputs[ss],
                                                     device)
+        
+        # Bias?
+        bias = np.mean(dev, axis=0)
         
         # RMSE
         rmse = np.sqrt(np.mean(dev**2, axis=0))
@@ -94,10 +98,19 @@ def fig_emulator_rmse(models:list,
         ax_rel.set_ylabel('Relative RMSE')
         ax_rel.set_ylim(0., 0.023)
 
+        ax_rel.tick_params(labelbottom=False)  # Hide x-axis labels
+
+        # #####################################################
+        # Bias
+        ax_bias.plot(wave, bias, 'x', color=clr)
+        ax_bias.set_ylabel(r'Absolute Bias (m$^{-1}$)')
+        #ax_bias.set_ylim(0., 0.023)
+
+
     # Finish
-    for ss, ax in enumerate([ax_abs, ax_rel]):
-        plotting.set_fontsize(ax, 17)
-        if ss == 1:
+    for ss, ax in enumerate([ax_abs, ax_rel, ax_bias]):
+        plotting.set_fontsize(ax, 15)
+        if ss == 2:
             ax.set_xlabel('Wavelength [nm]')
         # Grid
         ax.grid(True, which='major', axis='both', linestyle='--', alpha=0.5)
@@ -333,8 +346,8 @@ if __name__ == '__main__':
         #flg += 2 ** 5  # 32 -- L23,Tara compare NMF basis functions
         #flg += 2 ** 6  # 64 -- Fit l23 basis functions
 
-        #flg += 2 ** 20  # RMSE of emulators
-        flg += 2 ** 21  # Single MCMC fit (example)
+        flg += 2 ** 20  # RMSE of emulators
+        #flg += 2 ** 21  # Single MCMC fit (example)
         #flg += 2 ** 22  # RMSE of L23 fits
 
         #flg += 2 ** 2  # 4 -- Indiv
