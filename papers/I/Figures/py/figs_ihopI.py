@@ -106,7 +106,7 @@ def fig_basis_functions(decomp:str,
     plt.savefig(outfile, dpi=300)
     print(f"Saved: {outfile}")
 
-def fig_emulator_rmse(models:list, 
+def fig_emulator_rmse(models:list, Ncomps:list,
                       outfile:str='fig_emulator_rmse.png'):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -121,11 +121,11 @@ def fig_emulator_rmse(models:list,
 
     clrs = ['k', 'b', 'r', 'g']
     for ss, model in enumerate(models):
+        Ncomp = Ncomps[ss]
         clr = clrs[ss]
         if model[0:3] == 'L23':
             decomp = model[4:].lower()
             ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_decomposition(decomp, Ncomp)
-            Ncomp = ab.shape[1]//2
             emulator, e_file = ihop_io.load_l23_emulator(decomp, Ncomp)
             print(f"Using: {e_file} for the emulator")
             wave = d_a['wave']
@@ -401,7 +401,8 @@ def main(flg):
     # Example spectra
     if flg & (2**20):
         #fig_emulator_rmse('L23_PCA')
-        fig_emulator_rmse(['L23_NMF', 'L23_PCA'])
+        fig_emulator_rmse(['L23_NMF', 'L23_PCA'],
+                          [3, 3])
 
     # L23 IHOP performance vs. perc error
     if flg & (2**21):
@@ -419,16 +420,9 @@ if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         flg = 0
-        #flg += 2 ** 0  # 1 -- Example spectra
-        #flg += 2 ** 1  # 2 -- L23: PCA vs NMF Explained variance
-        #flg += 2 ** 2  # 4 -- L23: PCA and NMF basis
-        #flg += 2 ** 3  # 8 -- L23: Fit NMF basis functions with CDOM, Chl
-        #flg += 2 ** 4  # 16 -- L23+Tara; a1, a2 contours
-        #flg += 2 ** 5  # 32 -- L23,Tara compare NMF basis functions
-        #flg += 2 ** 6  # 64 -- Fit l23 basis functions
 
-        flg += 2 ** 19  # Basis functions of the decomposition
-        #flg += 2 ** 20  # RMSE of emulators
+        #flg += 2 ** 19  # Basis functions of the decomposition
+        flg += 2 ** 20  # RMSE of emulators
         #flg += 2 ** 21  # Single MCMC fit (example)
         #flg += 2 ** 22  # RMSE of L23 fits
 
