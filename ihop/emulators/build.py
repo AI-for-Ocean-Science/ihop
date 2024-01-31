@@ -170,8 +170,10 @@ def perform_training(model, dataset, ishape:int, tshape:int,
             outputs = model(batch_features)
 
             # Convert to real space from normalized
-            
-            # compute training loss
+            # new_output = outputs * model.Rs_parm[1] + model.Rs_parm[0]
+            # new_targets = targets * model.Rs_parm[1] + model.Rs_parm[0]
+          
+            # compute training loss in real space
             train_loss = criterion(outputs, targets)
             
             # compute accumulated gradients
