@@ -168,6 +168,8 @@ def perform_training(model, dataset, ishape:int, tshape:int,
             
             # compute reconstructions
             outputs = model(batch_features)
+
+            # Convert to real space from normalized
             
             # compute training loss
             train_loss = criterion(outputs, targets)
