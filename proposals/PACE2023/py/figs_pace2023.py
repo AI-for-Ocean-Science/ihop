@@ -256,26 +256,6 @@ def fig_corner(outfile='fig_corner.png'):
     plt.savefig(outfile, dpi=300)
     print(f"Saved: {outfile}")
 
-
-def main(flg):
-    if flg== 'all':
-        flg= np.sum(np.array([2 ** ii for ii in range(25)]))
-    else:
-        flg= int(flg)
-
-    # PCA
-    if flg & (2**0):
-        fig_l23_tara_pca()
-
-    # MCMC fit
-    if flg & (2**1):
-        fig_mcmc_fit()
-
-    # MCMC fit
-    if flg & (2**2):
-        fig_corner()
-
-
 # Command line execution
 if __name__ == '__main__':
     import sys
