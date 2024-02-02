@@ -26,7 +26,7 @@ RUN  apt-get update && \
 # Code and storage
 RUN  apt-get install -y git awscli
 
-# APT
+# APT and curl
 RUN apt-get update && apt-get install curl -y
 
 # Miniconda
