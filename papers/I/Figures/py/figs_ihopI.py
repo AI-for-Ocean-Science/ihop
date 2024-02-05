@@ -178,8 +178,8 @@ def fig_emulator_rmse(models:list, Ncomps:list,
 
         # #####################################################
         # Bias
-        ax_bias.plot(wave, bias, 'x', color=clr)
-        ax_bias.set_ylabel(r'Absolute Bias (m$^{-1}$)')
+        ax_bias.plot(wave, bias/mean_Rs, 'x', color=clr)
+        ax_bias.set_ylabel('Relative Bias')
         #ax_bias.set_ylim(0., 0.023)
 
 
