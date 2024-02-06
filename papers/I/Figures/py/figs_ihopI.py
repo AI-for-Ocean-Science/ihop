@@ -106,7 +106,7 @@ def fig_basis_functions(decomp:str,
     plt.savefig(outfile, dpi=300)
     print(f"Saved: {outfile}")
 
-def fig_emulator_rmse(models:list, Ncomps:list,
+def fig_emulator_rmse(model:str, Ncomp:int,
                       outfile:str='fig_emulator_rmse.png'):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -119,16 +119,17 @@ def fig_emulator_rmse(models:list, Ncomps:list,
     ax_bias = plt.subplot(gs[3])
     ax_abs = plt.subplot(gs[0:2])
 
+    decomp = model[4:].lower()
+    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_decomposition(decomp, Ncomp)
+    emulator, e_file = ihop_io.load_l23_emulator(decomp, Ncomp)
+    print(f"Using: {e_file} for the emulator")
+    wave = d_a['wave']
+
     clrs = ['k', 'b', 'r', 'g']
-    for ss, model in enumerate(models):
-        Ncomp = Ncomps[ss]
+    for ss, dset in enumerate(['Training', 'Validation']):
+        if ss > 0:
+            continue
         clr = clrs[ss]
-        if model[0:3] == 'L23':
-            decomp = model[4:].lower()
-            ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_decomposition(decomp, Ncomp)
-            emulator, e_file = ihop_io.load_l23_emulator(decomp, Ncomp)
-            print(f"Using: {e_file} for the emulator")
-            wave = d_a['wave']
 
         # Concatenate
         inputs = np.concatenate((ab, Chl.reshape(Chl.size,1)), axis=1)
@@ -152,9 +153,9 @@ def fig_emulator_rmse(models:list, Ncomps:list,
         # #####################################################
         # Absolute
 
-        ax_abs.plot(wave, rmse, 'o', color=clr, label=f'{model}')
+        ax_abs.plot(wave, rmse, 'o', color=clr, label=f'{dset}')
 
-        ax_abs.set_ylabel(r'Absolute RMSE (m$^{-1}$)')
+        ax_abs.set_ylabel(r'RMSE (m$^{-1}$)')
         ax_abs.tick_params(labelbottom=False)  # Hide x-axis labels
 
         ax_abs.legend(fontsize=15)
@@ -170,15 +171,15 @@ def fig_emulator_rmse(models:list, Ncomps:list,
 
         # #####################################################
         # Relative
-        ax_rel.plot(wave, rmse/mean_Rs, '*', color=clr)
-        ax_rel.set_ylabel('Relative RMSE')
+        ax_rel.plot(wave, rmse/mean_Rs, 'o', color=clr)
+        ax_rel.set_ylabel('rRMSE')
         ax_rel.set_ylim(0., 0.023)
 
         ax_rel.tick_params(labelbottom=False)  # Hide x-axis labels
 
         # #####################################################
         # Bias
-        ax_bias.plot(wave, bias/mean_Rs, 'x', color=clr)
+        ax_bias.plot(wave, bias/mean_Rs, 'o', color=clr)
         ax_bias.set_ylabel('Relative Bias')
         #ax_bias.set_ylim(0., 0.023)
 
@@ -194,6 +195,11 @@ def fig_emulator_rmse(models:list, Ncomps:list,
     plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
     plt.savefig(outfile, dpi=300)
     print(f"Saved: {outfile}")
+
+    # A few stats on Chl
+    min_chl = np.min(Chl)
+    max_chl = np.max(Chl)
+    print(f'Min Chl: {np.log10(min_chl):.2f}, Max Chl: {np.log10(max_chl):.2f}')
 
 
 # ############################################################
@@ -221,6 +227,8 @@ def fig_mcmc_fit(outfile='fig_mcmc_fit.png', decomp='pca',
     plt.clf()
     gs = gridspec.GridSpec(3,1)
     
+    xpos, ypos = 0.95, 0.15
+
     # #########################################################
     # a
     ax_a = plt.subplot(gs[1])
@@ -231,14 +239,15 @@ def fig_mcmc_fit(outfile='fig_mcmc_fit.png', decomp='pca',
         ax.fill_between(wave, a_mean-a_std, a_mean+a_std, 
             color='r', alpha=0.5, label='Uncertainty') 
     plot_spec(ax_a)
-    ax_a.set_xlabel('Wavelength (nm)')
+    #ax_a.set_xlabel('Wavelength (nm)')
     ax_a.set_ylabel(r'$a(\lambda)$')
 
-    ax_a.text(0.05, 0.05, '(b)', color='k',
+    ax_a.text(xpos, ypos,  '(b)', color='k',
             transform=ax_a.transAxes,
-              fontsize=18, ha='left')
+              fontsize=18, ha='right')
 
     ax_a.legend(fontsize=lgsz)
+    ax_a.tick_params(labelbottom=False)  # Hide x-axis labels
 
     # Zoom in
     # inset axes....
@@ -264,9 +273,9 @@ def fig_mcmc_fit(outfile='fig_mcmc_fit.png', decomp='pca',
     ax_bb.set_xlabel('Wavelength (nm)')
     ax_bb.set_ylabel(r'$b_b(\lambda)$')
 
-    ax_bb.text(0.05, 0.05, '(c)', color='k',
+    ax_bb.text(xpos, ypos, '(c)', color='k',
             transform=ax_bb.transAxes,
-              fontsize=18, ha='left')
+              fontsize=18, ha='right')
     ax_bb.legend(fontsize=lgsz)
 
     # #########################################################
@@ -277,7 +286,7 @@ def fig_mcmc_fit(outfile='fig_mcmc_fit.png', decomp='pca',
         ax_R.plot(wave, obs_Rs[0], 'bs', label='Obs')
     else:
         ax_R.plot(wave, obs_Rs[in_idx], 'bs', label='Obs')
-    ax_R.plot(wave, pred_Rs, 'r-', label='Model', zorder=10)
+    ax_R.plot(wave, pred_Rs, 'r-', label='Fit', zorder=10)
     ax_R.fill_between(wave, pred_Rs-std_pred, pred_Rs+std_pred, 
             color='r', alpha=0.5, zorder=10) 
     #ax_R.plot(wave, NN_Rs, 'g-', label='NN+True')
@@ -286,14 +295,15 @@ def fig_mcmc_fit(outfile='fig_mcmc_fit.png', decomp='pca',
         pred_Rs-std_pred, pred_Rs+std_pred,
         color='r', alpha=0.5) 
 
-    ax_R.set_xlabel('Wavelength (nm)')
-    ax_R.set_ylabel(r'$R_s$')
+    #ax_R.set_xlabel('Wavelength (nm)')
+    ax_R.set_ylabel(r'$R_{rs}(\lambda)$')
 
-    ax_R.text(0.05, 0.05, '(a)', color='k',
+    ax_R.text(xpos, ypos, '(a)', color='k',
             transform=ax_R.transAxes,
-              fontsize=18, ha='left')
+              fontsize=18, ha='right')
 
     ax_R.legend(fontsize=lgsz)
+    ax_R.tick_params(labelbottom=False)  # Hide x-axis labels
     
     # axes
     for ax in [ax_a, ax_R, ax_bb]:
@@ -400,9 +410,8 @@ def main(flg):
 
     # Example spectra
     if flg & (2**20):
-        #fig_emulator_rmse('L23_PCA')
-        fig_emulator_rmse(['L23_NMF', 'L23_PCA'],
-                          [3, 3])
+        fig_emulator_rmse('L23_NMF', 3)
+        #fig_emulator_rmse(['L23_NMF', 'L23_PCA'], [3, 3])
 
     # L23 IHOP performance vs. perc error
     if flg & (2**21):
@@ -422,8 +431,8 @@ if __name__ == '__main__':
         flg = 0
 
         #flg += 2 ** 19  # Basis functions of the decomposition
-        flg += 2 ** 20  # RMSE of emulators
-        #flg += 2 ** 21  # Single MCMC fit (example)
+        #flg += 2 ** 20  # RMSE of emulators
+        flg += 2 ** 21  # Single MCMC fit (example)
         #flg += 2 ** 22  # RMSE of L23 fits
 
         #flg += 2 ** 2  # 4 -- Indiv
