@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader
 
 from ihop.emulators.nn import MyDataset, DenseNet, SimpleNet
 from ihop.emulators import preprocess
+from ihop.emulators import io as emu_io
 
 from IPython import embed
 
@@ -74,7 +75,8 @@ def densenet(hidden_list:list,
                    p_dropout:float=0.,
                    batchnorm:bool=True,
                    save:bool=True,
-                   root:str='model'):
+                   root:str='model',
+                   out_path:str=None):
     """
     Builds a DenseNet model for training and saves the model if specified.
 
@@ -89,6 +91,7 @@ def densenet(hidden_list:list,
         batchnorm (bool): Flag indicating whether to use batch normalization layers.
         save (bool): Flag indicating whether to save the trained model.
         root (str, optional): Root name for the saved model files. Defaults to 'model'.
+        out_path (str, optional): Path to the output directory. Defaults to None.
 
     Returns:
         float: The loss value after training.
@@ -113,20 +116,16 @@ def densenet(hidden_list:list,
     nbatch = 64
     train_kwargs = {'batch_size': nbatch}
 
-    epoch, loss, optimizer = perform_training(model, dataset, nparam,
+    epoch, losses, optimizer = perform_training(model, dataset, nparam,
         pre_targets.shape[1], train_kwargs, lr, nepochs=nepochs)
 
     # Save
     if save:
-        PATH = f"{root}.pt"
-        torch.save({'epoch': epoch,
-                    'model_state_dict': model.state_dict(),
-                    'optimizer_state_dict': optimizer.state_dict(),
-                    'loss': loss,}, PATH)
-        torch.save(model, f'{root}.pth')
-        print(f"Wrote: {root}.pt, {root}.pth")
+        emu_io.save_nn(model, root, epoch, optimizer, losses,
+                       path=out_path)
+        
     # Return
-    return loss
+    return losses
 
 
 def perform_training(model, dataset, ishape:int, tshape:int,
@@ -144,7 +143,8 @@ def perform_training(model, dataset, ishape:int, tshape:int,
         nepochs (int, optional): The number of training epochs. Defaults to 100.
 
     Returns:
-        tuple: A tuple containing the final epoch number, the final loss value, and the optimizer.
+        tuple: A tuple containing the final epoch number, 
+            a list of all the losses, and the optimizer.
 
     """
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -153,6 +153,7 @@ def perform_training(model, dataset, ishape:int, tshape:int,
     criterion = nn.MSELoss()
     train_loader = DataLoader(dataset, **train_kwargs)
 
+    losses = []
     for epoch in range(nepochs):
         loss = 0
         for batch_features, targets in train_loader:
@@ -190,7 +191,8 @@ def perform_training(model, dataset, ishape:int, tshape:int,
         
         # display the epoch training loss
         print("epoch : {}/{}, loss = {:.6f}".format(epoch + 1, nepochs, loss))
+        losses.append(loss)
 
     # Return
-    return epoch, loss, optimizer
+    return epoch, losses, optimizer
 

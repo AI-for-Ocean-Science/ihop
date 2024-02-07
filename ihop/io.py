@@ -42,6 +42,7 @@ def load_l23_emulator(decomp:str, Ncomp:int, X:int=4, Y:int=0):
         f'dense_l23_{decomp}_X{X}Y{Y}_N{Ncomp:02d}_{arch}_chl.pth')
 
     # Load
+    print(f'Loading: {emulator_file}')
     emulator = ihop_io.load_nn(emulator_file)
 
     # Return

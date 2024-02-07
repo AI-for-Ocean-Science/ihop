@@ -6,7 +6,7 @@ from oceancolor.hydrolight import loisel23
 from ihop.iops.decompose import load_loisel2023
 from ihop.emulators import build
 
-def emulate_l23(decomp:str, include_chl:bool=True, X:int=4, Y:int=0,
+def emulate_l23(decomp:str, Ncomp:int, include_chl:bool=True, X:int=4, Y:int=0,
     hidden_list:list=[512, 512, 256], 
     nepochs:int=100, lr:float=1e-2, p_drop:float=0.):
     """
@@ -15,6 +15,7 @@ def emulate_l23(decomp:str, include_chl:bool=True, X:int=4, Y:int=0,
 
     Args:
         decomp (str): The decomposition type. pca, nmf
+        Ncomp (int): The number of components.
         include_chl (bool, optional): Flag indicating whether to include chlorophyll in the input data. Defaults to True.
         X (int, optional): X-coordinate of the dataset. Defaults to 4.
         Y (int, optional): Y-coordinate of the dataset. Defaults to 0.
@@ -24,8 +25,7 @@ def emulate_l23(decomp:str, include_chl:bool=True, X:int=4, Y:int=0,
         p_drop (float, optional): Dropout probability for the neural network. Defaults to 0.
     """
     # Load data
-    ab, Rs, _, _ = load_loisel2023(decomp)
-    Ncomp = ab.shape[1]//2
+    ab, Rs, _, _ = load_loisel2023(decomp, Ncomp, X=X, Y=Y)
 
     # Outfile
     root = f'dense_l23_{decomp}_X{X}Y{Y}_N{Ncomp:02d}'
@@ -54,7 +54,7 @@ def main(flg):
 
     # L23 + PCA
     if flg & (2**0):
-        emulate_l23('pca', hidden_list=[512, 512, 512, 256],
+        emulate_l23('pca', 3, hidden_list=[512, 512, 512, 256],
             nepochs=25000)
         #  Ran on Nautilus Jupyter
         # epoch : 2500/2500, loss = 0.001642
@@ -62,9 +62,9 @@ def main(flg):
 
     # L23 + NMF 
     if flg & (2**1):
-        emulate_l23('nmf', hidden_list=[512, 512, 512, 256],
-            nepochs=25000)
-            #nepochs=100)
+        emulate_l23('nmf', 3, hidden_list=[512, 512, 512, 256],
+            nepochs=100)
+            #nepochs=25000)
         #  Ran on Nautilus Jupyter
         # epoch : 25000/25000, loss = 0.000885
 
