@@ -1,14 +1,20 @@
 """ Emulator builds for Hydrolight and PCA """
+import os
 import numpy as np
 
 from oceancolor.hydrolight import loisel23
 
 from ihop.iops.decompose import load_loisel2023
 from ihop.emulators import build
+from ihop.emulators import io as emu_io
+
+from IPython import embed
+
 
 def emulate_l23(decomp:str, Ncomp:int, include_chl:bool=True, X:int=4, Y:int=0,
     hidden_list:list=[512, 512, 256], 
-    nepochs:int=100, lr:float=1e-2, p_drop:float=0.):
+    nepochs:int=100, lr:float=1e-2, p_drop:float=0.,
+    push_to_s3:bool=False):
     """
     Generate an emulator for a decomposition
     of the Loisel+23 dataset.
@@ -23,16 +29,23 @@ def emulate_l23(decomp:str, Ncomp:int, include_chl:bool=True, X:int=4, Y:int=0,
         nepochs (int, optional): Number of training epochs. Defaults to 100.
         lr (float, optional): Learning rate for the neural network. Defaults to 1e-2.
         p_drop (float, optional): Dropout probability for the neural network. Defaults to 0.
+        push_to_s3 (bool, optional): Flag indicating whether to push the model to S3. Defaults to False.
     """
     # Load data
     ab, Rs, _, _ = load_loisel2023(decomp, Ncomp, X=X, Y=Y)
 
+    # Emulator dict
+    edict = emu_io.set_emulator_dict('L23', decomp, Ncomp, 'Rrs',
+        'dense', hidden_list=hidden_list, 
+        include_chl=include_chl, X=X, Y=Y)
+
     # Outfile
-    root = f'dense_l23_{decomp}_X{X}Y{Y}_N{Ncomp:02d}'
-    for item in hidden_list:
-        root += f'_{item}'
-    if include_chl:
-        root += '_chl'
+    path = './'
+    root = emu_io.set_l23_emulator_root(edict)
+    if push_to_s3:
+        s3_path = f's3://ihop/Emulators/L23'
+    if os.getenv('OS_COLOR') is not None:
+        path = os.getenv('OS_COLOR')
 
 
     if include_chl: 
@@ -41,6 +54,7 @@ def emulate_l23(decomp:str, Ncomp:int, include_chl:bool=True, X:int=4, Y:int=0,
         inputs = np.concatenate((ab, Chl.reshape(Chl.size,1)), axis=1)
     else:
         inputs = ab
+
 
     build.densenet(hidden_list, nepochs, inputs, Rs,
                    lr, dropout_on=False,
