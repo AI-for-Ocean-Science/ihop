@@ -70,7 +70,6 @@ spec:
             aws --endpoint https://s3-west.nrp-nautilus.io s3 cp s3://ihop/IOPs/nmf_L23_X4Y0_a_N03.npz ./ihop/data/NMF/;
             aws --endpoint https://s3-west.nrp-nautilus.io s3 cp s3://ihop/IOPs/nmf_L23_X4Y0_bb_N03.npz ./ihop/data/NMF/;
             cd build/emulators;
-            sleep 900;
             python -u py/loisel23.py 2;
             aws --endpoint https://s3-west.nrp-nautilus.io s3 cp dense_l23_nmf_X4Y0_N03_512_512_512_256_chl.pt s3://ihop/Emulators/DenseNet_NMF/dense_l23_nmf_X4Y0_N03_512_512_512_256_chl.pt;
             aws --endpoint https://s3-west.nrp-nautilus.io s3 cp dense_l23_nmf_X4Y0_N03_512_512_512_256_chl.pth s3://ihop/Emulators/DenseNet_NMF/dense_l23_nmf_X4Y0_N03_512_512_512_256_chl.pth;
@@ -81,7 +80,7 @@ spec:
             value: "rook-ceph-rgw-nautiluss3.rook"
         volumeMounts:
           - name: prp-s3-credentials
-            mountPath: "/root/.aws/credentials"
+            mountPath: "/home/jovyan/.aws/credentials"
             subPath: "credentials"
           - name: ephemeral
             mountPath: "/tmp"
