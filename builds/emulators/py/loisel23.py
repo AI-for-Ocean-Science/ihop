@@ -89,7 +89,7 @@ def main(flg):
     # L23 + NMF 
     if flg & (2**1):
         emulate_l23('nmf', 3, hidden_list=[512, 512, 512, 256],
-            nepochs=1000, norm_Rs=False)
+            nepochs=25000, norm_Rs=False)
             #push_to_s3=True,
             #nepochs=25000)
             #nepochs=10)
