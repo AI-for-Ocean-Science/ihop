@@ -56,7 +56,8 @@ def emulate_l23(decomp:str, Ncomp:int, include_chl:bool=True, X:int=4, Y:int=0,
 
     build.densenet(hidden_list, nepochs, inputs, Rs,
                    lr, dropout_on=False,
-                   batchnorm=True, save=True, root=root)
+                   batchnorm=True, save=True, root=root,
+                   out_path=path)
 
     # Push to S3?
     if push_to_s3:
@@ -87,7 +88,7 @@ def main(flg):
         emulate_l23('nmf', 3, hidden_list=[512, 512, 512, 256],
             push_to_s3=True,
             nepochs=25000)
-        #    nepochs=10)
+            #nepochs=10)
         #  Ran on Nautilus Jupyter
         # epoch : 25000/25000, loss = 0.000885
 

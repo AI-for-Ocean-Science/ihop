@@ -5,6 +5,8 @@ import warnings
 
 import torch
 
+from IPython import embed
+
 def path_to_emulator(dataset:str):
     if os.getenv('OS_COLOR') is not None:
         path = os.path.join(os.getenv('OS_COLOR'), 'IHOP', 'Emulators', dataset)
@@ -111,6 +113,10 @@ def save_nn(model, root:str, epoch:int, optimizer, losses:list, path:str=None):
     # Outfile
     outfile = f"{root}.pt"
     if path is not None:
+        # Make sure the folder exists
+        if not os.path.exists(path):
+            os.makedirs(path)
+        # Update outfile
         outfile = os.path.join(path, outfile)
     # Save
     torch.save({'epoch': epoch,
