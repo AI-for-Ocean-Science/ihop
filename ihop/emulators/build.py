@@ -73,6 +73,7 @@ def densenet(hidden_list:list,
                    lr:float,
                    dropout_on:bool=False,
                    p_dropout:float=0.,
+                   norm_targets:bool=True,
                    batchnorm:bool=True,
                    save:bool=True,
                    real_loss:bool=False,
@@ -101,7 +102,12 @@ def densenet(hidden_list:list,
 
     # Preprocess
     pre_inputs, mean_ab, std_ab = preprocess.normalize(inputs)
-    pre_targets, mean_targ, std_targ = preprocess.normalize(targets)
+    if norm_targets:
+        pre_targets, mean_targ, std_targ = preprocess.normalize(targets)
+    else:
+        pre_targets = targets
+        mean_targ = 0.
+        std_targ = 1.
 
     # Dataset
     dataset = MyDataset(pre_inputs, pre_targets)
@@ -175,15 +181,16 @@ def perform_training(model, dataset, ishape:int, tshape:int,
             outputs = model(batch_features)
 
             # Convert to real space from normalized
-            if real_loss:
-                new_output = outputs * model.Rs_parm[1] + model.Rs_parm[0]
-                new_targets = targets * model.Rs_parm[1] + model.Rs_parm[0]
+            #if real_loss:
+            #    embed(header='perform_training 187')
+            #    new_output = outputs * model.Rs_parm[1] + model.Rs_parm[0]
+            #    new_targets = targets * model.Rs_parm[1] + model.Rs_parm[0]
           
             # compute training loss in real space
-            if real_loss:
-                train_loss = criterion(new_output, new_targets)
-            else:
-                train_loss = criterion(outputs, targets)
+            #if real_loss:
+            #    train_loss = criterion(new_output, new_targets)
+            #else:
+            train_loss = criterion(outputs, targets)
             
             # compute accumulated gradients
             train_loss.backward()

@@ -16,6 +16,7 @@ from IPython import embed
 def emulate_l23(decomp:str, Ncomp:int, include_chl:bool=True, X:int=4, Y:int=0,
     hidden_list:list=[512, 512, 256], 
     real_loss:bool=False,
+    norm_Rs:bool=True,
     nepochs:int=100, lr:float=1e-2, p_drop:float=0.,
     push_to_s3:bool=False):
     """
@@ -57,8 +58,9 @@ def emulate_l23(decomp:str, Ncomp:int, include_chl:bool=True, X:int=4, Y:int=0,
 
     build.densenet(hidden_list, nepochs, inputs, Rs,
                    lr, dropout_on=False,
+                   norm_targets=norm_Rs,
                    batchnorm=True, save=True, root=root,
-                   out_path=path)
+                   out_path=path, real_loss=real_loss)
 
     # Push to S3?
     if push_to_s3:
@@ -87,7 +89,7 @@ def main(flg):
     # L23 + NMF 
     if flg & (2**1):
         emulate_l23('nmf', 3, hidden_list=[512, 512, 512, 256],
-            nepochs=1000, real_loss=True)
+            nepochs=1000, norm_Rs=False)
             #push_to_s3=True,
             #nepochs=25000)
             #nepochs=10)
