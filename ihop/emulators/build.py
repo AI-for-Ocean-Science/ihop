@@ -123,7 +123,6 @@ def densenet(hidden_list:list,
     if save:
         pth_file, pt_file = emu_io.save_nn(
             model, root, epoch, optimizer, losses, path=out_path)
-        # s3?
         
     # Return
     return losses

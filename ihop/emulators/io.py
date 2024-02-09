@@ -1,9 +1,18 @@
 """ Basic I/O for IHOP """
 
 import os
+import warnings
 
 import torch
 
+def path_to_emulator(dataset:str):
+    if os.getenv('OS_COLOR') is not None:
+        path = os.path.join(os.getenv('OS_COLOR'), 'IHOP', 'Emulators', dataset)
+    else:
+        warnings.warn("OS_COLOR not set. Using current directory.")
+        path = './'
+    return path
+        
 def set_l23_emulator_root(edict:dict):
     # Dataset
     root = f'{edict["dataset"]}'
@@ -111,7 +120,7 @@ def save_nn(model, root:str, epoch:int, optimizer, losses:list, path:str=None):
                outfile)
     pth_outfile = outfile.replace('.pt', '.pth')
     torch.save(model, pth_outfile)
-    print(f"Wrote: {outfile}.pt, {outfile}.pth")
+    print(f"Wrote: {outfile}, {pth_outfile}")
 
     # Return
     return outfile, pth_outfile
