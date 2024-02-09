@@ -14,6 +14,31 @@ def path_to_emulator(dataset:str):
         warnings.warn("OS_COLOR not set. Using current directory.")
         path = './'
     return path
+
+def load_emulator_from_dict(edict:dict):
+    """
+    Load an emulator from a dictionary.
+
+    Args:
+        edict (dict): A dictionary containing the emulator information.
+
+    Returns:
+        object: The loaded emulator.
+    """
+    # Load model
+    path = path_to_emulator(edict['dataset'])
+    if edict['dataset'] == 'L23':
+        emulator_root = set_l23_emulator_root(edict)
+    else:
+        raise ValueError(f"Dataset {edict['dataset']} not supported.")
+    emulator_file = os.path.join(path, emulator_root)+'.pth'
+
+    # Load
+    print(f'Loading: {emulator_file}')
+    emulator = load_nn(emulator_file)
+
+    # Return
+    return emulator, emulator_file
         
 def set_l23_emulator_root(edict:dict):
     # Dataset
@@ -126,7 +151,9 @@ def save_nn(model, root:str, epoch:int, optimizer, losses:list, path:str=None):
                outfile)
     pth_outfile = outfile.replace('.pt', '.pth')
     torch.save(model, pth_outfile)
-    print(f"Wrote: {outfile}, {pth_outfile}")
+    print(f"Wrote")
+    print(f"  {outfile}")
+    print(f"  {pth_outfile}")
 
     # Return
     return outfile, pth_outfile

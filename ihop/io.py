@@ -13,40 +13,7 @@ from ihop.emulators import io as ihop_io
 
 from IPython import embed
 
-def load_l23_emulator(decomp:str, Ncomp:int, X:int=4, Y:int=0):
-    """
-    Load the L23 emulator model.
 
-    Args:
-        decomp (str): The decomposition method. Can be 'pca' or 'nmf'.
-        Ncomp (int): The number of components.
-        X (int, optional): simulation scenario   
-        Y (int, optional):  solar zenith angle used in the simulation, and 
-            represents a value of 00, 30, or 60 degrees.
-
-    Returns:
-        emulator (object): The loaded emulator model.
-        emulator_file (str): The file path of the loaded emulator model.
-    """
-
-    # Load model
-    path = os.path.join(os.getenv('OS_COLOR'), 'IHOP', 
-                        'Emulators', f'DenseNet_{decomp.upper()}') 
-    if decomp == 'pca':
-        arch = '512_512_512_256'
-    elif decomp == 'nmf':
-        arch = '512_512_512_256'
-    else:
-        raise ValueError("Bad decomp")
-    emulator_file = os.path.join(path,
-        f'dense_l23_{decomp}_X{X}Y{Y}_N{Ncomp:02d}_{arch}_chl.pth')
-
-    # Load
-    print(f'Loading: {emulator_file}')
-    emulator = ihop_io.load_nn(emulator_file)
-
-    # Return
-    return emulator, emulator_file
 
 
 def load_l23_decomposition(decomp:str, Ncomp:int, X:int=4, Y:int=0):

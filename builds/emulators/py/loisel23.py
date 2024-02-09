@@ -15,6 +15,7 @@ from IPython import embed
 
 def emulate_l23(decomp:str, Ncomp:int, include_chl:bool=True, X:int=4, Y:int=0,
     hidden_list:list=[512, 512, 256], 
+    real_loss:bool=False,
     nepochs:int=100, lr:float=1e-2, p_drop:float=0.,
     push_to_s3:bool=False):
     """
@@ -86,8 +87,9 @@ def main(flg):
     # L23 + NMF 
     if flg & (2**1):
         emulate_l23('nmf', 3, hidden_list=[512, 512, 512, 256],
-            push_to_s3=True,
-            nepochs=25000)
+            nepochs=1000, real_loss=True)
+            #push_to_s3=True,
+            #nepochs=25000)
             #nepochs=10)
         #  Ran on Nautilus Jupyter
         # epoch : 25000/25000, loss = 0.000885

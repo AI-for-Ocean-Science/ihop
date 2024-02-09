@@ -75,6 +75,7 @@ def densenet(hidden_list:list,
                    p_dropout:float=0.,
                    batchnorm:bool=True,
                    save:bool=True,
+                   real_loss:bool=False,
                    root:str='model',
                    out_path:str=None):
     """
@@ -117,19 +118,21 @@ def densenet(hidden_list:list,
     train_kwargs = {'batch_size': nbatch}
 
     epoch, losses, optimizer = perform_training(model, dataset, nparam,
-        pre_targets.shape[1], train_kwargs, lr, nepochs=nepochs)
+        pre_targets.shape[1], train_kwargs, lr, nepochs=nepochs,
+        real_loss=real_loss)
 
     # Save
     if save:
-        pth_file, pt_file = emu_io.save_nn(
-            model, root, epoch, optimizer, losses, path=out_path)
+        emu_io.save_nn(model, root, epoch, optimizer, losses,
+                       path=out_path)
         
     # Return
     return losses
 
 
 def perform_training(model, dataset, ishape:int, tshape:int,
-                     train_kwargs, lr, nepochs:int=100):
+                     train_kwargs, lr, nepochs:int=100,
+                     real_loss:bool=False):
     """
     Perform training of a neural network model using the given dataset.
 
@@ -141,6 +144,7 @@ def perform_training(model, dataset, ishape:int, tshape:int,
         train_kwargs (dict): Additional keyword arguments for the data loader.
         lr (float): The learning rate for the optimizer.
         nepochs (int, optional): The number of training epochs. Defaults to 100.
+        real_loss (bool, optional): Flag indicating whether to use real space loss. Defaults to False.
 
     Returns:
         tuple: A tuple containing the final epoch number, 
@@ -171,11 +175,15 @@ def perform_training(model, dataset, ishape:int, tshape:int,
             outputs = model(batch_features)
 
             # Convert to real space from normalized
-            # new_output = outputs * model.Rs_parm[1] + model.Rs_parm[0]
-            # new_targets = targets * model.Rs_parm[1] + model.Rs_parm[0]
+            if real_loss:
+                new_output = outputs * model.Rs_parm[1] + model.Rs_parm[0]
+                new_targets = targets * model.Rs_parm[1] + model.Rs_parm[0]
           
             # compute training loss in real space
-            train_loss = criterion(outputs, targets)
+            if real_loss:
+                train_loss = criterion(new_output, new_targets)
+            else:
+                train_loss = criterion(outputs, targets)
             
             # compute accumulated gradients
             train_loss.backward()

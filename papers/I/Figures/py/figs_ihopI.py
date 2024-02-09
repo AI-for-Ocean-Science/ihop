@@ -20,6 +20,7 @@ from oceancolor.utils import plotting
 
 from ihop import io as ihop_io
 from ihop.iops import decompose 
+from ihop.emulators import io as emu_io
 
 from cnmf import stats as cnmf_stats
 
@@ -106,9 +107,13 @@ def fig_basis_functions(decomp:str,
     plt.savefig(outfile, dpi=300)
     print(f"Saved: {outfile}")
 
-def fig_emulator_rmse(model:str, Ncomp:int,
-                      outfile:str='fig_emulator_rmse.png'):
+def fig_emulator_rmse(dataset:str, Ncomp:int, hidden_list:list,
+                      outfile:str='fig_emulator_rmse.png',
+                      X:int=4, Y:int=0, decomp:str='nmf'):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    edict = emu_io.set_emulator_dict(dataset, decomp, Ncomp, 'Rrs',
+        'dense', hidden_list=hidden_list, include_chl=True, X=X, Y=Y)
 
     # Init the Plot
     figsize=(8,6)
@@ -119,9 +124,8 @@ def fig_emulator_rmse(model:str, Ncomp:int,
     ax_bias = plt.subplot(gs[3])
     ax_abs = plt.subplot(gs[0:2])
 
-    decomp = model[4:].lower()
     ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_decomposition(decomp, Ncomp)
-    emulator, e_file = ihop_io.load_l23_emulator(decomp, Ncomp)
+    emulator, e_file = emu_io.load_emulator_from_dict(edict)
     print(f"Using: {e_file} for the emulator")
     wave = d_a['wave']
 
@@ -171,9 +175,10 @@ def fig_emulator_rmse(model:str, Ncomp:int,
 
         # #####################################################
         # Relative
-        ax_rel.plot(wave, rmse/mean_Rs, 'o', color=clr)
+        rRMSE = rmse/mean_Rs
+        ax_rel.plot(wave, rRMSE, 'o', color=clr)
         ax_rel.set_ylabel('rRMSE')
-        ax_rel.set_ylim(0., 0.023)
+        ax_rel.set_ylim(0., rRMSE.max()*1.05)
 
         ax_rel.tick_params(labelbottom=False)  # Hide x-axis labels
 
@@ -410,7 +415,7 @@ def main(flg):
 
     # Example spectra
     if flg & (2**20):
-        fig_emulator_rmse('L23_NMF', 3)
+        fig_emulator_rmse('L23', 3, [512, 512, 512, 256])
         #fig_emulator_rmse(['L23_NMF', 'L23_PCA'], [3, 3])
 
     # L23 IHOP performance vs. perc error
@@ -431,8 +436,8 @@ if __name__ == '__main__':
         flg = 0
 
         #flg += 2 ** 19  # Basis functions of the decomposition
-        #flg += 2 ** 20  # RMSE of emulators
-        flg += 2 ** 21  # Single MCMC fit (example)
+        flg += 2 ** 20  # RMSE of emulators
+        #flg += 2 ** 21  # Single MCMC fit (example)
         #flg += 2 ** 22  # RMSE of L23 fits
 
         #flg += 2 ** 2  # 4 -- Indiv

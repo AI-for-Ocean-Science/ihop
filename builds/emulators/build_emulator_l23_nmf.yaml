@@ -66,8 +66,6 @@ spec:
             git checkout phase0; 
             git pull; 
             pip install -e ".[dev]";
-            aws --endpoint https://s3-west.nrp-nautilus.io s3 cp s3://ihop/IOPs/nmf_L23_X4Y0_a_N03.npz ./ihop/data/NMF/;
-            aws --endpoint https://s3-west.nrp-nautilus.io s3 cp s3://ihop/IOPs/nmf_L23_X4Y0_bb_N03.npz ./ihop/data/NMF/;
             cd builds/emulators;
             python -u py/loisel23.py 2;
         env:

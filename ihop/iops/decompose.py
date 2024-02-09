@@ -43,7 +43,8 @@ def loisel23_filenames(decomp:str, Ncomp:int,
     # Return
     return l23_a_file, l23_bb_file
 
-def load_loisel2023(decomp:str, Ncomp:int, X:int=4, Y:int=0):
+def load_loisel2023(decomp:str, Ncomp:int, X:int=4, Y:int=0, 
+                    scale_Rs:float=1.e4):
     """ Load the NMF or PCA-based parameterization of IOPs from Loisel 2023
 
     Args:
@@ -55,7 +56,7 @@ def load_loisel2023(decomp:str, Ncomp:int, X:int=4, Y:int=0):
     Returns:
         tuple: 
             - **ab** (*np.ndarray*) -- PCA coefficients
-            - **Rs** (*np.ndarray*) -- Rrs values
+            - **Rs** (*np.ndarray*) -- Rrs values scaled by 1e4
             - **d_a** (*dict*) -- dict of PCA 
             - **d_bb** (*dict*) -- dict of PCA
     """
@@ -74,7 +75,7 @@ def load_loisel2023(decomp:str, Ncomp:int, X:int=4, Y:int=0):
     ab[:,d_a[key].shape[1]:] = d_bb[key]
 
     # Rs
-    Rs = d_a['Rs']
+    Rs = d_a['Rs'] * scale_Rs
 
     # Return
     return ab, Rs, d_a, d_bb
