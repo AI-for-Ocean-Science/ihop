@@ -178,7 +178,8 @@ def fig_emulator_rmse(dataset:str, Ncomp:int, hidden_list:list,
         rRMSE = rmse/mean_Rs
         ax_rel.plot(wave, rRMSE, 'o', color=clr)
         ax_rel.set_ylabel('rRMSE')
-        ax_rel.set_ylim(0., rRMSE.max()*1.05)
+        #ax_rel.set_ylim(0., rRMSE.max()*1.05)
+        ax_rel.set_ylim(0., 0.10)
 
         ax_rel.tick_params(labelbottom=False)  # Hide x-axis labels
 
@@ -186,7 +187,7 @@ def fig_emulator_rmse(dataset:str, Ncomp:int, hidden_list:list,
         # Bias
         ax_bias.plot(wave, bias/mean_Rs, 'o', color=clr)
         ax_bias.set_ylabel('Relative Bias')
-        #ax_bias.set_ylim(0., 0.023)
+        ax_bias.set_ylim(-0.05, 0.05)
 
 
     # Finish
