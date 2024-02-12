@@ -86,16 +86,17 @@ def main(flg):
         # epoch : 2500/2500, loss = 0.001642
         # epoch : 25000/25000, loss = 0.000570
 
-    # L23 + NMF 
+    # L23 + NMF, m=3
     if flg & (2**1):
         emulate_l23('nmf', 3, hidden_list=[512, 512, 512, 256],
             nepochs=25000, norm_Rs=False,
             push_to_s3=True)
-            #nepochs=25000)
-            #nepochs=10)
-        #  Ran on Nautilus Jupyter
-        # epoch : 25000/25000, loss = 0.000885
 
+    # flg=4;  L23 + NMF, m=4
+    if flg & (2**2):
+        emulate_l23('nmf', 4, hidden_list=[512, 512, 512, 256],
+            nepochs=25000, norm_Rs=False,
+            push_to_s3=True)
 
 # Command line execution
 if __name__ == '__main__':
