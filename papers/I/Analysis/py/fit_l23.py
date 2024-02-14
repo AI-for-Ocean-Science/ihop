@@ -16,6 +16,7 @@ import corner
 
 from ihop.inference import mcmc
 from ihop import io as ihop_io
+from ihop.emulators import io as emu_io
 #from ihop.iops import pca as ihop_pca
 
 from IPython import embed
@@ -24,7 +25,7 @@ out_path = os.path.join(
         os.getenv('OS_COLOR'), 'IHOP', 'Fits', 'L23')
 
 
-def do_all_fits(n_cores:int=4, decomp:str='pca'):
+def do_all_fits(n_cores:int=4, decomp:str='pca', Ncomp:int=3):
     """
     Perform fits for different percentages.
 
@@ -40,7 +41,7 @@ def do_all_fits(n_cores:int=4, decomp:str='pca'):
     for perc in [0, 5, 10, 15, 20]:
         print(f"Working on: perc={perc}")
         fit_fixed_perc(perc=perc, n_cores=n_cores, Nspec=100,
-                       decomp=decomp)
+                       decomp=decomp, Ncomp=Ncomp)
 
 def analyze_l23(chain_file, chop_burn:int=-4000,
                 iop_type:str='pca'):
@@ -225,7 +226,7 @@ def fit_one(items:list, pdict:dict=None):
     return sampler, idx
 
 def fit_fixed_perc(perc:int, n_cores:int, seed:int=1234,
-                   Nspec:int=100, decomp:str='pca'):
+                   Ncomp:int=3, Nspec:int=100, decomp:str='pca'):
                    
     """
     Fits a model using fixed percentage perturbation on the input data.
@@ -236,21 +237,29 @@ def fit_fixed_perc(perc:int, n_cores:int, seed:int=1234,
         seed (int, optional): The random seed for reproducibility. Defaults to 1234.
         Nspec (int, optional): The number of random samples to select. Defaults to 100.
         decomp (str, optional): The type of IOP (Inherent Optical Property) to use. Defaults to 'pca'.
+        Ncomp (int, optional): The number of components. Defaults to 3.
         fake (bool, optional): Whether to use fake Rs values. Defaults to False.
 
     """
     #os.environ["OMP_NUM_THREADS"] = "1"
+    hidden_list=[512, 512, 512, 256]
+    X, Y = 4, 0
+    dataset = 'L23'
 
-    # Outfile
-    outfile = os.path.join(out_path,
-        f'fit_L23_{decomp.upper()}_NN_Rs{perc:02d}')
 
     # Load Hydrolight
     print("Loading Hydrolight data")
-    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_data(decomp=decomp)
-    Ncomp = ab.shape[1]//2
-    emulator, e_file = ihop_io.load_l23_emulator(Ncomp, decomp=decomp)
+    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_decomposition(decomp, Ncomp)
+    edict = emu_io.set_emulator_dict(dataset, decomp, Ncomp, 'Rrs',
+        'dense', hidden_list=hidden_list, include_chl=True, X=X, Y=Y)
+    ndim = ab.shape[1]+1
+    emulator, e_file = emu_io.load_emulator_from_dict(edict)
     nwave = Rs.shape[1]
+
+    root = emu_io.set_l23_emulator_root(edict)
+    # Outfile
+    outfile = os.path.join(out_path,
+        f'fit_Rs{perc:02d}_{root}')
 
     use_Rs = Rs
 
@@ -267,7 +276,7 @@ def fit_fixed_perc(perc:int, n_cores:int, seed:int=1234,
 
     # MCMC
     pdict = dict(model=emulator)
-    pdict['nwalkers'] = 16
+    pdict['nwalkers'] = max(16,ndim*2)
     pdict['nsteps'] = 10000
     pdict['save_file'] = None
     pdict['scl_sig'] = perc
@@ -485,8 +494,10 @@ if __name__ == '__main__':
 
     # All of em
     #do_all_fits(decomp='pca', n_cores=1)
-    do_all_fits(decomp='nmf', n_cores=1)
+    #do_all_fits(decomp='nmf', n_cores=1)
+    do_all_fits(decomp='nmf', n_cores=1, Ncomp=4)
     #do_all_fits(iop_type='nmf', n_cores=4, fake=True)
+
 
     # Analysis
     #stats = analyze_l23('fit_a_L23_NN_Rs10.npz')

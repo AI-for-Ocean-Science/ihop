@@ -7,7 +7,7 @@ from ihop.iops.decompose import reconstruct_nmf
 from ihop.iops.decompose import reconstruct_pca
 
 def one_spectrum(in_idx:int, ab, Chl, d_chains, d_a, d_bb, emulator,
-                             decomp:str,
+                             decomp:str, Ncomp:int,
                              chop_burn:int=-3000):
     chains = d_chains['chains'][in_idx]
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -20,7 +20,6 @@ def one_spectrum(in_idx:int, ab, Chl, d_chains, d_a, d_bb, emulator,
     # Parse
     nwave = d_a['wave'].size
     wave = d_a['wave']
-    ncomp = 3
 
     # Prep
     if decomp == 'pca':
@@ -29,21 +28,21 @@ def one_spectrum(in_idx:int, ab, Chl, d_chains, d_a, d_bb, emulator,
         rfunc = reconstruct_nmf
     
     # a
-    Y = chains[chop_burn:, :, 0:ncomp].reshape(-1,ncomp)
+    Y = chains[chop_burn:, :, 0:Ncomp].reshape(-1,Ncomp)
     orig, a_recon = rfunc(Y, d_a, idx)
     a_mean = np.mean(a_recon, axis=0)
     a_std = np.std(a_recon, axis=0)
-    _, a_pca = rfunc(ab[idx][:ncomp], d_a, idx)
+    _, a_pca = rfunc(ab[idx][:Ncomp], d_a, idx)
 
     # bb
-    Y = chains[chop_burn:, :, ncomp:].reshape(-1,ncomp)
+    Y = chains[chop_burn:, :, Ncomp:].reshape(-1,Ncomp)
     orig_bb, bb_recon = rfunc(Y, d_bb, idx)
     bb_mean = np.mean(bb_recon, axis=0)
     bb_std = np.std(bb_recon, axis=0)
     #_, a_pca = rfunc(ab[idx][:ncomp], d_a, idx)
 
     # Rs
-    allY = chains[chop_burn:, :, :].reshape(-1,ncomp*2+1) # Chl
+    allY = chains[chop_burn:, :, :].reshape(-1,Ncomp*2+1) # Chl
     all_pred = np.zeros((allY.shape[0], nwave))
     for kk in range(allY.shape[0]):
         Ys = allY[kk]
