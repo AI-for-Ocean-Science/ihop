@@ -34,11 +34,13 @@ def loisel23_filenames(decomp:str, Ncomp:int,
     Returns:
         tuple: A tuple containing the filenames for L23_a and L23_bb.
     """
+    # Root for a
+    root = f'{decomp}_L23_X{X}Y{Y}_a_N{Ncomp:02d}'
     # Load up data
     d_path = os.path.join(resources.files('ihop'),
                             'data', decomp.upper())
-    l23_a_file = os.path.join(d_path, f'{decomp}_L23_X{X}Y{Y}_a_N{Ncomp:02d}.npz')
-    l23_bb_file = os.path.join(d_path, f'{decomp}_L23_X{X}Y{Y}_bb_N{Ncomp:02d}.npz')
+    l23_a_file = os.path.join(d_path, f'{root}.npz')
+    l23_bb_file = l23_a_file.replace('_a_', '_bb_')
 
     # Return
     return l23_a_file, l23_bb_file

@@ -4,6 +4,8 @@ import numpy as np
 
 from oceancolor.hydrolight import loisel23
 
+from IPython import embed
+
 def loisel23_rs(X:int=4, Y:int=0, 
                 min_wv:float=None, 
                 max_wv:float=None):
@@ -40,6 +42,9 @@ def loisel23_rs(X:int=4, Y:int=0,
         d['inputs'][iop] = data[:,gd_wv]
     d['inputs']['Chl'] = loisel23.calc_Chl(ds)
 
+    # bb_water
+    d['bb_w'] = ds.bb.data[0,:] - ds.bbnw.data[0,:]
+    
     # Targets
     d['Rs'] = ds.Rrs.data[:,gd_wv]
 
