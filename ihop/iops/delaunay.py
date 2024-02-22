@@ -17,7 +17,7 @@ def build_delaunay(points:np.ndarray):
     """ Build a Delaunay triangulation from a set of points
 
     Args:
-        points (np.ndarray): points to triangulate
+        points (np.ndarray): points to triangulate (npoints, ndim)
 
     Returns:
         scipy.spatial.Delaunay: triangulation
