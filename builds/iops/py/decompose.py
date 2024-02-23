@@ -38,7 +38,9 @@ def nmf_loisel23(X:int=4, Y:int=0, Ncomp:int=3,
     # Loop on IOP
     outfiles = loisel23_filenames('nmf', Ncomp, X, Y)
     for outfile, iop in zip(outfiles, ['a', 'bb']):
+
         # Remove water
+        print("Removing water")
         if iop == 'a':
             iop_w = cross.a_water(d['wave'], data='IOCCG')
         else:
@@ -50,6 +52,7 @@ def nmf_loisel23(X:int=4, Y:int=0, Ncomp:int=3,
         # Prep for NMF
         new_spec, mask, err  = cnmf_iops.prep(
             spec, sigma=0.05)
+
         # Do it
         generate_nmf(new_spec, mask, err, outfile, Ncomp, 
                      clobber=clobber,

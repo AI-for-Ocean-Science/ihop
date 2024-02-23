@@ -17,10 +17,12 @@ import seaborn as sns
 
 from oceancolor.hydrolight import loisel23
 from oceancolor.utils import plotting 
+from oceancolor.iop import cross
 
 from ihop import io as ihop_io
 from ihop.iops import decompose 
 from ihop.emulators import io as emu_io
+from ihop.training_sets import load_rs
 
 from cnmf import stats as cnmf_stats
 
@@ -42,9 +44,14 @@ def fig_basis_functions(decomp:str,
                         outfile:str='fig_basis_functions.png', 
                         norm:bool=False):
 
+    X, Y = 4, 0
+
     # Load
     ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_decomposition(decomp, Ncomp)
     wave = d_a['wave']
+
+    # Load training data
+    d_train = load_rs.loisel23_rs(X=X, Y=Y)
 
     # Seaborn
     sns.set(style="whitegrid",
@@ -61,7 +68,20 @@ def fig_basis_functions(decomp:str,
 
     for ss, IOP in enumerate(['a', 'bb']):
         ax = plt.subplot(gs[ss])
+
         d = d_a if IOP == 'a' else d_bb
+        if IOP == 'a':
+            iop_w = cross.a_water(wave, data='IOCCG')
+        else:
+            iop_w = d_train['bb_w']
+        iop_w /= np.sum(iop_w)
+
+        # Plot water first
+        sns.lineplot(x=wave, y=iop_w,
+                            label=r'$W_'+f'{1}'+r'^{\rm '+IOP+r'}$',
+                            ax=ax, lw=2)#, drawstyle='steps-pre')
+
+        # Now the rest
         M = d['M']
         # Variance
         evar_i = cnmf_stats.evar_computation(
@@ -76,7 +96,7 @@ def fig_basis_functions(decomp:str,
                 nrm = 1.
             # Step plot
             sns.lineplot(x=wave, y=M[ii]/nrm, 
-                            label=r'$W_'+f'{ii+1}'+r'^{\rm '+IOP+r'}$',
+                            label=r'$W_'+f'{ii+2}'+r'^{\rm '+IOP+r'}$',
                             ax=ax, lw=2)#, drawstyle='steps-pre')
             #ax.step(wave, M[ii]/nrm, label=f'{itype}:'+r'  $\xi_'+f'{ii+1}'+'$')
 
@@ -451,9 +471,9 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         flg = 0
 
-        #flg += 2 ** 0  # Basis functions of the decomposition
+        flg += 2 ** 0  # Basis functions of the decomposition
         #flg += 2 ** 20  # RMSE of emulators
-        flg += 2 ** 21  # Single MCMC fit (example)
+        #flg += 2 ** 21  # Single MCMC fit (example)
         #flg += 2 ** 22  # RMSE of L23 fits
 
         #flg += 2 ** 2  # 4 -- Indiv
