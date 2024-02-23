@@ -94,6 +94,7 @@ def main(flg):
 
     # flg=4;  L23 + NMF, m=4
     if flg & (2**2):
+        # Now without water
         emulate_l23('nmf', 4, hidden_list=[512, 512, 512, 256],
             nepochs=25000, norm_Rs=False,
             push_to_s3=True)

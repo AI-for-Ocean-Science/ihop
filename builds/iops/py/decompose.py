@@ -31,6 +31,16 @@ def pca_loisel23(X:int=4, Y:int=0, Ncomp:int=3,
 
 def nmf_loisel23(X:int=4, Y:int=0, Ncomp:int=3,
                  clobber:bool=False): 
+    """
+    Perform Non-negative Matrix Factorization (NMF) on Loisel23 data.
+
+    Args:
+        X (int): X-coordinate of the training data.
+        Y (int): Y-coordinate of the training data.
+        Ncomp (int): Number of components for NMF.
+        clobber (bool): Flag indicating whether to overwrite existing files.
+
+    """
 
     # Load training data
     d = load_rs.loisel23_rs(X=X, Y=Y)
