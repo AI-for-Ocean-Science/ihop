@@ -38,7 +38,7 @@ import reconstruct
 from IPython import embed
 
 # Number of components
-Ncomp = 4
+Ncomp = (4,3)
 
 
 
@@ -89,7 +89,7 @@ def fig_basis_functions(decomp:str,
         evar_i = cnmf_stats.evar_computation(
             d['spec'], d['coeff'], d['M'])
         # Plot
-        for ii in range(Ncomp):
+        for ii in range(Ncomp[ss]):
             # Normalize
             if norm:
                 iwv = np.argmin(np.abs(wave-440.))
@@ -239,8 +239,13 @@ def fig_emulator_rmse(dataset:str, Ncomp:int, hidden_list:list,
 def fig_mcmc_fit(outfile='fig_mcmc_fit.png', decomp:str='nmf',
         hidden_list:list=[512, 512, 512, 256], dataset:str='L23', use_quick:bool=False,
         X:int=4, Y:int=0, show_zoom:bool=False, perc:int=10,
+        water:bool=False,
         test:bool=False):
 
+    if water:
+        outfile = outfile.replace('.png', '_water.png')
+        # Load training data
+        d_train = load_rs.loisel23_rs(X=X, Y=Y)
     in_idx = 0
     Ncomp = 4
     # Load
@@ -275,16 +280,23 @@ def fig_mcmc_fit(outfile='fig_mcmc_fit.png', decomp:str='nmf',
 
     # #########################################################
     # a
+    if water:
+        a_w = cross.a_water(wave, data='IOCCG')
+    else:
+        a_w = 0
     ax_a = plt.subplot(gs[1])
     def plot_spec(ax):
-        ax.plot(wave, orig, 'ko', label='True')
-        ax.plot(wave, a_mean, 'r-', label='Retrieval')
+        ax.plot(wave, orig+a_w, 'ko', label='True')
+        ax.plot(wave, a_mean+a_w, 'r-', label='Retrieval')
         #ax.plot(wave, a_iop, 'k:', label='PCA')
-        ax.fill_between(wave, a_mean-a_std, a_mean+a_std, 
+        ax.fill_between(wave, a_w+a_mean-a_std, a_w+a_mean+a_std, 
             color='r', alpha=0.5, label='Uncertainty') 
     plot_spec(ax_a)
     #ax_a.set_xlabel('Wavelength (nm)')
-    ax_a.set_ylabel(r'$a(\lambda) \; [{\rm m}^{-1}]$')
+    if water:
+        ax_a.set_ylabel(r'$a(\lambda) \; [{\rm m}^{-1}]$')
+    else:
+        ax_a.set_ylabel(r'$a_{\rm nw}(\lambda) \; [{\rm m}^{-1}]$')
 
     ax_a.text(xpos, ypos2,  '(b)', color='k',
             transform=ax_a.transAxes,
@@ -309,10 +321,14 @@ def fig_mcmc_fit(outfile='fig_mcmc_fit.png', decomp:str='nmf',
 
     # #########################################################
     # b
+    if water:
+        bb_w = d_train['bb_w']
+    else:
+        bb_w = 0
     ax_bb = plt.subplot(gs[2])
-    ax_bb.plot(wave, orig_bb, 'ko', label='True')
-    ax_bb.plot(wave, bb_mean, 'g-', label='Retrieval')
-    ax_bb.fill_between(wave, bb_mean-bb_std, bb_mean+bb_std, 
+    ax_bb.plot(wave, bb_w+orig_bb, 'ko', label='True')
+    ax_bb.plot(wave, bb_w+bb_mean, 'g-', label='Retrieval')
+    ax_bb.fill_between(wave, bb_w+bb_mean-bb_std, bb_w+bb_mean+bb_std, 
             color='g', alpha=0.5, label='Uncertainty') 
 
     ax_bb.set_xlabel('Wavelength (nm)')
@@ -387,11 +403,15 @@ def fig_corner(outfile='fig_corner.png', decomp:str='nmf',
     lbls += [r'$H_'+f'{ii+2}'+r'^{bb}$' for ii in range(Ncomp)]
     lbls += ['Chl']
 
+    idx = d_chains['idx'][in_idx]
+    truths = np.concatenate((ab[idx], Chl[idx].reshape(1,)))
+
     fig = corner.corner(
         coeff, labels=lbls,
         label_kwargs={'fontsize':17},
-        color='blue',
+        color='k',
         #axes_scale='log',
+        truths=truths,
         show_titles=True,
         title_kwargs={"fontsize": 12},
         )
@@ -399,6 +419,18 @@ def fig_corner(outfile='fig_corner.png', decomp:str='nmf',
     plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
     plt.savefig(outfile, dpi=300)
     print(f"Saved: {outfile}")
+
+    # Compare answers
+    median_coeff = np.median(coeff, axis=0)
+
+    print(f"True a: {ab[idx, :Ncomp]}")
+    print(f"Fitted a: {median_coeff[:Ncomp]}")
+    print('---')
+    print(f"True b: {ab[idx, Ncomp:]}")
+    print(f"Fitted b: {median_coeff[Ncomp:2*Ncomp]}")
+    print('---')
+    print(f"True Chl: {Chl[idx]}")
+    print(f"Fitted Chl: {median_coeff[-1]}")
 
 
 # ############################################################
@@ -506,7 +538,7 @@ def main(flg):
 
     # L23 IHOP performance vs. perc error
     if flg & (2**21):
-        fig_mcmc_fit(test=True)
+        fig_mcmc_fit(test=True, water=True)
 
     # L23 IHOP performance vs. perc error
     if flg & (2**22):
@@ -525,11 +557,11 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         flg = 0
 
-        #flg += 2 ** 0  # Basis functions of the decomposition
+        flg += 2 ** 0  # Basis functions of the decomposition
         #flg += 2 ** 20  # RMSE of emulators
         #flg += 2 ** 21  # Single MCMC fit (example)
         #flg += 2 ** 22  # RMSE of L23 fits
-        flg += 2 ** 23  # corner
+        #flg += 2 ** 23  # corner
 
         #flg += 2 ** 2  # 4 -- Indiv
         #flg += 2 ** 3  # 8 -- Coeff

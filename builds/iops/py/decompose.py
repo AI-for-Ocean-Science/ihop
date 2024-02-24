@@ -76,6 +76,7 @@ if __name__ == '__main__':
     # L23
     #pca_loisel23(clobber=True)
     #nmf_loisel23(clobber=True)
-    nmf_loisel23(Ncomp=4, clobber=True)
+    nmf_loisel23(Ncomp=3, clobber=True)
+    #nmf_loisel23(Ncomp=4, clobber=True)
     #nmf_loisel23(Ncomp=5, clobber=True)
     #generate_l23_tara_pca()  # Broken

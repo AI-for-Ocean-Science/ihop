@@ -16,13 +16,13 @@ from IPython import embed
 
 
 
-def load_l23_decomposition(decomp:str, Ncomp:int, X:int=4, Y:int=0):
+def load_l23_decomposition(decomp:str, Ncomp:tuple, X:int=4, Y:int=0):
     """
     Load L23 data and decomposition
 
     Args:
         decomp (str): Decomposition method. pca, nmf
-        Ncomp (int): The number of components.
+        Ncomp (tuple): The number of components (a,bb)
         X (int): simulation scenario   
         Y (int):  solar zenith angle used in the simulation, and 
             represents a value of 00, 30, or 60 degrees.

@@ -13,10 +13,9 @@ from ulmo import io as ulmo_io
 from IPython import embed
 
 
-def emulate_l23(decomp:str, Ncomp:int, include_chl:bool=True, X:int=4, Y:int=0,
-    hidden_list:list=[512, 512, 256], 
-    real_loss:bool=False,
-    norm_Rs:bool=True,
+def emulate_l23(decomp:str, Ncomp:tuple, include_chl:bool=True, 
+                X:int=4, Y:int=0, hidden_list:list=[512, 512, 256], 
+                real_loss:bool=False, norm_Rs:bool=True,
     nepochs:int=100, lr:float=1e-2, p_drop:float=0.,
     push_to_s3:bool=False):
     """
@@ -25,7 +24,7 @@ def emulate_l23(decomp:str, Ncomp:int, include_chl:bool=True, X:int=4, Y:int=0,
 
     Args:
         decomp (str): The decomposition type. pca, nmf
-        Ncomp (int): The number of components.
+        Ncomp (tuple): The number of components. (a,bb)
         include_chl (bool, optional): Flag indicating whether to include chlorophyll in the input data. Defaults to True.
         X (int, optional): X-coordinate of the dataset. Defaults to 4.
         Y (int, optional): Y-coordinate of the dataset. Defaults to 0.
@@ -99,6 +98,13 @@ def main(flg):
             nepochs=25000, norm_Rs=False,
             push_to_s3=True)
 
+    # flg=4;  L23 + NMF, m=4,3
+    if flg & (2**3):
+        emulate_l23('nmf', (4,3), hidden_list=[512, 512, 512, 256],
+            nepochs=25000, norm_Rs=False,
+            push_to_s3=True)
+
+
 # Command line execution
 if __name__ == '__main__':
     import sys
@@ -107,6 +113,8 @@ if __name__ == '__main__':
         flg = 0
         #flg += 2 ** 0  # 1 -- L23 + PCA
         #flg += 2 ** 1  # 2 -- L23 + NMF
+        #flg += 2 ** 2  # 4 -- L23 + NMF 4
+        #flg += 2 ** 3  # 8 -- L23 + NMF 4,3
 
         
     else:
