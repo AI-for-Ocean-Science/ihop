@@ -8,6 +8,7 @@ from importlib import resources
 import numpy as np
 
 import torch
+import corner
 
 from matplotlib import pyplot as plt
 import matplotlib as mpl
@@ -17,10 +18,13 @@ import seaborn as sns
 
 from oceancolor.hydrolight import loisel23
 from oceancolor.utils import plotting 
+from oceancolor.iop import cross
 
 from ihop import io as ihop_io
 from ihop.iops import decompose 
 from ihop.emulators import io as emu_io
+from ihop.inference import io as inf_io
+from ihop.training_sets import load_rs
 
 from cnmf import stats as cnmf_stats
 
@@ -34,7 +38,7 @@ import reconstruct
 from IPython import embed
 
 # Number of components
-Ncomp = 4
+Ncomp = (4,3)
 
 
 
@@ -42,9 +46,14 @@ def fig_basis_functions(decomp:str,
                         outfile:str='fig_basis_functions.png', 
                         norm:bool=False):
 
+    X, Y = 4, 0
+
     # Load
     ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_decomposition(decomp, Ncomp)
     wave = d_a['wave']
+
+    # Load training data
+    d_train = load_rs.loisel23_rs(X=X, Y=Y)
 
     # Seaborn
     sns.set(style="whitegrid",
@@ -61,13 +70,26 @@ def fig_basis_functions(decomp:str,
 
     for ss, IOP in enumerate(['a', 'bb']):
         ax = plt.subplot(gs[ss])
+
         d = d_a if IOP == 'a' else d_bb
+        if IOP == 'a':
+            iop_w = cross.a_water(wave, data='IOCCG')
+        else:
+            iop_w = d_train['bb_w']
+        iop_w /= np.sum(iop_w)
+
+        # Plot water first
+        sns.lineplot(x=wave, y=iop_w,
+                            label=r'$W_'+f'{1}'+r'^{\rm '+IOP+r'}$',
+                            ax=ax, lw=2)#, drawstyle='steps-pre')
+
+        # Now the rest
         M = d['M']
         # Variance
         evar_i = cnmf_stats.evar_computation(
             d['spec'], d['coeff'], d['M'])
         # Plot
-        for ii in range(Ncomp):
+        for ii in range(Ncomp[ss]):
             # Normalize
             if norm:
                 iwv = np.argmin(np.abs(wave-440.))
@@ -76,7 +98,7 @@ def fig_basis_functions(decomp:str,
                 nrm = 1.
             # Step plot
             sns.lineplot(x=wave, y=M[ii]/nrm, 
-                            label=r'$W_'+f'{ii+1}'+r'^{\rm '+IOP+r'}$',
+                            label=r'$W_'+f'{ii+2}'+r'^{\rm '+IOP+r'}$',
                             ax=ax, lw=2)#, drawstyle='steps-pre')
             #ax.step(wave, M[ii]/nrm, label=f'{itype}:'+r'  $\xi_'+f'{ii+1}'+'$')
 
@@ -160,7 +182,7 @@ def fig_emulator_rmse(dataset:str, Ncomp:int, hidden_list:list,
 
         ax_abs.plot(wave, rmse, 'o', color=clr, label=f'{dset}')
 
-        ax_abs.set_ylabel(r'RMSE (m$^{-1}$)')
+        ax_abs.set_ylabel(r'RMSE  (10$^{-4} \, \rm sr^{-1}$)')
         ax_abs.tick_params(labelbottom=False)  # Hide x-axis labels
 
         ax_abs.legend(fontsize=15)
@@ -216,19 +238,30 @@ def fig_emulator_rmse(dataset:str, Ncomp:int, hidden_list:list,
 # ############################################################
 def fig_mcmc_fit(outfile='fig_mcmc_fit.png', decomp:str='nmf',
         hidden_list:list=[512, 512, 512, 256], dataset:str='L23', use_quick:bool=False,
-        X:int=4, Y:int=0, show_zoom:bool=False):
+        X:int=4, Y:int=0, show_zoom:bool=False, perc:int=10,
+        water:bool=False,
+        test:bool=False):
 
+    if water:
+        outfile = outfile.replace('.png', '_water.png')
+        # Load training data
+        d_train = load_rs.loisel23_rs(X=X, Y=Y)
     in_idx = 0
-    Ncomp = 3
+    Ncomp = 4
     # Load
-    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_decomposition(decomp, Ncomp)
-    d_chains = ihop_io.load_l23_chains(decomp, perc=10)
     edict = emu_io.set_emulator_dict(dataset, decomp, Ncomp, 'Rrs',
         'dense', hidden_list=hidden_list, include_chl=True, X=X, Y=Y)
+
+    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_decomposition(decomp, Ncomp)
+
     emulator, e_file = emu_io.load_emulator_from_dict(edict)
 
+    chain_file = inf_io.l23_chains_filename(edict, perc, test=test)
+    d_chains = inf_io.load_chains(chain_file)
+
     # Reconstruct
-    items = reconstruct.one_spectrum(in_idx, ab, Chl, d_chains, d_a, d_bb, 
+    items = reconstruct.one_spectrum(in_idx, ab, Chl, d_chains, 
+                                     d_a, d_bb, 
                                      emulator, decomp, Ncomp)
     idx, orig, a_mean, a_std, a_iop, obs_Rs,\
         pred_Rs, std_pred, NN_Rs, allY, wave,\
@@ -247,16 +280,23 @@ def fig_mcmc_fit(outfile='fig_mcmc_fit.png', decomp:str='nmf',
 
     # #########################################################
     # a
+    if water:
+        a_w = cross.a_water(wave, data='IOCCG')
+    else:
+        a_w = 0
     ax_a = plt.subplot(gs[1])
     def plot_spec(ax):
-        ax.plot(wave, orig, 'ko', label='True')
-        ax.plot(wave, a_mean, 'r-', label='Retrieval')
+        ax.plot(wave, orig+a_w, 'ko', label='True')
+        ax.plot(wave, a_mean+a_w, 'r-', label='Retrieval')
         #ax.plot(wave, a_iop, 'k:', label='PCA')
-        ax.fill_between(wave, a_mean-a_std, a_mean+a_std, 
+        ax.fill_between(wave, a_w+a_mean-a_std, a_w+a_mean+a_std, 
             color='r', alpha=0.5, label='Uncertainty') 
     plot_spec(ax_a)
     #ax_a.set_xlabel('Wavelength (nm)')
-    ax_a.set_ylabel(r'$a(\lambda) \; [{\rm m}^{-1}]$')
+    if water:
+        ax_a.set_ylabel(r'$a(\lambda) \; [{\rm m}^{-1}]$')
+    else:
+        ax_a.set_ylabel(r'$a_{\rm nw}(\lambda) \; [{\rm m}^{-1}]$')
 
     ax_a.text(xpos, ypos2,  '(b)', color='k',
             transform=ax_a.transAxes,
@@ -281,10 +321,14 @@ def fig_mcmc_fit(outfile='fig_mcmc_fit.png', decomp:str='nmf',
 
     # #########################################################
     # b
+    if water:
+        bb_w = d_train['bb_w']
+    else:
+        bb_w = 0
     ax_bb = plt.subplot(gs[2])
-    ax_bb.plot(wave, orig_bb, 'ko', label='True')
-    ax_bb.plot(wave, bb_mean, 'g-', label='Retrieval')
-    ax_bb.fill_between(wave, bb_mean-bb_std, bb_mean+bb_std, 
+    ax_bb.plot(wave, bb_w+orig_bb, 'ko', label='True')
+    ax_bb.plot(wave, bb_w+bb_mean, 'g-', label='Retrieval')
+    ax_bb.fill_between(wave, bb_w+bb_mean-bb_std, bb_w+bb_mean+bb_std, 
             color='g', alpha=0.5, label='Uncertainty') 
 
     ax_bb.set_xlabel('Wavelength (nm)')
@@ -330,6 +374,64 @@ def fig_mcmc_fit(outfile='fig_mcmc_fit.png', decomp:str='nmf',
     #plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
     plt.savefig(outfile, dpi=300)
     print(f"Saved: {outfile}")
+
+def fig_corner(outfile='fig_corner.png', decomp:str='nmf',
+        hidden_list:list=[512, 512, 512, 256], dataset:str='L23', 
+        chop_burn:int=-3000, perc:int=10,
+        X:int=4, Y:int=0,
+        test:bool=False):
+
+    in_idx = 0
+    Ncomp = 4
+    # Load
+    edict = emu_io.set_emulator_dict(dataset, decomp, Ncomp, 'Rrs',
+        'dense', hidden_list=hidden_list, include_chl=True, X=X, Y=Y)
+
+    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_decomposition(decomp, Ncomp)
+
+    emulator, e_file = emu_io.load_emulator_from_dict(edict)
+
+    chain_file = inf_io.l23_chains_filename(edict, perc, test=test)
+    d_chains = inf_io.load_chains(chain_file)
+
+    chains = d_chains['chains'][in_idx]
+    coeff = chains[chop_burn:, :, :].reshape(-1,2*Ncomp+1)
+
+    #print(f"L23 index = {idx}")
+    # Labels
+    lbls = [r'$H_'+f'{ii+2}'+r'^{a}$' for ii in range(Ncomp)]
+    lbls += [r'$H_'+f'{ii+2}'+r'^{bb}$' for ii in range(Ncomp)]
+    lbls += ['Chl']
+
+    idx = d_chains['idx'][in_idx]
+    truths = np.concatenate((ab[idx], Chl[idx].reshape(1,)))
+
+    fig = corner.corner(
+        coeff, labels=lbls,
+        label_kwargs={'fontsize':17},
+        color='k',
+        #axes_scale='log',
+        truths=truths,
+        show_titles=True,
+        title_kwargs={"fontsize": 12},
+        )
+
+    plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
+    plt.savefig(outfile, dpi=300)
+    print(f"Saved: {outfile}")
+
+    # Compare answers
+    median_coeff = np.median(coeff, axis=0)
+
+    print(f"True a: {ab[idx, :Ncomp]}")
+    print(f"Fitted a: {median_coeff[:Ncomp]}")
+    print('---')
+    print(f"True b: {ab[idx, Ncomp:]}")
+    print(f"Fitted b: {median_coeff[Ncomp:2*Ncomp]}")
+    print('---')
+    print(f"True Chl: {Chl[idx]}")
+    print(f"Fitted Chl: {median_coeff[-1]}")
+
 
 # ############################################################
 # ############################################################
@@ -436,12 +538,16 @@ def main(flg):
 
     # L23 IHOP performance vs. perc error
     if flg & (2**21):
-        fig_mcmc_fit()#use_quick=True)
+        fig_mcmc_fit(test=True, water=True)
 
     # L23 IHOP performance vs. perc error
     if flg & (2**22):
         #fig_rmse_vs_sig()
         fig_rmse_vs_sig(decomp='nmf')
+
+    # L23 IHOP performance vs. perc error
+    if flg & (2**23):
+        fig_corner(test=True)
 
 
 # Command line execution
@@ -451,10 +557,11 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         flg = 0
 
-        #flg += 2 ** 0  # Basis functions of the decomposition
+        flg += 2 ** 0  # Basis functions of the decomposition
         #flg += 2 ** 20  # RMSE of emulators
-        flg += 2 ** 21  # Single MCMC fit (example)
+        #flg += 2 ** 21  # Single MCMC fit (example)
         #flg += 2 ** 22  # RMSE of L23 fits
+        #flg += 2 ** 23  # corner
 
         #flg += 2 ** 2  # 4 -- Indiv
         #flg += 2 ** 3  # 8 -- Coeff

@@ -1,4 +1,4 @@
-""" Basic I/O for IHOP """
+""" I/O for IHOP Emulators """
 
 import os
 import warnings
@@ -50,8 +50,8 @@ def set_l23_emulator_root(edict:dict):
         root += f'_X{edict["X"]}_Y{edict["Y"]}'
     # Decomp
     root += f'_{edict["decomp"]}'
-    # Ncomp
-    root += f'_{edict["Ncomp"]}'
+    # Ncomp (tuple)
+    root += f'_{edict["Ncomp"][0]}{edict["Ncomp"][1]}'
     # Chl?
     if edict['include_chl']:
         root += '_chl'
