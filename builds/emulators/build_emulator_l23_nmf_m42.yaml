@@ -67,7 +67,7 @@ spec:
             git pull; 
             pip install -e ".[dev]";
             cd builds/emulators;
-            python -u py/loisel23.py 8;
+            python -u py/loisel23.py 16;
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"
