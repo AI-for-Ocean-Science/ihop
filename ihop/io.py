@@ -43,31 +43,3 @@ def load_l23_decomposition(decomp:str, Ncomp:int, X:int=4, Y:int=0):
 
     # Return
     return ab, Chl, Rs, d_a, d_bb
-
-# #############################################
-def load_l23_chains(decomp:str, perc:int=None, X:int=4, Y:int=0):
-    """
-    Load data and chains for L23
-
-    Args:
-        decomp (str, optional): The type of IOP (Inherent Optical Property) model to use. Defaults to 'nmf'.
-        X (int): simulation scenario   
-        Y (int):  solar zenith angle used in the simulation, and 
-            represents a value of 00, 30, or 60 degrees.
-        perc (int, optional): The percentile to use for the MCMC chains. Defaults to 10.
-
-    Returns:
-        dict-like: The MCMC chains.
-    """
-    # Chains
-    out_path = os.path.join(
-        os.getenv('OS_COLOR'), 'IHOP', 'Fits', 'L23')
-    if perc is None:
-        raise IOError("Must specify percentile for now")
-    else:
-        chain_file = f'fit_L23_{decomp.upper()}_NN_Rs{perc:02d}.npz'
-
-    # MCMC
-    print(f"Loading MCMC: {chain_file}")
-    d = np.load(os.path.join(out_path, chain_file))
-    return d

@@ -22,6 +22,7 @@ from oceancolor.iop import cross
 from ihop import io as ihop_io
 from ihop.iops import decompose 
 from ihop.emulators import io as emu_io
+from ihop.inference import io as inf_io
 from ihop.training_sets import load_rs
 
 from cnmf import stats as cnmf_stats
@@ -180,7 +181,7 @@ def fig_emulator_rmse(dataset:str, Ncomp:int, hidden_list:list,
 
         ax_abs.plot(wave, rmse, 'o', color=clr, label=f'{dset}')
 
-        ax_abs.set_ylabel(r'RMSE (m$^{-1}$)')
+        ax_abs.set_ylabel(r'RMSE  (10$^{-4} \, \rm sr^{-1}$)')
         ax_abs.tick_params(labelbottom=False)  # Hide x-axis labels
 
         ax_abs.legend(fontsize=15)
@@ -236,19 +237,25 @@ def fig_emulator_rmse(dataset:str, Ncomp:int, hidden_list:list,
 # ############################################################
 def fig_mcmc_fit(outfile='fig_mcmc_fit.png', decomp:str='nmf',
         hidden_list:list=[512, 512, 512, 256], dataset:str='L23', use_quick:bool=False,
-        X:int=4, Y:int=0, show_zoom:bool=False):
+        X:int=4, Y:int=0, show_zoom:bool=False, perc:int=10,
+        test:bool=False):
 
     in_idx = 0
-    Ncomp = 3
+    Ncomp = 4
     # Load
-    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_decomposition(decomp, Ncomp)
-    d_chains = ihop_io.load_l23_chains(decomp, perc=10)
     edict = emu_io.set_emulator_dict(dataset, decomp, Ncomp, 'Rrs',
         'dense', hidden_list=hidden_list, include_chl=True, X=X, Y=Y)
+
+    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_decomposition(decomp, Ncomp)
+
     emulator, e_file = emu_io.load_emulator_from_dict(edict)
 
+    chain_file = inf_io.l23_chains_filename(edict, perc, test=test)
+    d_chains = inf_io.load_chains(chain_file)
+
     # Reconstruct
-    items = reconstruct.one_spectrum(in_idx, ab, Chl, d_chains, d_a, d_bb, 
+    items = reconstruct.one_spectrum(in_idx, ab, Chl, d_chains, 
+                                     d_a, d_bb, 
                                      emulator, decomp, Ncomp)
     idx, orig, a_mean, a_std, a_iop, obs_Rs,\
         pred_Rs, std_pred, NN_Rs, allY, wave,\
@@ -350,6 +357,42 @@ def fig_mcmc_fit(outfile='fig_mcmc_fit.png', decomp:str='nmf',
     #plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
     plt.savefig(outfile, dpi=300)
     print(f"Saved: {outfile}")
+
+def fig_corner(outfile='fig_corner.png', decomp:str='nmf',
+        hidden_list:list=[512, 512, 512, 256], dataset:str='L23', use_quick:bool=False,
+        chop_burn:int=-3000,
+        X:int=4, Y:int=0, show_zoom:bool=False, perc:int=10,
+        test:bool=False):
+
+    in_idx = 0
+    Ncomp = 4
+    # Load
+    edict = emu_io.set_emulator_dict(dataset, decomp, Ncomp, 'Rrs',
+        'dense', hidden_list=hidden_list, include_chl=True, X=X, Y=Y)
+
+    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_decomposition(decomp, Ncomp)
+
+    emulator, e_file = emu_io.load_emulator_from_dict(edict)
+
+    chain_file = inf_io.l23_chains_filename(edict, perc, test=test)
+    d_chains = inf_io.load_chains(chain_file)
+
+    chains = d_chains['chains'][in_idx]
+    coeff = chains[chop_burn:, :, :].reshape(-1,2*Ncomp+1)
+    embed(header='382 of figs')
+
+    print(f"L23 index = {idx}")
+
+    fig = corner.corner(
+        coeff, labels=lbls,
+        label_kwargs={'fontsize':17},
+        color='blue',
+        #axes_scale='log',
+        show_titles=True,
+        title_kwargs={"fontsize": 12},
+        )
+
+
 
 # ############################################################
 # ############################################################
@@ -456,12 +499,16 @@ def main(flg):
 
     # L23 IHOP performance vs. perc error
     if flg & (2**21):
-        fig_mcmc_fit()#use_quick=True)
+        fig_mcmc_fit(test=True)
 
     # L23 IHOP performance vs. perc error
     if flg & (2**22):
         #fig_rmse_vs_sig()
         fig_rmse_vs_sig(decomp='nmf')
+
+    # L23 IHOP performance vs. perc error
+    if flg & (2**23):
+        fig_corner(test=True)
 
 
 # Command line execution
@@ -473,8 +520,9 @@ if __name__ == '__main__':
 
         #flg += 2 ** 0  # Basis functions of the decomposition
         #flg += 2 ** 20  # RMSE of emulators
-        flg += 2 ** 21  # Single MCMC fit (example)
+        #flg += 2 ** 21  # Single MCMC fit (example)
         #flg += 2 ** 22  # RMSE of L23 fits
+        flg += 2 ** 23  # corner
 
         #flg += 2 ** 2  # 4 -- Indiv
         #flg += 2 ** 3  # 8 -- Coeff

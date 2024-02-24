@@ -1,4 +1,4 @@
-""" Basic I/O for IHOP """
+""" I/O for IHOP Emulators """
 
 import os
 import warnings

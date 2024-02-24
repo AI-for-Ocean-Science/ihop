@@ -226,7 +226,8 @@ def fit_one(items:list, pdict:dict=None):
     return sampler, idx
 
 def fit_fixed_perc(perc:int, n_cores:int, seed:int=1234,
-                   Ncomp:int=3, Nspec:int=100, decomp:str='pca'):
+                   Ncomp:int=3, Nspec:int=100, 
+                   decomp:str='pca', test:bool=False):
                    
     """
     Fits a model using fixed percentage perturbation on the input data.
@@ -238,7 +239,7 @@ def fit_fixed_perc(perc:int, n_cores:int, seed:int=1234,
         Nspec (int, optional): The number of random samples to select. Defaults to 100.
         decomp (str, optional): The type of IOP (Inherent Optical Property) to use. Defaults to 'pca'.
         Ncomp (int, optional): The number of components. Defaults to 3.
-        fake (bool, optional): Whether to use fake Rs values. Defaults to False.
+        test (bool, optiona0): If true, this is only a test
 
     """
     #os.environ["OMP_NUM_THREADS"] = "1"
@@ -258,8 +259,10 @@ def fit_fixed_perc(perc:int, n_cores:int, seed:int=1234,
 
     root = emu_io.set_l23_emulator_root(edict)
     # Outfile
-    outfile = os.path.join(out_path,
-        f'fit_Rs{perc:02d}_{root}')
+    outroot = f'fit_Rs{perc:02d}_{root}'
+    if test:
+        outroot = 'test_'+outroot
+    outfile = os.path.join(out_path, outroot)
 
     use_Rs = Rs
 
@@ -310,9 +313,11 @@ def fit_fixed_perc(perc:int, n_cores:int, seed:int=1234,
              obs_Rs=Rs[all_idx], use_Rs=use_Rs[all_idx])
     print(f"Wrote: {outfile}")
 
-def another_test(iop_type:str='pca',
+def another_test(decomp:str='pca',
                  fake:bool=False,
-                 n_cores:int=4):
+                 n_cores:int=4,
+                 Ncomp:int=4,
+                 Nspec=8):
     """
     Perform another test using the specified IOP type, fake flag, and number of cores.
 
@@ -322,8 +327,8 @@ def another_test(iop_type:str='pca',
         n_cores (int, optional): The number of CPU cores to use for parallel processing. Default is 4.
 
     """
-    fit_fixed_perc(perc=10, n_cores=n_cores, Nspec=8,
-                   iop_type=iop_type, fake=fake)
+    fit_fixed_perc(perc=10, n_cores=n_cores, Ncomp=Ncomp,
+                   Nspec=Nspec, decomp=decomp, test=True)
 
 def quick_test(iop_type:str='pca', fake:bool=False,
                perc:int=None, idx:int=1000,
@@ -490,12 +495,12 @@ if __name__ == '__main__':
     #           idx=1000, seed=12345)
 
     #another_test(n_cores=2)
-    #another_test(iop_type='nmf', fake=True, n_cores=1)
+    another_test(decomp='nmf', n_cores=1, Nspec=1)
 
     # All of em
     #do_all_fits(decomp='pca', n_cores=1)
     #do_all_fits(decomp='nmf', n_cores=1)
-    do_all_fits(decomp='nmf', n_cores=1, Ncomp=4)
+    #do_all_fits(decomp='nmf', n_cores=1, Ncomp=4)
     #do_all_fits(iop_type='nmf', n_cores=4, fake=True)
 
 
