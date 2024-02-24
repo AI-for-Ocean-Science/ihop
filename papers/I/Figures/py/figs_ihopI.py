@@ -279,7 +279,8 @@ def fig_emulator_rmse(dataset:str, Ncomp:tuple, hidden_list:list,
 # ############################################################
 def fig_mcmc_fit(outfile='fig_mcmc_fit.png', decomp:str='nmf',
         hidden_list:list=[512, 512, 512, 256], dataset:str='L23', use_quick:bool=False,
-        X:int=4, Y:int=0, show_zoom:bool=False, perc:int=10,
+        X:int=4, Y:int=0, show_zoom:bool=False, 
+        perc:int=None, abs_sig:float=None,
         water:bool=False,
         test:bool=False):
 
@@ -288,7 +289,7 @@ def fig_mcmc_fit(outfile='fig_mcmc_fit.png', decomp:str='nmf',
         # Load training data
         d_train = load_rs.loisel23_rs(X=X, Y=Y)
     in_idx = 0
-    Ncomp = 4
+
     # Load
     edict = emu_io.set_emulator_dict(dataset, decomp, Ncomp, 'Rrs',
         'dense', hidden_list=hidden_list, include_chl=True, X=X, Y=Y)
@@ -297,7 +298,9 @@ def fig_mcmc_fit(outfile='fig_mcmc_fit.png', decomp:str='nmf',
 
     emulator, e_file = emu_io.load_emulator_from_dict(edict)
 
-    chain_file = inf_io.l23_chains_filename(edict, perc, test=test)
+    chain_file = inf_io.l23_chains_filename(edict, 
+                                            perc if perc is not None else int(abs_sig), 
+                                            test=test)
     d_chains = inf_io.load_chains(chain_file)
 
     # Reconstruct
@@ -379,6 +382,7 @@ def fig_mcmc_fit(outfile='fig_mcmc_fit.png', decomp:str='nmf',
             transform=ax_bb.transAxes,
               fontsize=18, ha='right')
     ax_bb.legend(fontsize=lgsz)
+    ax_bb.set_ylim(bottom=0., top=None)
 
     # #########################################################
     # Rs
@@ -418,12 +422,11 @@ def fig_mcmc_fit(outfile='fig_mcmc_fit.png', decomp:str='nmf',
 
 def fig_corner(outfile='fig_corner.png', decomp:str='nmf',
         hidden_list:list=[512, 512, 512, 256], dataset:str='L23', 
-        chop_burn:int=-3000, perc:int=10,
+        chop_burn:int=-3000, perc:int=None, abs_sig:float=None,
         X:int=4, Y:int=0,
         test:bool=False):
 
     in_idx = 0
-    Ncomp = 4
     # Load
     edict = emu_io.set_emulator_dict(dataset, decomp, Ncomp, 'Rrs',
         'dense', hidden_list=hidden_list, include_chl=True, X=X, Y=Y)
@@ -432,16 +435,18 @@ def fig_corner(outfile='fig_corner.png', decomp:str='nmf',
 
     emulator, e_file = emu_io.load_emulator_from_dict(edict)
 
-    chain_file = inf_io.l23_chains_filename(edict, perc, test=test)
+    chain_file = inf_io.l23_chains_filename(edict, 
+                                            perc if perc is not None else int(abs_sig), 
+                                            test=test)
     d_chains = inf_io.load_chains(chain_file)
 
     chains = d_chains['chains'][in_idx]
-    coeff = chains[chop_burn:, :, :].reshape(-1,2*Ncomp+1)
+    coeff = chains[chop_burn:, :, :].reshape(-1,Ncomp[0]+Ncomp[1]+1)
 
     #print(f"L23 index = {idx}")
     # Labels
-    lbls = [r'$H_'+f'{ii+2}'+r'^{a}$' for ii in range(Ncomp)]
-    lbls += [r'$H_'+f'{ii+2}'+r'^{bb}$' for ii in range(Ncomp)]
+    lbls = [r'$H_'+f'{ii+2}'+r'^{a}$' for ii in range(Ncomp[0])]
+    lbls += [r'$H_'+f'{ii+2}'+r'^{bb}$' for ii in range(Ncomp[1])]
     lbls += ['Chl']
 
     idx = d_chains['idx'][in_idx]
@@ -464,11 +469,11 @@ def fig_corner(outfile='fig_corner.png', decomp:str='nmf',
     # Compare answers
     median_coeff = np.median(coeff, axis=0)
 
-    print(f"True a: {ab[idx, :Ncomp]}")
-    print(f"Fitted a: {median_coeff[:Ncomp]}")
+    print(f"True a: {ab[idx, :Ncomp[0]]}")
+    print(f"Fitted a: {median_coeff[:Ncomp[0]]}")
     print('---')
-    print(f"True b: {ab[idx, Ncomp:]}")
-    print(f"Fitted b: {median_coeff[Ncomp:2*Ncomp]}")
+    print(f"True b: {ab[idx, Ncomp[0]:]}")
+    print(f"Fitted b: {median_coeff[Ncomp[0]:-1]}")
     print('---')
     print(f"True Chl: {Chl[idx]}")
     print(f"Fitted Chl: {median_coeff[-1]}")
@@ -576,13 +581,17 @@ def main(flg):
         #                  outfile='fig_emulator_rmse_3.png')
         #fig_emulator_rmse('L23', 4, [512, 512, 512, 256],
         #                  log_rrmse=True)
+        #fig_emulator_rmse('L23', (4,3), [512, 512, 512, 256],
+        #                  log_rrmse=True)
         fig_emulator_rmse('L23', (4,2), [512, 512, 512, 256],
                           log_rrmse=True)
         #fig_emulator_rmse(['L23_NMF', 'L23_PCA'], [3, 3])
 
     # L23 IHOP performance vs. perc error
     if flg & (2**21):
-        fig_mcmc_fit(test=True, water=True)
+        #fig_mcmc_fit(test=True, perc=10)
+        fig_mcmc_fit(test=True, abs_sig=2.)
+        #fig_mcmc_fit(test=True, abs_sig=1., water=True)
 
     # L23 IHOP performance vs. perc error
     if flg & (2**22):
@@ -591,7 +600,8 @@ def main(flg):
 
     # L23 IHOP performance vs. perc error
     if flg & (2**23):
-        fig_corner(test=True)
+        #fig_corner(test=True, perc=10)
+        fig_corner(test=True, abs_sig=2.)
 
     # L23 IHOP performance vs. perc error
     if flg & (2**24):
@@ -606,10 +616,10 @@ if __name__ == '__main__':
         flg = 0
 
         #flg += 2 ** 0  # Basis functions of the decomposition
-        flg += 2 ** 20  # RMSE of emulators
-        #flg += 2 ** 21  # Single MCMC fit (example)
+        #flg += 2 ** 20  # RMSE of emulators
+        flg += 2 ** 21  # Single MCMC fit (example)
         #flg += 2 ** 22  # RMSE of L23 fits
-        #flg += 2 ** 23  # Fit corner
+        flg += 2 ** 23  # Fit corner
         #flg += 2 ** 24  # NMF corner plots
 
         #flg += 2 ** 2  # 4 -- Indiv

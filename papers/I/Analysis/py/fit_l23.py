@@ -225,23 +225,27 @@ def fit_one(items:list, pdict:dict=None):
     # Return
     return sampler, idx
 
-def fit_fixed_perc(perc:int, n_cores:int, seed:int=1234,
-                   Ncomp:int=3, Nspec:int=100, 
-                   decomp:str='pca', test:bool=False):
+def fit_fixed(Ncomp, perc:int=None, abs_sig:float=None,
+              n_cores:int=1, seed:int=51234, Nspec:int=100, 
+              decomp:str='pca', test:bool=False):
                    
     """
-    Fits a model using fixed percentage perturbation on the input data.
+    Fits a model using fixed percentage or absolute
+    error on the input data.
 
     Args:
-        perc (int): The percentage of perturbation to apply to the input data.
+        Ncomp (tuple, optional): The number of components. (a, bb)
+        perc (int, optional): The percentage of perturbation to apply to the input data.
+        abs_sig (float, optional): The absolute error to apply to the input data.
         n_cores (int): The number of CPU cores to use for parallel processing.
         seed (int, optional): The random seed for reproducibility. Defaults to 1234.
         Nspec (int, optional): The number of random samples to select. Defaults to 100.
         decomp (str, optional): The type of IOP (Inherent Optical Property) to use. Defaults to 'pca'.
-        Ncomp (int, optional): The number of components. Defaults to 3.
         test (bool, optiona0): If true, this is only a test
 
     """
+    if perc is None and abs_sig is None:
+        raise ValueError("Must specify either perc or abs_sig")
     #os.environ["OMP_NUM_THREADS"] = "1"
     hidden_list=[512, 512, 512, 256]
     X, Y = 4, 0
@@ -259,7 +263,10 @@ def fit_fixed_perc(perc:int, n_cores:int, seed:int=1234,
 
     root = emu_io.set_l23_emulator_root(edict)
     # Outfile
-    outroot = f'fit_Rs{perc:02d}_{root}'
+    if perc is not None:
+        outroot = f'fit_Rs{perc:02d}_{root}'
+    else:
+        outroot = f'fit_Rs{int(abs_sig):02d}_{root}'
     if test:
         outroot = 'test_'+outroot
     outfile = os.path.join(out_path, outroot)
@@ -275,7 +282,10 @@ def fit_fixed_perc(perc:int, n_cores:int, seed:int=1234,
     r_sig = np.random.normal(size=use_Rs.shape)
     r_sig = np.minimum(r_sig, 3.)
     r_sig = np.maximum(r_sig, -3.)
-    use_Rs += (perc/100.) * use_Rs * r_sig
+    if perc is not None:
+        use_Rs += (perc/100.) * use_Rs * r_sig
+    else:
+        use_Rs += r_sig * abs_sig
 
     # MCMC
     pdict = dict(model=emulator)
@@ -283,7 +293,7 @@ def fit_fixed_perc(perc:int, n_cores:int, seed:int=1234,
     pdict['nsteps'] = 10000
     pdict['save_file'] = None
     pdict['scl_sig'] = perc
-    pdict['abs_sig'] = None
+    pdict['abs_sig'] = abs_sig
 
     # Setup for parallel
     map_fn = partial(fit_one, pdict=pdict)
@@ -313,10 +323,9 @@ def fit_fixed_perc(perc:int, n_cores:int, seed:int=1234,
              obs_Rs=Rs[all_idx], use_Rs=use_Rs[all_idx])
     print(f"Wrote: {outfile}")
 
-def another_test(decomp:str='pca',
-                 fake:bool=False,
+def another_test(Ncomp, decomp:str='pca',
                  n_cores:int=4,
-                 Ncomp:int=4,
+                 perc:int=None, abs_sig:float=None,
                  Nspec=8):
     """
     Perform another test using the specified IOP type, fake flag, and number of cores.
@@ -327,7 +336,7 @@ def another_test(decomp:str='pca',
         n_cores (int, optional): The number of CPU cores to use for parallel processing. Default is 4.
 
     """
-    fit_fixed_perc(perc=10, n_cores=n_cores, Ncomp=Ncomp,
+    fit_fixed(Ncomp, n_cores=n_cores, perc=perc, abs_sig=abs_sig,
                    Nspec=Nspec, decomp=decomp, test=True)
 
 def quick_test(iop_type:str='pca', fake:bool=False,
@@ -495,7 +504,10 @@ if __name__ == '__main__':
     #           idx=1000, seed=12345)
 
     #another_test(n_cores=2)
-    another_test(decomp='nmf', n_cores=1, Nspec=1)
+    #another_test((4,2), decomp='nmf', n_cores=1, Nspec=1, perc=10.)
+    #another_test((4,2), decomp='nmf', n_cores=1, Nspec=1, abs_sig=1.)
+    another_test((4,2), decomp='nmf', n_cores=1, Nspec=1, abs_sig=2.)
+    #another_test((4,3), decomp='nmf', n_cores=1, Nspec=1)
 
     # All of em
     #do_all_fits(decomp='pca', n_cores=1)

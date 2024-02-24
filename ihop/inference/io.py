@@ -21,7 +21,7 @@ def l23_chains_filename(edict:dict, perc:int, test:bool=False):
     # Root
     root = emu_io.set_l23_emulator_root(edict)
     # Build it
-    chain_file = f'fit_Rs{perc:02d}_{root}.npz'
+    chain_file = f'fit_Rs{int(perc):02d}_{root}.npz'
     if test:
         chain_file = 'test_'+chain_file
     # Return
