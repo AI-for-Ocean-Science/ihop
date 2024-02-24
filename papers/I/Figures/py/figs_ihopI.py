@@ -38,7 +38,8 @@ import reconstruct
 from IPython import embed
 
 # Number of components
-Ncomp = (4,3)
+#Ncomp = (4,3)
+Ncomp = (4,2)
 
 
 
@@ -128,6 +129,46 @@ def fig_basis_functions(decomp:str,
     plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
     plt.savefig(outfile, dpi=300)
     print(f"Saved: {outfile}")
+
+
+def fig_nmf_corner(outroot='fig_nmf_corner', decomp:str='nmf',
+        dataset:str='L23', X:int=4, Y:int=0):
+
+    in_idx = 0
+    # Load
+    edict = emu_io.set_emulator_dict(dataset, decomp, Ncomp, 'Rrs',
+        'dense', include_chl=True, X=X, Y=Y)
+
+    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_decomposition(decomp, Ncomp)
+
+    for ss, iop in enumerate(['a', 'bb']):
+
+        lbls = [r'$H_'+f'{ii+2}'+r'^'+f'{iop}'+'$' for ii in range(Ncomp[ss])]
+        if ss == 0:
+            coeff = ab[:, :Ncomp[0]]
+        else:
+            coeff = ab[:, Ncomp[0]:]
+
+        # Set minimum
+        for ii in range(Ncomp[ss]):
+            coeff[:,ii] = np.maximum(coeff[:,ii], 1e-3)
+
+        plt.clf()
+        fig = corner.corner(
+            coeff, labels=lbls,
+            label_kwargs={'fontsize':17},
+            color='k',
+            axes_scale='log',
+            #truths=truths,
+            show_titles=True,
+            title_kwargs={"fontsize": 12},
+            )
+
+        outfile = f'{outroot}_{iop}.png'
+        plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
+        plt.savefig(outfile, dpi=300)
+        print(f"Saved: {outfile}")
+
 
 def fig_emulator_rmse(dataset:str, Ncomp:int, hidden_list:list,
                       outfile:str='fig_emulator_rmse.png',
@@ -433,6 +474,7 @@ def fig_corner(outfile='fig_corner.png', decomp:str='nmf',
     print(f"Fitted Chl: {median_coeff[-1]}")
 
 
+
 # ############################################################
 # ############################################################
 def fig_rmse_vs_sig(outroot:str='fig_rmse_vs_sig',
@@ -549,6 +591,10 @@ def main(flg):
     if flg & (2**23):
         fig_corner(test=True)
 
+    # L23 IHOP performance vs. perc error
+    if flg & (2**24):
+        fig_nmf_corner()
+
 
 # Command line execution
 if __name__ == '__main__':
@@ -561,7 +607,8 @@ if __name__ == '__main__':
         #flg += 2 ** 20  # RMSE of emulators
         #flg += 2 ** 21  # Single MCMC fit (example)
         #flg += 2 ** 22  # RMSE of L23 fits
-        #flg += 2 ** 23  # corner
+        #flg += 2 ** 23  # Fit corner
+        flg += 2 ** 24  # NMF corner plots
 
         #flg += 2 ** 2  # 4 -- Indiv
         #flg += 2 ** 3  # 8 -- Coeff

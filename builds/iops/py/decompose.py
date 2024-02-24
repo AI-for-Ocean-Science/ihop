@@ -46,7 +46,7 @@ def nmf_loisel23(X:int=4, Y:int=0, Ncomp:int=3,
     d = load_rs.loisel23_rs(X=X, Y=Y)
 
     # Loop on IOP
-    outfiles = loisel23_filenames('nmf', Ncomp, X, Y)
+    outfiles = loisel23_filenames('nmf', (Ncomp,Ncomp), X, Y)
     for outfile, iop in zip(outfiles, ['a', 'bb']):
 
         # Remove water
@@ -76,7 +76,8 @@ if __name__ == '__main__':
     # L23
     #pca_loisel23(clobber=True)
     #nmf_loisel23(clobber=True)
-    nmf_loisel23(Ncomp=3, clobber=True)
+    nmf_loisel23(Ncomp=2, clobber=True)
+    #nmf_loisel23(Ncomp=3, clobber=True)
     #nmf_loisel23(Ncomp=4, clobber=True)
     #nmf_loisel23(Ncomp=5, clobber=True)
     #generate_l23_tara_pca()  # Broken
