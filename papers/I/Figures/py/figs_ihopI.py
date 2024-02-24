@@ -8,6 +8,7 @@ from importlib import resources
 import numpy as np
 
 import torch
+import corner
 
 from matplotlib import pyplot as plt
 import matplotlib as mpl
@@ -359,9 +360,9 @@ def fig_mcmc_fit(outfile='fig_mcmc_fit.png', decomp:str='nmf',
     print(f"Saved: {outfile}")
 
 def fig_corner(outfile='fig_corner.png', decomp:str='nmf',
-        hidden_list:list=[512, 512, 512, 256], dataset:str='L23', use_quick:bool=False,
-        chop_burn:int=-3000,
-        X:int=4, Y:int=0, show_zoom:bool=False, perc:int=10,
+        hidden_list:list=[512, 512, 512, 256], dataset:str='L23', 
+        chop_burn:int=-3000, perc:int=10,
+        X:int=4, Y:int=0,
         test:bool=False):
 
     in_idx = 0
@@ -379,9 +380,12 @@ def fig_corner(outfile='fig_corner.png', decomp:str='nmf',
 
     chains = d_chains['chains'][in_idx]
     coeff = chains[chop_burn:, :, :].reshape(-1,2*Ncomp+1)
-    embed(header='382 of figs')
 
-    print(f"L23 index = {idx}")
+    #print(f"L23 index = {idx}")
+    # Labels
+    lbls = [r'$H_'+f'{ii+2}'+r'^{a}$' for ii in range(Ncomp)]
+    lbls += [r'$H_'+f'{ii+2}'+r'^{bb}$' for ii in range(Ncomp)]
+    lbls += ['Chl']
 
     fig = corner.corner(
         coeff, labels=lbls,
@@ -392,6 +396,9 @@ def fig_corner(outfile='fig_corner.png', decomp:str='nmf',
         title_kwargs={"fontsize": 12},
         )
 
+    plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
+    plt.savefig(outfile, dpi=300)
+    print(f"Saved: {outfile}")
 
 
 # ############################################################
