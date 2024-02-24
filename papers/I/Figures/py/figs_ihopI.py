@@ -170,7 +170,7 @@ def fig_nmf_corner(outroot='fig_nmf_corner', decomp:str='nmf',
         print(f"Saved: {outfile}")
 
 
-def fig_emulator_rmse(dataset:str, Ncomp:int, hidden_list:list,
+def fig_emulator_rmse(dataset:str, Ncomp:tuple, hidden_list:list,
                       outfile:str='fig_emulator_rmse.png',
                       log_rrmse:bool=False,
                       X:int=4, Y:int=0, decomp:str='nmf'):
@@ -574,7 +574,9 @@ def main(flg):
     if flg & (2**20):
         #fig_emulator_rmse('L23', 3, [512, 512, 512, 256],
         #                  outfile='fig_emulator_rmse_3.png')
-        fig_emulator_rmse('L23', 4, [512, 512, 512, 256],
+        #fig_emulator_rmse('L23', 4, [512, 512, 512, 256],
+        #                  log_rrmse=True)
+        fig_emulator_rmse('L23', (4,2), [512, 512, 512, 256],
                           log_rrmse=True)
         #fig_emulator_rmse(['L23_NMF', 'L23_PCA'], [3, 3])
 
@@ -603,12 +605,12 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         flg = 0
 
-        flg += 2 ** 0  # Basis functions of the decomposition
-        #flg += 2 ** 20  # RMSE of emulators
+        #flg += 2 ** 0  # Basis functions of the decomposition
+        flg += 2 ** 20  # RMSE of emulators
         #flg += 2 ** 21  # Single MCMC fit (example)
         #flg += 2 ** 22  # RMSE of L23 fits
         #flg += 2 ** 23  # Fit corner
-        flg += 2 ** 24  # NMF corner plots
+        #flg += 2 ** 24  # NMF corner plots
 
         #flg += 2 ** 2  # 4 -- Indiv
         #flg += 2 ** 3  # 8 -- Coeff
