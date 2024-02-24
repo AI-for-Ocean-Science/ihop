@@ -591,7 +591,7 @@ def main(flg):
     if flg & (2**21):
         #fig_mcmc_fit(test=True, perc=10)
         fig_mcmc_fit(test=True, abs_sig=2.)
-        #fig_mcmc_fit(test=True, abs_sig=1., water=True)
+        fig_mcmc_fit(test=True, abs_sig=2., water=True)
 
     # L23 IHOP performance vs. perc error
     if flg & (2**22):

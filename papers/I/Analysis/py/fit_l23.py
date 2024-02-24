@@ -226,7 +226,7 @@ def fit_one(items:list, pdict:dict=None):
     return sampler, idx
 
 def fit_fixed(Ncomp, perc:int=None, abs_sig:float=None,
-              n_cores:int=1, seed:int=51234, Nspec:int=100, 
+              n_cores:int=1, seed:int=2234, Nspec:int=100, 
               decomp:str='pca', test:bool=False):
                    
     """
@@ -294,6 +294,7 @@ def fit_fixed(Ncomp, perc:int=None, abs_sig:float=None,
     pdict['save_file'] = None
     pdict['scl_sig'] = perc
     pdict['abs_sig'] = abs_sig
+    pdict['priors'] = None
 
     # Setup for parallel
     map_fn = partial(fit_one, pdict=pdict)

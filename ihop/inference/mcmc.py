@@ -13,7 +13,13 @@ from ihop.emulators import io
 from IPython import embed
 
 
-def log_prob(ab, Rs, model, device, scl_sig, abs_sig):
+#def lnprior(ab):
+#    m, b, lnf = theta
+#    if -5.0 < m < 0.5 and 0.0 < b < 10.0 and -10.0 < lnf < 1.0:
+#        return 0.0
+#    return -np.inf
+
+def log_prob(ab, Rs, model, device, scl_sig, abs_sig, priors):
     """
     Calculate the logarithm of the probability of the given parameters.
 
@@ -28,6 +34,13 @@ def log_prob(ab, Rs, model, device, scl_sig, abs_sig):
     Returns:
         float: The logarithm of the probability.
     """
+    # Priors
+    if priors is not None:
+        lp = lnprior(ab, priors)
+    if np.min(ab) < 0:
+        return -np.inf
+
+    # Proceed
     pred = model.prediction(ab, device)
     # Error
     sig = scl_sig * Rs if scl_sig is not None else abs_sig
@@ -42,6 +55,7 @@ def log_prob(ab, Rs, model, device, scl_sig, abs_sig):
 def run_emcee_nn(nn_model, Rs, nwalkers:int=32, nsteps:int=20000,
                  save_file:str=None, p0=None, scl_sig:float=None,
                  abs_sig:float=None, 
+                 priors:tuple=None,
                  skip_check:bool=False):
     """
     Run the emcee sampler for neural network inference.
@@ -56,6 +70,7 @@ def run_emcee_nn(nn_model, Rs, nwalkers:int=32, nsteps:int=20000,
         scl_sig (float, optional): The scaling factor for the sigma parameter. Defaults to None.
         abs_sig (float, optional): The absolute value of the sigma parameter. Defaults to None.
         skip_check (bool, optional): Whether to skip the initial state check. Defaults to False.
+        prior (tuple, optional): The prior information. Defaults to None.
 
     Returns:
         emcee.EnsembleSampler: The emcee sampler object.
@@ -95,7 +110,7 @@ def run_emcee_nn(nn_model, Rs, nwalkers:int=32, nsteps:int=20000,
     # Init
     sampler = emcee.EnsembleSampler(
         nwalkers, ndim, log_prob,
-        args=[Rs, nn_model, device, scl_sig, abs_sig],
+        args=[Rs, nn_model, device, scl_sig, abs_sig, priors],
         backend=backend)#, pool=pool)
 
     # Burn in
