@@ -39,7 +39,7 @@ def add_noise(Rs, perc:int=None, abs_sig:float=None):
     return use_Rs
 
 def fit_without_error(edict:dict, Nspec:str='all',
-                      debug:bool=False): 
+                      debug:bool=False, n_cores:int=1): 
     # Load data
     ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_decomposition(
         edict['decomp'], edict['Ncomp'])
@@ -66,7 +66,8 @@ def fit_without_error(edict:dict, Nspec:str='all',
     items = [(use_Rs[i], ab[i].tolist()+[Chl[i]], i) for i in idx]
 
     # Fit
-    all_samples, all_idx = fitting.fit_batch(pdict, items)
+    all_samples, all_idx = fitting.fit_batch(pdict, items,
+                                             n_cores=n_cores)
 
     # Save
     outdir = 'Fits/L23'
@@ -89,13 +90,14 @@ def main(flg):
         decomp = 'nmf'
         Ncomp = (4,2)
         X, Y = 4, 0
+        n_cores = 2
         dataset = 'L23'
         edict = emu_io.set_emulator_dict(
             dataset, decomp, Ncomp, 'Rrs',
             'dense', hidden_list=hidden_list, include_chl=True, 
             X=X, Y=Y)
 
-        fit_without_error(edict)# debug=True)
+        fit_without_error(edict, n_cores=n_cores)# debug=True)
 
 
 # Command line execution

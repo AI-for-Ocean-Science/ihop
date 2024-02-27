@@ -13,14 +13,10 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
             - matchExpressions:
-              - key: kubernetes.io/hostname
+              - key: feature.node.kubernetes.io/pci-10de.present
                 operator: NotIn
                 values:
-                  - k8s-chase-ci-01.noc.ucsb.edu
-              - key: nvidia.com/gpu.product
-                operator: In
-                values:
-                  - NVIDIA-GeForce-RTX-3090
+                - "true"    
       containers:
       - name: container
         image: profxj/ihop_nvidia:latest  # On docker hub
@@ -28,11 +24,11 @@ spec:
         resources:
           requests:
             cpu: "20"   # Using at least 4
-            memory: "8Gi"  # Using ~7
+            memory: "12Gi"  # Using ~7
             ephemeral-storage: 20Gi
           limits:
-            cpu: "30"
-            memory: "20Gi"
+            cpu: "28"
+            memory: "24Gi"
             ephemeral-storage: 50Gi
             #nvidia.com/gpu:  "1"  # See docs to exlude certain types
         command: ["/bin/bash", "-c"]
