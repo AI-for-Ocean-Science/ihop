@@ -196,34 +196,7 @@ def check_one(chain_file:str, in_idx:int, chop_burn:int=-3000):
         truths=ab[idx])
     plt.show() 
 
-def fit_one(items:list, pdict:dict=None):
-    """
-    Fits a model to a set of input data using the MCMC algorithm.
 
-    Args:
-        items (list): A list containing the input data, response data, and index.
-        pdict (dict, optional): A dictionary containing the model and fitting parameters. Defaults to None.
-
-    Returns:
-        tuple: A tuple containing the MCMC sampler object and the index.
-    """
-    # Unpack
-    Rs, inputs, idx = items
-    ndim = pdict['model'].ninput
-
-    # Run
-    #embed(header='fit_one 208')
-    sampler = mcmc.run_emcee_nn(
-        pdict['model'], Rs,
-        nwalkers=pdict['nwalkers'],
-        nsteps=pdict['nsteps'],
-        scl_sig=pdict['scl_sig']/100. if pdict['scl_sig'] is not None else None,
-        abs_sig=pdict['abs_sig'] if pdict['abs_sig'] is not None else None,
-        p0=inputs,
-        save_file=pdict['save_file'])
-
-    # Return
-    return sampler, idx
 
 def fit_fixed(Ncomp, perc:int=None, abs_sig:float=None,
               n_cores:int=1, seed:int=2234, Nspec:int=100, 
