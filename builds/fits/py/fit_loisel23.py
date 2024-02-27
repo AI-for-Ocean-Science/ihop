@@ -1,4 +1,5 @@
 """ Fits to Loisel+2023 """
+import os
 import numpy as np
 
 from ihop.emulators import io as emu_io
@@ -37,15 +38,16 @@ def add_noise(Rs, perc:int=None, abs_sig:float=None):
     # Return
     return use_Rs
 
-def fit_without_error(edict:dict, Nspec:str='all'):
+def fit_without_error(edict:dict, Nspec:str='all',
+                      debug:bool=False): 
     # Load data
     ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_decomposition(
         edict['decomp'], edict['Ncomp'])
     # Load emulator
-    emulator, e_file = emu_io.load_emulator_from_dict(edict)
+    emulator, e_file = emu_io.load_emulator_from_dict(edict, use_s3=True)
     root = emu_io.set_l23_emulator_root(edict)
 
-    outroot = f'fit_Rs_00_{root}'
+    outroot = f'fit_Rs_01_{root}'
     # Init MCMC
     pdict = init_mcmc(emulator, ab.shape[1]+1)
     # Include a non-zero error to avoid bad chi^2 behavior
@@ -59,13 +61,19 @@ def fit_without_error(edict:dict, Nspec:str='all'):
         idx = np.arange(len(Chl))
     else:
         raise ValueError("Bad Nspec")
+    if debug:
+        idx = idx[0:2]
     items = [(use_Rs[i], ab[i].tolist()+[Chl[i]], i) for i in idx]
 
     # Fit
     all_samples, all_idx = fitting.fit_batch(pdict, items)
 
     # Save
-    np.savez(outroot, chains=all_samples, idx=all_idx,
+    outdir = 'Fits/L23'
+    if not os.path.isdir(outdir):
+        os.makedirs(outdir)
+    outfile = os.path.join(outdir, outroot)
+    np.savez(outfile, chains=all_samples, idx=all_idx,
              obs_Rs=Rs[all_idx], use_Rs=use_Rs[all_idx])
 
 
@@ -87,7 +95,7 @@ def main(flg):
             'dense', hidden_list=hidden_list, include_chl=True, 
             X=X, Y=Y)
 
-        fit_without_error(edict)
+        fit_without_error(edict)# debug=True)
 
 
 # Command line execution

@@ -7,31 +7,41 @@ import torch
 
 from IPython import embed
 
-def path_to_emulator(dataset:str):
-    if os.getenv('OS_COLOR') is not None:
+def path_to_emulator(dataset:str, use_s3:bool=False):
+    if use_s3:
+        path = f's3://ihop/Emulators/{dataset}'
+    elif os.getenv('OS_COLOR') is not None:
         path = os.path.join(os.getenv('OS_COLOR'), 'IHOP', 'Emulators', dataset)
     else:
         warnings.warn("OS_COLOR not set. Using current directory.")
         path = './'
     return path
 
-def load_emulator_from_dict(edict:dict):
+def load_emulator_from_dict(edict:dict, use_s3:bool=False): 
     """
     Load an emulator from a dictionary.
 
     Args:
         edict (dict): A dictionary containing the emulator information.
+        use_s3 (bool, optional): Flag indicating whether to use S3. Defaults to False.
 
     Returns:
         object: The loaded emulator.
     """
     # Load model
-    path = path_to_emulator(edict['dataset'])
+    path = path_to_emulator(edict['dataset'], use_s3=use_s3)
     if edict['dataset'] == 'L23':
         emulator_root = set_l23_emulator_root(edict)
     else:
         raise ValueError(f"Dataset {edict['dataset']} not supported.")
     emulator_file = os.path.join(path, emulator_root)+'.pth'
+
+    # Download from s3?
+    if use_s3:
+        from ulmo import io as ulmo_io
+        local_file = os.path.basename(emulator_file)
+        ulmo_io.download_file_from_s3(local_file, emulator_file)
+        emulator_file = local_file
 
     # Load
     print(f'Loading: {emulator_file}')
