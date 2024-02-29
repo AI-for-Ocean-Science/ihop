@@ -53,8 +53,9 @@ def fit_without_error(edict:dict, Nspec:str='all',
     # Include a non-zero error to avoid bad chi^2 behavior
     pdict['abs_sig'] = 1.
 
-    # Add noise
-    use_Rs = add_noise(Rs, abs_sig=pdict['abs_sig'])
+    # Add noise -- not for noiseless
+    #use_Rs = add_noise(Rs, abs_sig=pdict['abs_sig'])
+    use_Rs = Rs.copy()
 
     # Prep
     if Nspec == 'all':
