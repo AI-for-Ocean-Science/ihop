@@ -23,8 +23,8 @@ spec:
         imagePullPolicy: Always
         resources:
           requests:
-            cpu: "20"   # Using at least 4
-            memory: "36Gi"  # Using ~7
+            cpu: "20"   # 
+            memory: "36Gi"  # 
             ephemeral-storage: 20Gi
           limits:
             cpu: "28"
