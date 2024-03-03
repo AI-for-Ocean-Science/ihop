@@ -1,5 +1,9 @@
 """ Fits to Loisel+2023 """
 import os
+
+# For emcee
+os.environ["OMP_NUM_THREADS"] = "1"
+
 import numpy as np
 
 from ihop.emulators import io as emu_io
@@ -91,7 +95,7 @@ def main(flg):
         decomp = 'nmf'
         Ncomp = (4,2)
         X, Y = 4, 0
-        n_cores = 1
+        n_cores = 2
         dataset = 'L23'
         edict = emu_io.set_emulator_dict(
             dataset, decomp, Ncomp, 'Rrs',
