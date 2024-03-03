@@ -95,7 +95,7 @@ def main(flg):
         decomp = 'nmf'
         Ncomp = (4,2)
         X, Y = 4, 0
-        n_cores = 2
+        n_cores = 20
         dataset = 'L23'
         edict = emu_io.set_emulator_dict(
             dataset, decomp, Ncomp, 'Rrs',
