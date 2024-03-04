@@ -81,6 +81,7 @@ def fit_without_error(edict:dict, Nspec:str='all',
     outfile = os.path.join(outdir, outroot)
     np.savez(outfile, chains=all_samples, idx=all_idx,
              obs_Rs=Rs[all_idx], use_Rs=use_Rs[all_idx])
+    print(f"Saved: {outfile}")
 
 
 def main(flg):
@@ -95,6 +96,7 @@ def main(flg):
         decomp = 'nmf'
         Ncomp = (4,2)
         X, Y = 4, 0
+        #n_cores = 2
         n_cores = 20
         dataset = 'L23'
         edict = emu_io.set_emulator_dict(
@@ -102,7 +104,7 @@ def main(flg):
             'dense', hidden_list=hidden_list, include_chl=True, 
             X=X, Y=Y)
 
-        fit_without_error(edict, n_cores=n_cores)# debug=True)
+        fit_without_error(edict, n_cores=n_cores)#, debug=True)
 
 
 # Command line execution
