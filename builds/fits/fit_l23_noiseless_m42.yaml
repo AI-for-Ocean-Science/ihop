@@ -24,12 +24,12 @@ spec:
         resources:
           requests:
             cpu: "20"   # 
-            memory: "36Gi"  # 
-            ephemeral-storage: 20Gi
+            memory: "50Gi"  # 
+            ephemeral-storage: 40Gi
           limits:
             cpu: "28"
-            memory: "64Gi"
-            ephemeral-storage: 50Gi
+            memory: "70Gi"
+            ephemeral-storage: 80Gi
             #nvidia.com/gpu:  "1"  # See docs to exlude certain types
         command: ["/bin/bash", "-c"]
             #command: ["sh", "-c", "sleep infinity"]
