@@ -77,14 +77,25 @@ def set_l23_emulator_root(edict:dict):
     # Return
     return root
 
-def set_emulator_dict(dataset, decomp, Ncomp, outputs:str,
+def set_emulator_dict(dataset:str, decomp:str, Ncomp:tuple, outputs:str,
         emulator:str, hidden_list:list=None, 
         include_chl:bool=False, X:int=None, Y:int=None): 
     """
-    Set the dictionary of emulator files for the Loisel+2023 emulator.
+    Create a dictionary containing the parameters for an emulator.
+
+    Args:
+        dataset (str): The dataset used for training the emulator.
+        decomp (str): The decomposition method used for the dataset.
+        Ncomp (tuple): The number of components used in the decomposition.
+        outputs (str): The output variables predicted by the emulator.
+        emulator (str): The type of emulator used.
+        hidden_list (list, optional): List of hidden layers for the emulator. Defaults to None.
+        include_chl (bool, optional): Whether to include chlorophyll as an input variable. Defaults to False.
+        X (int, optional): The X coordinate of the emulator. Defaults to None.
+        Y (int, optional): The Y coordinate of the emulator. Defaults to None.
 
     Returns:
-        dict: A dictionary containing the emulator files.
+        dict: A dictionary containing the emulator parameters.
     """
     # Dict
     emulator_dict = {

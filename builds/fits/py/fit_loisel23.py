@@ -10,6 +10,8 @@ from ihop.emulators import io as emu_io
 from ihop import io as ihop_io
 from ihop.inference import fitting 
 
+from IPython import embed
+
 def init_mcmc(emulator, ndim, perc:int=None, abs_sig:float=None):
     # MCMC
     pdict = dict(model=emulator)
@@ -44,6 +46,18 @@ def add_noise(Rs, perc:int=None, abs_sig:float=None):
 
 def fit_without_error(edict:dict, Nspec:str='all',
                       debug:bool=False, n_cores:int=1): 
+    """
+    Fits the data without considering any errors.
+
+    Args:
+        edict (dict): A dictionary containing the necessary information for fitting.
+        Nspec (str): The number of spectra to fit. Default is 'all'.
+        debug (bool): Whether to run in debug mode. Default is False.
+        n_cores (int): The number of CPU cores to use for parallel processing. Default is 1.
+
+    Returns:
+
+    """
     # Load data
     ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_decomposition(
         edict['decomp'], edict['Ncomp'])
@@ -51,6 +65,7 @@ def fit_without_error(edict:dict, Nspec:str='all',
     emulator, e_file = emu_io.load_emulator_from_dict(edict, use_s3=True)
     root = emu_io.set_l23_emulator_root(edict)
 
+    embed(header='66 use l23_chains_filename!')
     outroot = f'fit_Rs_01_{root}'
     # Init MCMC
     pdict = init_mcmc(emulator, ab.shape[1]+1)

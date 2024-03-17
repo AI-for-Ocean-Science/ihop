@@ -7,9 +7,6 @@ import numpy as np
 from oceancolor.hydrolight import loisel23
 
 from ihop.iops.decompose import load_loisel2023
-from ihop.iops.decompose import reconstruct_nmf
-from ihop.iops.decompose import reconstruct_pca
-from ihop.emulators import io as ihop_io
 
 from IPython import embed
 

@@ -206,8 +206,7 @@ def fig_emulator_rmse(dataset:str, Ncomp:tuple, hidden_list:list,
         # Predict and compare
         dev = np.zeros_like(targets)
         for ss in range(targets.shape[0]):
-            dev[ss,:] = targets[ss] - emulator.prediction(inputs[ss],
-                                                    device)
+            dev[ss,:] = emulator.prediction(inputs[ss], device) - targets[ss]  
         
         # Bias?
         bias = np.mean(dev, axis=0)
@@ -277,18 +276,12 @@ def fig_emulator_rmse(dataset:str, Ncomp:tuple, hidden_list:list,
 
 
 # ############################################################
-def fig_mcmc_fit(outfile='fig_mcmc_fit.png', decomp:str='nmf',
+def fig_mcmc_fit(outroot='fig_mcmc_fit', decomp:str='nmf',
         hidden_list:list=[512, 512, 512, 256], dataset:str='L23', use_quick:bool=False,
         X:int=4, Y:int=0, show_zoom:bool=False, 
         perc:int=None, abs_sig:float=None,
-        water:bool=False,
+        water:bool=False, in_idx:int=0,
         test:bool=False):
-
-    if water:
-        outfile = outfile.replace('.png', '_water.png')
-        # Load training data
-        d_train = load_rs.loisel23_rs(X=X, Y=Y)
-    in_idx = 0
 
     # Load
     edict = emu_io.set_emulator_dict(dataset, decomp, Ncomp, 'Rrs',
@@ -309,8 +302,16 @@ def fig_mcmc_fit(outfile='fig_mcmc_fit.png', decomp:str='nmf',
                                      emulator, decomp, Ncomp)
     idx, orig, a_mean, a_std, a_iop, obs_Rs,\
         pred_Rs, std_pred, NN_Rs, allY, wave,\
-        orig_bb, bb_mean, bb_std = items
+        orig_bb, bb_mean, bb_std, a_nmf, bb_nmf = items
     print(f"L23 index = {idx}")
+
+    # Outfile
+    outfile = outroot + f'_{idx}.png'
+    if water:
+        outfile = outfile.replace('.png', '_water.png')
+        # Load training data
+        d_train = load_rs.loisel23_rs(X=X, Y=Y)
+
 
     # #########################################################
     # Plot the solution
@@ -332,7 +333,7 @@ def fig_mcmc_fit(outfile='fig_mcmc_fit.png', decomp:str='nmf',
     def plot_spec(ax):
         ax.plot(wave, orig+a_w, 'ko', label='True')
         ax.plot(wave, a_mean+a_w, 'r-', label='Retrieval')
-        #ax.plot(wave, a_iop, 'k:', label='PCA')
+        ax.plot(wave, a_nmf+a_w, 'r:', label='Real Recon')
         ax.fill_between(wave, a_w+a_mean-a_std, a_w+a_mean+a_std, 
             color='r', alpha=0.5, label='Uncertainty') 
     plot_spec(ax_a)
@@ -372,6 +373,7 @@ def fig_mcmc_fit(outfile='fig_mcmc_fit.png', decomp:str='nmf',
     ax_bb = plt.subplot(gs[2])
     ax_bb.plot(wave, bb_w+orig_bb, 'ko', label='True')
     ax_bb.plot(wave, bb_w+bb_mean, 'g-', label='Retrieval')
+    ax_bb.plot(wave, bb_w+bb_nmf, 'g:', label='True NMF')
     ax_bb.fill_between(wave, bb_w+bb_mean-bb_std, bb_w+bb_mean+bb_std, 
             color='g', alpha=0.5, label='Uncertainty') 
 
@@ -420,13 +422,12 @@ def fig_mcmc_fit(outfile='fig_mcmc_fit.png', decomp:str='nmf',
     plt.savefig(outfile, dpi=300)
     print(f"Saved: {outfile}")
 
-def fig_corner(outfile='fig_corner.png', decomp:str='nmf',
+def fig_corner(outroot:str='fig_corner', decomp:str='nmf',
         hidden_list:list=[512, 512, 512, 256], dataset:str='L23', 
         chop_burn:int=-3000, perc:int=None, abs_sig:float=None,
-        X:int=4, Y:int=0,
+        X:int=4, Y:int=0, in_idx:int=0,
         test:bool=False):
 
-    in_idx = 0
     # Load
     edict = emu_io.set_emulator_dict(dataset, decomp, Ncomp, 'Rrs',
         'dense', hidden_list=hidden_list, include_chl=True, X=X, Y=Y)
@@ -450,6 +451,9 @@ def fig_corner(outfile='fig_corner.png', decomp:str='nmf',
     lbls += ['Chl']
 
     idx = d_chains['idx'][in_idx]
+    # Outfile
+    outfile = outroot + f'_{idx}.png'
+
     truths = np.concatenate((ab[idx], Chl[idx].reshape(1,)))
 
     fig = corner.corner(
@@ -482,9 +486,13 @@ def fig_corner(outfile='fig_corner.png', decomp:str='nmf',
 
 # ############################################################
 # ############################################################
-def fig_rmse_vs_sig(outroot:str='fig_rmse_vs_sig',
+def fig_rmse_vs_sig(outroot:str='fig_rmse_vs_sig', 
+                    hidden_list:list=[512, 512, 512, 256], dataset:str='L23', 
+                    X:int=4, Y:int=0, 
                     decomp:str='pca', chop_burn:int=-3000):
 
+    edict = emu_io.set_emulator_dict(dataset, decomp, Ncomp, 'Rrs',
+        'dense', hidden_list=hidden_list, include_chl=True, X=X, Y=Y)
     # Prep
     if decomp == 'pca':
         rfunc = decompose.reconstruct_pca
@@ -496,15 +504,20 @@ def fig_rmse_vs_sig(outroot:str='fig_rmse_vs_sig',
     all_l23_rmse = []
     all_l23_sig = []
     #all_perc = [0, 5, 10, 15, 20]
-    all_perc = [0, 5, 10, 20]
+    #all_perc = [0, 5, 10, 20]
+    all_perc = [1]
     for perc in all_perc:
+        perc = None
+        abs_sig = 1.
         print(f"Working on: {perc}%")
         # L23
         ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_decomposition(decomp, Ncomp)
-        d_chains = ihop_io.load_l23_chains(decomp, perc=perc)
+        chain_file = inf_io.l23_chains_filename(
+            edict, perc if perc is not None else int(abs_sig)) 
+        d_chains = inf_io.load_chains(chain_file)
         chains = d_chains['chains']
         l23_idx = d_chains['idx']
-        ncomp = 3
+        
         wave = d_a['wave']
         dev = np.zeros((chains.shape[0], wave.size))
         mcmc_std = np.zeros((chains.shape[0], wave.size))
@@ -512,7 +525,7 @@ def fig_rmse_vs_sig(outroot:str='fig_rmse_vs_sig',
         for in_idx in range(chains.shape[0]):
             idx = l23_idx[in_idx]
             ichains = chains[in_idx]
-            Y = ichains[chop_burn:, :, 0:ncomp].reshape(-1,ncomp)
+            Y = ichains[chop_burn:, :, 0:Ncomp[0]].reshape(-1,Ncomp[0])
             orig, a_recon = rfunc(Y, d_a, idx)
             a_mean = np.mean(a_recon, axis=0)
             #
@@ -590,8 +603,10 @@ def main(flg):
     # L23 IHOP performance vs. perc error
     if flg & (2**21):
         #fig_mcmc_fit(test=True, perc=10)
-        fig_mcmc_fit(test=True, abs_sig=2.)
-        fig_mcmc_fit(test=True, abs_sig=2., water=True)
+        #fig_mcmc_fit(test=True, abs_sig=2.)
+        #fig_mcmc_fit(test=True, abs_sig=2., water=True)
+        #fig_mcmc_fit(abs_sig=1., in_idx=275) # Turbid
+        fig_mcmc_fit(abs_sig=1., in_idx=0) # Clear
 
     # L23 IHOP performance vs. perc error
     if flg & (2**22):
@@ -601,7 +616,9 @@ def main(flg):
     # L23 IHOP performance vs. perc error
     if flg & (2**23):
         #fig_corner(test=True, perc=10)
-        fig_corner(test=True, abs_sig=2.)
+        #fig_corner(test=True, abs_sig=2.)
+        #fig_corner(abs_sig=1., in_idx=275) # Turbid
+        fig_corner(abs_sig=1., in_idx=0) # Clear
 
     # L23 IHOP performance vs. perc error
     if flg & (2**24):
@@ -616,10 +633,10 @@ if __name__ == '__main__':
         flg = 0
 
         #flg += 2 ** 0  # Basis functions of the decomposition
-        #flg += 2 ** 20  # RMSE of emulators
-        flg += 2 ** 21  # Single MCMC fit (example)
+        flg += 2 ** 20  # RMSE of emulators
+        #flg += 2 ** 21  # Single MCMC fit (example)
         #flg += 2 ** 22  # RMSE of L23 fits
-        flg += 2 ** 23  # Fit corner
+        #flg += 2 ** 23  # Fit corner
         #flg += 2 ** 24  # NMF corner plots
 
         #flg += 2 ** 2  # 4 -- Indiv
