@@ -276,10 +276,65 @@ def fig_emulator_rmse(dataset:str, Ncomp:tuple, hidden_list:list,
 
 
 # ############################################################
+def fig_mcmc_decompose(outroot='fig_mcmc_decompose', decomp:str='nmf',
+        hidden_list:list=[512, 512, 512, 256], dataset:str='L23', use_quick:bool=False,
+        X:int=4, Y:int=0, show_zoom:bool=False, 
+        perc:int=None, abs_sig:float=None,
+        wvmnx:tuple=None,
+        water:bool=False, in_idx:int=0,
+        test:bool=False):
+
+    # Load
+    edict = emu_io.set_emulator_dict(dataset, decomp, Ncomp, 'Rrs',
+        'dense', hidden_list=hidden_list, include_chl=True, X=X, Y=Y)
+
+    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_decomposition(decomp, Ncomp)
+
+    emulator, e_file = emu_io.load_emulator_from_dict(edict)
+
+    chain_file = inf_io.l23_chains_filename(edict, 
+                                            perc if perc is not None else int(abs_sig), 
+                                            test=test)
+    d_chains = inf_io.load_chains(chain_file)
+
+    # Reconstruct
+    items = reconstruct.one_spectrum(in_idx, ab, Chl, d_chains, 
+                                     d_a, d_bb, 
+                                     emulator, decomp, Ncomp)
+    idx, orig, a_mean, a_std, a_iop, obs_Rs,\
+        pred_Rs, std_pred, NN_Rs, allY, wave,\
+        orig_bb, bb_mean, bb_std, a_nmf, bb_nmf = items
+    print(f"L23 index = {idx}")
+
+    # Outfile
+    outfile = outroot + f'_{idx}.png'
+    if water:
+        outfile = outfile.replace('.png', '_water.png')
+        # Load training data
+        d_train = load_rs.loisel23_rs(X=X, Y=Y)
+
+    # #########################################################
+    # Plot the solution
+    lgsz = 18.
+
+    fig = plt.figure(figsize=(10,12))
+    plt.clf()
+    gs = gridspec.GridSpec(1,1)
+
+    ax_a = plt.subplot(gs[0])
+    ax_a.set_ylabel(r'$a_{\rm nw}(\lambda) \; [{\rm m}^{-1}]$')
+    ax_a.set_xlabel('Wavelength (nm)')
+
+    #plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
+    plt.savefig(outfile, dpi=300)
+    print(f"Saved: {outfile}")
+
+# ############################################################
 def fig_mcmc_fit(outroot='fig_mcmc_fit', decomp:str='nmf',
         hidden_list:list=[512, 512, 512, 256], dataset:str='L23', use_quick:bool=False,
         X:int=4, Y:int=0, show_zoom:bool=False, 
         perc:int=None, abs_sig:float=None,
+        wvmnx:tuple=None,
         water:bool=False, in_idx:int=0,
         test:bool=False):
 
@@ -351,6 +406,9 @@ def fig_mcmc_fit(outroot='fig_mcmc_fit', decomp:str='nmf',
     ax_a.tick_params(labelbottom=False)  # Hide x-axis labels
     ax_a.tick_params(labelbottom=False)  # Hide x-axis labels
 
+    if wvmnx is not None:
+        ax_a.set_xlim(wvmnx[0], wvmnx[1])
+
     # Zoom in
     # inset axes....
     if show_zoom:
@@ -411,6 +469,7 @@ def fig_mcmc_fit(outroot='fig_mcmc_fit', decomp:str='nmf',
             transform=ax_R.transAxes,
               fontsize=18, ha='right')
 
+    ax_R.set_yscale('log')
     ax_R.legend(fontsize=lgsz)
     ax_R.tick_params(labelbottom=False)  # Hide x-axis labels
     
@@ -488,7 +547,7 @@ def fig_corner(outroot:str='fig_corner', decomp:str='nmf',
 # ############################################################
 def fig_rmse_vs_sig(outroot:str='fig_rmse_vs_sig', 
                     hidden_list:list=[512, 512, 512, 256], dataset:str='L23', 
-                    X:int=4, Y:int=0, 
+                    X:int=4, Y:int=0, debug:bool=False,
                     decomp:str='pca', chop_burn:int=-3000):
 
     edict = emu_io.set_emulator_dict(dataset, decomp, Ncomp, 'Rrs',
@@ -518,25 +577,34 @@ def fig_rmse_vs_sig(outroot:str='fig_rmse_vs_sig',
         chains = d_chains['chains']
         l23_idx = d_chains['idx']
         
+        nobj = 100 if debug else chains.shape[0]
+
         wave = d_a['wave']
-        dev = np.zeros((chains.shape[0], wave.size))
-        mcmc_std = np.zeros((chains.shape[0], wave.size))
-        #embed(header='242 of figs')
-        for in_idx in range(chains.shape[0]):
+        dev = np.zeros((nobj, wave.size))
+        mcmc_std = np.zeros((nobj, wave.size))
+        for in_idx in range(nobj):
             idx = l23_idx[in_idx]
             ichains = chains[in_idx]
             Y = ichains[chop_burn:, :, 0:Ncomp[0]].reshape(-1,Ncomp[0])
             orig, a_recon = rfunc(Y, d_a, idx)
+            _, a_nmf = rfunc(d_a['coeff'][idx], d_a, idx)
             a_mean = np.mean(a_recon, axis=0)
             #
-            mcmc_std[in_idx,:] = np.std(a_recon, axis=0)
-            dev[in_idx,:] = orig - a_mean
+            mcmc_std[in_idx,:] = np.std(a_recon, axis=0) / orig
+            #dev[in_idx,:] = (orig - a_mean)/orig
+            dev[in_idx,:] = (a_nmf - a_mean)/a_nmf
             #_, a_pca = rfunc(ab[idx][:ncomp], d_a, idx)
+            if debug:
+                embed(header='535 of figs')
         # RMSE
+        #rmse_l23 = np.sqrt(np.mean(dev**2, axis=0))
         rmse_l23 = np.sqrt(np.mean(dev**2, axis=0))
         # Save
         all_l23_rmse.append(rmse_l23)
         all_l23_sig.append(np.mean(mcmc_std, axis=0))
+
+        if debug:
+            embed(header='544 of figs')
         
 
     # Plot
@@ -555,14 +623,13 @@ def fig_rmse_vs_sig(outroot:str='fig_rmse_vs_sig',
         ax.plot(wave, rmse_l23, 'o', label=f'{all_perc[ss]}%: RMSE')
         ax.plot(wave, all_l23_sig[ss], '*', label=f'{all_perc[ss]}%: MCMC std')
 
-        ax.set_ylabel(r'RMSE in $a(\lambda)$ (m$^{-1}$)')
+        ax.set_ylabel(r'Relative error in $a_{\rm nw}(\lambda)$')# (m$^{-1}$)')
     #ax_abs.tick_params(labelbottom=False)  # Hide x-axis labels
         all_ax.append(ax)
         ax.legend(fontsize=10)
 
 
     #ax.set_xlim(1., 10)
-    #ax.set_ylim(1e-5, 0.01)
     #ax.set_yscale('log')
 
     # Finish
@@ -571,6 +638,8 @@ def fig_rmse_vs_sig(outroot:str='fig_rmse_vs_sig',
         ax.set_xlabel('Wavelength [nm]')
         # Grid
         ax.grid(True, which='major', axis='both', linestyle='--', alpha=0.5)
+        # Limits
+        ax.set_ylim(0, 0.2)
     
     plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
     plt.savefig(outfile, dpi=300)
@@ -605,13 +674,14 @@ def main(flg):
         #fig_mcmc_fit(test=True, perc=10)
         #fig_mcmc_fit(test=True, abs_sig=2.)
         #fig_mcmc_fit(test=True, abs_sig=2., water=True)
-        #fig_mcmc_fit(abs_sig=1., in_idx=275) # Turbid
-        fig_mcmc_fit(abs_sig=1., in_idx=0) # Clear
+        fig_mcmc_fit(abs_sig=1., in_idx=275) # Turbid
+        #fig_mcmc_fit(abs_sig=1., in_idx=0)#, wvmnx=[500, 600.]) # Clear
+        #fig_mcmc_fit(abs_sig=1., in_idx=99) # Clear
 
     # L23 IHOP performance vs. perc error
     if flg & (2**22):
         #fig_rmse_vs_sig()
-        fig_rmse_vs_sig(decomp='nmf')
+        fig_rmse_vs_sig(decomp='nmf')#, debug=True)
 
     # L23 IHOP performance vs. perc error
     if flg & (2**23):
@@ -624,6 +694,10 @@ def main(flg):
     if flg & (2**24):
         fig_nmf_corner()
 
+    # Decompose
+    if flg & (2**25):
+        fig_mcmc_decompose(abs_sig=1., in_idx=0)
+
 
 # Command line execution
 if __name__ == '__main__':
@@ -633,8 +707,8 @@ if __name__ == '__main__':
         flg = 0
 
         #flg += 2 ** 0  # Basis functions of the decomposition
-        flg += 2 ** 20  # RMSE of emulators
-        #flg += 2 ** 21  # Single MCMC fit (example)
+        #flg += 2 ** 20  # RMSE of emulators
+        flg += 2 ** 21  # Single MCMC fit (example)
         #flg += 2 ** 22  # RMSE of L23 fits
         #flg += 2 ** 23  # Fit corner
         #flg += 2 ** 24  # NMF corner plots
