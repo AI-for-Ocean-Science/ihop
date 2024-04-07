@@ -334,7 +334,7 @@ def fig_mcmc_fit(outroot='fig_mcmc_fit', decomp:str='nmf',
         hidden_list:list=[512, 512, 512, 256], dataset:str='L23', use_quick:bool=False,
         X:int=4, Y:int=0, show_zoom:bool=False, 
         perc:int=None, abs_sig:float=None,
-        wvmnx:tuple=None,
+        wvmnx:tuple=None, show_NMF:bool=False,
         water:bool=False, in_idx:int=0,
         test:bool=False):
 
@@ -370,13 +370,13 @@ def fig_mcmc_fit(outroot='fig_mcmc_fit', decomp:str='nmf',
 
     # #########################################################
     # Plot the solution
-    lgsz = 18.
+    lgsz = 14.
 
-    fig = plt.figure(figsize=(10,12))
+    fig = plt.figure(figsize=(12,6))
     plt.clf()
-    gs = gridspec.GridSpec(3,1)
+    gs = gridspec.GridSpec(2,2)
     
-    xpos, ypos, ypos2 = 0.95, 0.15, 0.95
+    xpos, ypos, ypos2 = 0.05, 0.10, 0.10
 
     # #########################################################
     # a
@@ -384,11 +384,12 @@ def fig_mcmc_fit(outroot='fig_mcmc_fit', decomp:str='nmf',
         a_w = cross.a_water(wave, data='IOCCG')
     else:
         a_w = 0
-    ax_a = plt.subplot(gs[1])
+    ax_a = plt.subplot(gs[2])
     def plot_spec(ax):
         ax.plot(wave, orig+a_w, 'ko', label='True')
         ax.plot(wave, a_mean+a_w, 'r-', label='Retrieval')
-        ax.plot(wave, a_nmf+a_w, 'r:', label='Real Recon')
+        if show_NMF:
+            ax.plot(wave, a_nmf+a_w, 'r:', label='Real Recon')
         ax.fill_between(wave, a_w+a_mean-a_std, a_w+a_mean+a_std, 
             color='r', alpha=0.5, label='Uncertainty') 
     plot_spec(ax_a)
@@ -403,8 +404,7 @@ def fig_mcmc_fit(outroot='fig_mcmc_fit', decomp:str='nmf',
               fontsize=18, ha='left')
 
     ax_a.legend(fontsize=lgsz)
-    ax_a.tick_params(labelbottom=False)  # Hide x-axis labels
-    ax_a.tick_params(labelbottom=False)  # Hide x-axis labels
+    #ax_a.tick_params(labelbottom=False)  # Hide x-axis labels
 
     if wvmnx is not None:
         ax_a.set_xlim(wvmnx[0], wvmnx[1])
@@ -428,25 +428,26 @@ def fig_mcmc_fit(outroot='fig_mcmc_fit', decomp:str='nmf',
         bb_w = d_train['bb_w']
     else:
         bb_w = 0
-    ax_bb = plt.subplot(gs[2])
+    ax_bb = plt.subplot(gs[3])
     ax_bb.plot(wave, bb_w+orig_bb, 'ko', label='True')
     ax_bb.plot(wave, bb_w+bb_mean, 'g-', label='Retrieval')
-    ax_bb.plot(wave, bb_w+bb_nmf, 'g:', label='True NMF')
+    if show_NMF:
+        ax_bb.plot(wave, bb_w+bb_nmf, 'g:', label='True NMF')
     ax_bb.fill_between(wave, bb_w+bb_mean-bb_std, bb_w+bb_mean+bb_std, 
             color='g', alpha=0.5, label='Uncertainty') 
 
-    ax_bb.set_xlabel('Wavelength (nm)')
+    #ax_bb.set_xlabel('Wavelength (nm)')
     ax_bb.set_ylabel(r'$b_b(\lambda) \; [{\rm m}^{-1}]$')
 
     ax_bb.text(xpos, ypos2,  '(c)', color='k',
             transform=ax_bb.transAxes,
-              fontsize=18, ha='right')
+              fontsize=18, ha='left')
     ax_bb.legend(fontsize=lgsz)
     ax_bb.set_ylim(bottom=0., top=None)
 
     # #########################################################
     # Rs
-    ax_R = plt.subplot(gs[0])
+    ax_R = plt.subplot(gs[0:2])
     ax_R.plot(wave, Rs[idx], 'kx', label='True')
     if use_quick:
         ax_R.plot(wave, obs_Rs[0], 'bs', label='"Observed"')
@@ -463,19 +464,20 @@ def fig_mcmc_fit(outroot='fig_mcmc_fit', decomp:str='nmf',
 
     #ax_R.set_xlabel('Wavelength (nm)')
     ax_R.set_ylabel(r'$R_{rs}(\lambda) \; [{\rm sr}^{-1}$]')
-    ax_R.tick_params(labelbottom=False)  # Hide x-axis labels
+    #ax_R.tick_params(labelbottom=False)  # Hide x-axis labels
 
     ax_R.text(xpos, ypos, '(a)', color='k',
             transform=ax_R.transAxes,
               fontsize=18, ha='right')
 
-    ax_R.set_yscale('log')
+    #ax_R.set_yscale('log')
     ax_R.legend(fontsize=lgsz)
-    ax_R.tick_params(labelbottom=False)  # Hide x-axis labels
     
     # axes
-    for ax in [ax_a, ax_R, ax_bb]:
-        plotting.set_fontsize(ax, 15)
+    for ss, ax in enumerate([ax_a, ax_R, ax_bb]):
+        plotting.set_fontsize(ax, 14)
+        if ss != 1:
+            ax.set_xlabel('Wavelength (nm)')
 
     #plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
     plt.savefig(outfile, dpi=300)
@@ -672,9 +674,9 @@ def main(flg):
     # L23 IHOP performance vs. perc error
     if flg & (2**21):
         #fig_mcmc_fit(test=True, perc=10)
-        #fig_mcmc_fit(test=True, abs_sig=2.)
+        fig_mcmc_fit(test=True, abs_sig=2.)
         #fig_mcmc_fit(test=True, abs_sig=2., water=True)
-        fig_mcmc_fit(abs_sig=1., in_idx=275) # Turbid
+        #fig_mcmc_fit(abs_sig=1., in_idx=275) # Turbid
         #fig_mcmc_fit(abs_sig=1., in_idx=0)#, wvmnx=[500, 600.]) # Clear
         #fig_mcmc_fit(abs_sig=1., in_idx=99) # Clear
 

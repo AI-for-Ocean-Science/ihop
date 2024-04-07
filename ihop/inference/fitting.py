@@ -78,4 +78,4 @@ def fit_batch(pdict:dict, items:list, n_cores:int=1):
     #for ss in range(len(all_idx)):
     #    all_samples[ss,:,:,:] = samples[ss]
 
-    return answers[all_idx], all_idx
+    return answers, all_idx

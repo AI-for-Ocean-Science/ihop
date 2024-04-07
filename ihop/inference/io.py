@@ -15,13 +15,14 @@ def path_to_emulator(dataset:str):
         path = './'
     return path
 
-def l23_chains_filename(edict:dict, perc:int, test:bool=False):
-    # perc (int, optional): The percentile to use for the MCMC chains. Defaults to 10.
-    out_path = path_to_emulator(edict['dataset'])
+def l23_chains_filename(edict:dict, error:int, test:bool=False,
+                        out_path:str=None):
+    if out_path is None:
+        out_path = path_to_emulator(edict['dataset'])
     # Root
     root = emu_io.set_l23_emulator_root(edict)
     # Build it
-    chain_file = f'fit_Rs{int(perc):02d}_{root}.npz'
+    chain_file = f'fit_Rs{int(error):02d}_{root}.npz'
     if test:
         chain_file = 'test_'+chain_file
     # Return
