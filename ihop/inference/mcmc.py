@@ -19,7 +19,8 @@ from IPython import embed
 #        return 0.0
 #    return -np.inf
 
-def log_prob(ab, Rs, model, device, scl_sig, abs_sig, priors):
+def log_prob(ab, Rs, model, device, scl_sig, abs_sig, priors,
+             cut):
     """
     Calculate the logarithm of the probability of the given parameters.
 
@@ -30,6 +31,9 @@ def log_prob(ab, Rs, model, device, scl_sig, abs_sig, priors):
         device (str): The device to be used for the model prediction.
         scl_sig (float or None): The scaling factor for the error. If None, absolute error is used.
         abs_sig (float): The absolute error.
+        prior (tuple): The prior information.
+        cut (array-like): Limit the likelihood calculation
+            to a subset of the values
 
     Returns:
         float: The logarithm of the probability.
@@ -45,7 +49,12 @@ def log_prob(ab, Rs, model, device, scl_sig, abs_sig, priors):
     # Error
     sig = scl_sig * Rs if scl_sig is not None else abs_sig
     #
-    prob = -1*0.5 * np.sum( (pred-Rs)**2 / sig**2)
+    eeval = (pred-Rs)**2 / sig**2
+    # Cut?
+    if cut is not None:
+        eeval = eeval[cut]
+    # Finish
+    prob = -1*0.5 * np.sum(eeval)
     if np.isnan(prob):
         return -np.inf
     else:
@@ -56,6 +65,7 @@ def run_emcee_nn(nn_model, Rs, nwalkers:int=32, nsteps:int=20000,
                  save_file:str=None, p0=None, scl_sig:float=None,
                  abs_sig:float=None, 
                  priors:tuple=None,
+                 cut:np.ndarray=None,
                  skip_check:bool=False):
     """
     Run the emcee sampler for neural network inference.
@@ -71,6 +81,8 @@ def run_emcee_nn(nn_model, Rs, nwalkers:int=32, nsteps:int=20000,
         abs_sig (float, optional): The absolute value of the sigma parameter. Defaults to None.
         skip_check (bool, optional): Whether to skip the initial state check. Defaults to False.
         prior (tuple, optional): The prior information. Defaults to None.
+        cut (np.ndarray, optional): Limit the likelihood calculation
+            to a subset of the values
 
     Returns:
         emcee.EnsembleSampler: The emcee sampler object.
@@ -110,7 +122,7 @@ def run_emcee_nn(nn_model, Rs, nwalkers:int=32, nsteps:int=20000,
     # Init
     sampler = emcee.EnsembleSampler(
         nwalkers, ndim, log_prob,
-        args=[Rs, nn_model, device, scl_sig, abs_sig, priors],
+        args=[Rs, nn_model, device, scl_sig, abs_sig, priors, cut],
         backend=backend)#, pool=pool)
 
     # Burn in

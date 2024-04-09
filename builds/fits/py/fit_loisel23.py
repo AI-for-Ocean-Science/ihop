@@ -22,6 +22,7 @@ def init_mcmc(emulator, ndim, perc:int=None, abs_sig:float=None):
     pdict['scl_sig'] = perc
     pdict['abs_sig'] = abs_sig
     pdict['priors'] = None
+    pdict['cut'] = None
     #
     return pdict
 
@@ -64,10 +65,11 @@ def load(edict:dict):
     emulator, e_file = emu_io.load_emulator_from_dict(edict, use_s3=True)
 
     # Return
-    return ab, Chl, Rs, emulator
+    return ab, Chl, Rs, emulator, d_a
 
 def fit_without_error(edict:dict, Nspec:str='all',
-                      debug:bool=False, n_cores:int=1): 
+                      debug:bool=False, n_cores:int=1,
+                      max_wv:float=None): 
     """
     Fits the data without considering any errors.
 
@@ -76,12 +78,13 @@ def fit_without_error(edict:dict, Nspec:str='all',
         Nspec (str): The number of spectra to fit. Default is 'all'.
         debug (bool): Whether to run in debug mode. Default is False.
         n_cores (int): The number of CPU cores to use for parallel processing. Default is 1.
+        max_wv (float): The maximum wavelength to consider. Default is None.
 
     Returns:
 
     """
     # Load
-    ab, Chl, Rs, emulator = load(edict)
+    ab, Chl, Rs, emulator, d_a = load(edict)
 
     # Output
     root = emu_io.set_l23_emulator_root(edict)
@@ -92,8 +95,12 @@ def fit_without_error(edict:dict, Nspec:str='all',
     # Include a non-zero error to avoid bad chi^2 behavior
     pdict['abs_sig'] = 1.
 
-    # Add noise -- not for noiseless
-    #use_Rs = add_noise(Rs, abs_sig=pdict['abs_sig'])
+    # Max wave?
+    if max_wv is not None:
+        cut = d_a['wave'] < max_wv
+        pdict['cut'] = cut
+
+    # No noise
     use_Rs = Rs.copy()
 
     # Prep
@@ -126,7 +133,7 @@ def test_fit(edict:dict, Nspec:int=100, abs_sig:float=None,
 
     """
     # Load
-    ab, Chl, Rs, emulator = load(edict)
+    ab, Chl, Rs, emulator, d_a = load(edict)
 
     # Output
     outfile = fitting_io.l23_chains_filename(
@@ -187,6 +194,22 @@ def main(flg):
 
         fit_without_error(edict, n_cores=n_cores)#, debug=True)
 
+    # Noiseless, cut at 600nm
+    if flg & (2**1):
+        hidden_list=[512, 512, 512, 256]
+        decomp = 'nmf'
+        Ncomp = (4,2)
+        X, Y = 4, 0
+        #n_cores = 2
+        n_cores = 20
+        dataset = 'L23'
+        edict = emu_io.set_emulator_dict(
+            dataset, decomp, Ncomp, 'Rrs',
+            'dense', hidden_list=hidden_list, include_chl=True, 
+            X=X, Y=Y)
+
+        fit_without_error(edict, n_cores=n_cores, max_wv=600., debug=True)
+
     # Testing
     if flg & (2**30):
         hidden_list=[512, 512, 512, 256]
@@ -211,10 +234,7 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         flg = 0
         #flg += 2 ** 0  # 1 -- Noiseless
-        #flg += 2 ** 1  # 2 -- L23 + NMF
-        #flg += 2 ** 2  # 4 -- L23 + NMF 4
-        #flg += 2 ** 3  # 8 -- L23 + NMF 4,3
-        #flg += 2 ** 4  # 16 -- L23 + NMF 4,2
+        #flg += 2 ** 1  # 2 -- Noiseless + cut at 600nm
 
         # Tests
         flg += 2 ** 30  # 16 -- L23 + NMF 4,2

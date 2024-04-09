@@ -711,8 +711,8 @@ if __name__ == '__main__':
 
         #flg += 2 ** 0  # Basis functions of the decomposition
         #flg += 2 ** 20  # RMSE of emulators
-        flg += 2 ** 21  # Single MCMC fit (example)
-        #flg += 2 ** 22  # RMSE of L23 fits
+        #flg += 2 ** 21  # Single MCMC fit (example)
+        flg += 2 ** 22  # RMSE of L23 fits
         #flg += 2 ** 23  # Fit corner
         #flg += 2 ** 24  # NMF corner plots
 

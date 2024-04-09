@@ -35,6 +35,7 @@ def fit_one(items:list, pdict:dict=None, chains_only:bool=False):
         nsteps=pdict['nsteps'],
         scl_sig=pdict['scl_sig']/100. if pdict['scl_sig'] is not None else None,
         abs_sig=pdict['abs_sig'] if pdict['abs_sig'] is not None else None,
+        cut=pdict['cut'] if pdict['cut'] is not None else None,
         p0=inputs,
         save_file=pdict['save_file'])
 
