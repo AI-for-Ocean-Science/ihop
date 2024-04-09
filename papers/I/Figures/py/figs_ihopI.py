@@ -463,7 +463,7 @@ def fig_mcmc_fit(outroot='fig_mcmc_fit', decomp:str='nmf',
         color='r', alpha=0.5) 
 
     #ax_R.set_xlabel('Wavelength (nm)')
-    ax_R.set_ylabel(r'$R_{rs}(\lambda) \; [{\rm sr}^{-1}$]')
+    ax_R.set_ylabel(r'$R_{rs}(\lambda) \; [10^{-4} \, {\rm sr}^{-1}$]')
     #ax_R.tick_params(labelbottom=False)  # Hide x-axis labels
 
     ax_R.text(xpos, ypos, '(a)', color='k',
@@ -675,6 +675,7 @@ def main(flg):
     if flg & (2**21):
         #fig_mcmc_fit(test=True, perc=10)
         fig_mcmc_fit(test=True, abs_sig=2.)
+        fig_mcmc_fit(test=True, abs_sig=2., water=True)
         #fig_mcmc_fit(test=True, abs_sig=2., water=True)
         #fig_mcmc_fit(abs_sig=1., in_idx=275) # Turbid
         #fig_mcmc_fit(abs_sig=1., in_idx=0)#, wvmnx=[500, 600.]) # Clear
