@@ -336,7 +336,8 @@ def fig_mcmc_fit(outroot='fig_mcmc_fit', decomp:str='nmf',
         perc:int=None, abs_sig:float=None,
         wvmnx:tuple=None, show_NMF:bool=False,
         water:bool=False, in_idx:int=0,
-        test:bool=False):
+        test:bool=False, true_obs_only:bool=False,
+        true_only:bool=False):
 
     # Load
     edict = emu_io.set_emulator_dict(dataset, decomp, Ncomp, 'Rrs',
@@ -449,18 +450,19 @@ def fig_mcmc_fit(outroot='fig_mcmc_fit', decomp:str='nmf',
     # Rs
     ax_R = plt.subplot(gs[0:2])
     ax_R.plot(wave, Rs[idx], 'kx', label='True')
-    if use_quick:
+    if true_only:
+        pass
+    elif use_quick:
         ax_R.plot(wave, obs_Rs[0], 'bs', label='"Observed"')
     else:
         ax_R.plot(wave, obs_Rs[in_idx], 'bs', label='"Observed"')
-    ax_R.plot(wave, pred_Rs, 'r-', label='Fit', zorder=10)
-    ax_R.fill_between(wave, pred_Rs-std_pred, pred_Rs+std_pred, 
+    if (not true_only) and (not true_obs_only):
+        ax_R.plot(wave, pred_Rs, 'r-', label='Fit', zorder=10)
+        ax_R.fill_between(wave, pred_Rs-std_pred, pred_Rs+std_pred, 
             color='r', alpha=0.5, zorder=10) 
-    #ax_R.plot(wave, NN_Rs, 'g-', label='NN+True')
-
-    ax_R.fill_between(wave,
-        pred_Rs-std_pred, pred_Rs+std_pred,
-        color='r', alpha=0.5) 
+        ax_R.fill_between(wave,
+            pred_Rs-std_pred, pred_Rs+std_pred,
+            color='r', alpha=0.5) 
 
     #ax_R.set_xlabel('Wavelength (nm)')
     ax_R.set_ylabel(r'$R_{rs}(\lambda) \; [10^{-4} \, {\rm sr}^{-1}$]')
@@ -674,12 +676,17 @@ def main(flg):
     # L23 IHOP performance vs. perc error
     if flg & (2**21):
         #fig_mcmc_fit(test=True, perc=10)
-        fig_mcmc_fit(test=True, abs_sig=2.)
-        fig_mcmc_fit(test=True, abs_sig=2., water=True)
+        #fig_mcmc_fit(test=True, abs_sig=2.)
+        #fig_mcmc_fit(test=True, abs_sig=2., water=True)
         #fig_mcmc_fit(test=True, abs_sig=2., water=True)
         #fig_mcmc_fit(abs_sig=1., in_idx=275) # Turbid
         #fig_mcmc_fit(abs_sig=1., in_idx=0)#, wvmnx=[500, 600.]) # Clear
         #fig_mcmc_fit(abs_sig=1., in_idx=99) # Clear
+
+        #fig_mcmc_fit(outroot='fig_mcmc_fit_true',
+        #             test=True, abs_sig=2., true_only=True)
+        fig_mcmc_fit(outroot='fig_mcmc_fit_trueobs',
+                     test=True, abs_sig=2., true_obs_only=True)
 
     # L23 IHOP performance vs. perc error
     if flg & (2**22):
@@ -711,8 +718,8 @@ if __name__ == '__main__':
 
         #flg += 2 ** 0  # Basis functions of the decomposition
         #flg += 2 ** 20  # RMSE of emulators
-        #flg += 2 ** 21  # Single MCMC fit (example)
-        flg += 2 ** 22  # RMSE of L23 fits
+        flg += 2 ** 21  # Single MCMC fit (example)
+        #flg += 2 ** 22  # RMSE of L23 fits
         #flg += 2 ** 23  # Fit corner
         #flg += 2 ** 24  # NMF corner plots
 

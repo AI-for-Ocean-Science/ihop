@@ -49,7 +49,7 @@ import reconstruct
 
 # #############################################
 def fig_abR(outfile='fig_abR.png',
-    nmf_fit:str='L23', N_NMF:int=4, iop:str='a',
+    nmf_fit:str='L23', N_NMF:int=4, 
     norm:bool=True):
 
     # Load
@@ -141,12 +141,14 @@ def fig_abR(outfile='fig_abR.png',
 
 # ############################################################
 def fig_mcmc_fit(outroot='fig_mcmc_fit', decomp:str='nmf',
-        hidden_list:list=[512, 512, 512, 256], dataset:str='L23', use_quick:bool=False,
+        hidden_list:list=[512, 512, 512, 256], 
+        dataset:str='L23', use_quick:bool=False,
         X:int=4, Y:int=0, show_zoom:bool=False, 
         perc:int=None, abs_sig:float=None,
         wvmnx:tuple=None, show_NMF:bool=False,
         water:bool=False, in_idx:int=0,
-        test:bool=False):
+        test:bool=False,
+        true_only:bool=False):
 
     # Load
     edict = emu_io.set_emulator_dict(dataset, decomp, Ncomp, 'Rrs',
@@ -179,7 +181,7 @@ def fig_mcmc_fit(outroot='fig_mcmc_fit', decomp:str='nmf',
 
 
     # #########################################################
-    # Plot the solution
+    # Plot 
     lgsz = 14.
 
     fig = plt.figure(figsize=(9,8))
