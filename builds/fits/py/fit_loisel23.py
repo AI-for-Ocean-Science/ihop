@@ -43,7 +43,7 @@ def add_noise(Rs, perc:int=None, abs_sig:float=None):
         abs_sig (float, optional): Absolute value of noise to be added. Default is None.
 
     Returns:
-    ndarray: Array with noise added.
+        ndarray: Array with noise added.
     """
     # Add in random noise
     use_Rs = Rs.copy()
@@ -58,6 +58,16 @@ def add_noise(Rs, perc:int=None, abs_sig:float=None):
     return use_Rs
 
 def load(edict:dict):
+    """
+    Load data and emulator from the given dictionary.
+
+    Parameters:
+        edict (dict): A dictionary containing the necessary information for loading data and emulator.
+
+    Returns:
+        tuple: A tuple containing the loaded data and emulator in the following order: 
+            ab, Chl, Rs, emulator, d_a.
+    """
     # Load data
     ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_decomposition(
         edict['decomp'], edict['Ncomp'])
@@ -69,7 +79,7 @@ def load(edict:dict):
 
 def fit_without_error(edict:dict, Nspec:str='all',
                       debug:bool=False, n_cores:int=1,
-                      max_wv:float=None): 
+                      max_wv:float=None):
     """
     Fits the data without considering any errors.
 
@@ -211,8 +221,7 @@ def main(flg):
         # Analysis params
         max_wv=600.
 
-        fit_without_error(edict, n_cores=n_cores, 
-                          max_wv=max_wv, debug=True)
+        fit_without_error(edict, n_cores=n_cores, max_wv=max_wv)#, debug=True)
 
     # Testing
     if flg & (2**30):
@@ -228,8 +237,7 @@ def main(flg):
             'dense', hidden_list=hidden_list, include_chl=True, 
             X=X, Y=Y)
         # Test fit
-        test_fit(edict, abs_sig=2., n_cores=n_cores,
-                 Nspec=5)#, debug=True)
+        test_fit(edict, abs_sig=2., n_cores=n_cores)
 
 # Command line execution
 if __name__ == '__main__':
