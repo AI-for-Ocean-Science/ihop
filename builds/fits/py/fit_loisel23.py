@@ -80,8 +80,6 @@ def fit_without_error(edict:dict, Nspec:str='all',
         n_cores (int): The number of CPU cores to use for parallel processing. Default is 1.
         max_wv (float): The maximum wavelength to consider. Default is None.
 
-    Returns:
-
     """
     # Load
     ab, Chl, Rs, emulator, d_a = load(edict)
@@ -89,6 +87,8 @@ def fit_without_error(edict:dict, Nspec:str='all',
     # Output
     root = emu_io.set_l23_emulator_root(edict)
     outroot = f'fit_Rs01_{root}'
+    if max_wv is not None:
+        outroot += f'_max{int(max_wv)}'
 
     # Init MCMC
     pdict = init_mcmc(emulator, ab.shape[1]+1)
@@ -184,7 +184,6 @@ def main(flg):
         decomp = 'nmf'
         Ncomp = (4,2)
         X, Y = 4, 0
-        #n_cores = 2
         n_cores = 20
         dataset = 'L23'
         edict = emu_io.set_emulator_dict(
@@ -196,11 +195,12 @@ def main(flg):
 
     # Noiseless, cut at 600nm
     if flg & (2**1):
+
+        # Emulator
         hidden_list=[512, 512, 512, 256]
         decomp = 'nmf'
         Ncomp = (4,2)
         X, Y = 4, 0
-        #n_cores = 2
         n_cores = 20
         dataset = 'L23'
         edict = emu_io.set_emulator_dict(
@@ -208,7 +208,11 @@ def main(flg):
             'dense', hidden_list=hidden_list, include_chl=True, 
             X=X, Y=Y)
 
-        fit_without_error(edict, n_cores=n_cores, max_wv=600., debug=True)
+        # Analysis params
+        max_wv=600.
+
+        fit_without_error(edict, n_cores=n_cores, 
+                          max_wv=max_wv, debug=True)
 
     # Testing
     if flg & (2**30):
