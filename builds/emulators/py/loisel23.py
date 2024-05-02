@@ -104,6 +104,12 @@ def main(flg):
             nepochs=25000, norm_Rs=False,
             push_to_s3=True)
 
+    # flg=5;  L23 + PCA, m=4,2
+    if flg & (2**4):
+        emulate_l23('pca', (4,2), hidden_list=[512, 512, 512, 256],
+            nepochs=25000, norm_Rs=False,
+            push_to_s3=True)
+
 
 # Command line execution
 if __name__ == '__main__':
@@ -116,6 +122,8 @@ if __name__ == '__main__':
         #flg += 2 ** 2  # 4 -- L23 + NMF 4
         #flg += 2 ** 3  # 8 -- L23 + NMF 4,3
         #flg += 2 ** 4  # 16 -- L23 + NMF 4,2
+
+        #flg += 2 ** 5  # 32 -- L23 + PCA 4,2 + norm_Rs=False
 
         
     else:
