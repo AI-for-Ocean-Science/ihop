@@ -20,6 +20,28 @@ pca_path = os.path.join(resources.files('ihop'),
 nmf_path = os.path.join(resources.files('ihop'),
                             'data', 'NMF')
 
+def loisel23_filename(decomp:str, iop:str, Ncomp:int,
+                       X:int, Y:int):
+    """
+    Generate filenames for Loisel23 decomposition.
+
+    Args:
+        decomp (str): The decomposition type. pca, nmf, int
+        iop (str): The IOP decomposed. a, bb
+        Ncomp (int): The number of components
+        X (int): simulation scenario   
+        Y (int):  solar zenith angle used in the simulation, and 
+
+    Returns:
+        tuple: A tuple containing the filenames for L23_a and L23_bb.
+    """
+    root = f'{decomp}_L23_X{X}Y{Y}_{iop}_N{Ncomp:02d}'
+    # Load up data
+    d_path = os.path.join(resources.files('ihop'),
+                            'data', decomp.upper())
+    l23_file = os.path.join(d_path, f'{root}.npz')
+    return l23_file
+
 def loisel23_filenames(decomp:str, Ncomp:tuple,
                        X:int, Y:int):
     """
@@ -34,6 +56,7 @@ def loisel23_filenames(decomp:str, Ncomp:tuple,
     Returns:
         tuple: A tuple containing the filenames for L23_a and L23_bb.
     """
+    raise DeprecationWarning("Use loisel23_filename")
     # Root for a
     roota = f'{decomp}_L23_X{X}Y{Y}_a_N{Ncomp[0]:02d}'
     rootbb = f'{decomp}_L23_X{X}Y{Y}_bb_N{Ncomp[1]:02d}'
@@ -128,6 +151,27 @@ def generate_nmf(iop_data:np.ndarray, mask:np.ndarray,
                      mask[...,0], err[...,0], wave, Rs)
 
 def generate_pca(iop_data:np.ndarray,
+                 outfile:str,
+                 Ncomp:int,
+                 clobber:bool=False, 
+                 extras:dict=None,
+                 pca_path:str=pca_path):
+    """ Generate PCA model for input IOP 
+
+    Args:
+        iop_data (np.ndarray): IOP data (n_samples, n_features)
+        outfile (str): 
+        Ncomp (int): Number of PCA components. Defaults to 3.
+        clobber (bool, optional): Clobber existing model? Defaults to False.
+        pca_path (str, optional): Path for output PCA files. Defaults to pca_path.
+        extras (dict, optional): Extra arrays to save. Defaults to None.
+    """
+    # Do it
+    if not os.path.exists(outfile) or clobber:
+        pca.fit_normal(iop_data, Ncomp, save_outputs=outfile,
+                       extra_arrays=extras)
+
+def generate_int(iop_data:np.ndarray,
                  outfile:str,
                  Ncomp:int,
                  clobber:bool=False, 
