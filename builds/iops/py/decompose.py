@@ -13,6 +13,7 @@ from ihop.iops.decompose import generate_nmf
 from ihop.iops.decompose import loisel23_filenames
 
         
+'''
 def pca_loisel23(X:int=4, Y:int=0, Ncomp:int=3,
                  clobber:bool=False):
 
@@ -25,16 +26,15 @@ def pca_loisel23(X:int=4, Y:int=0, Ncomp:int=3,
         # TODO -- Replace this with loisel23_filenames in iops.decompose.py
         outroot = f'pca_L23_X{X}Y{Y}_{iop}'
         # Do it
-        generate_pca(d['inputs'][iop], outroot, Ncomp,
-                     extras={'Rs':d['Rs'], 'wave':d['wave']},
-                     clobber=clobber)
+'''
 
-def nmf_loisel23(X:int=4, Y:int=0, Ncomp:int=3,
+def decompose_loisel23(decomp:str, X:int=4, Y:int=0, Ncomp:int=3,
                  clobber:bool=False): 
     """
     Perform Non-negative Matrix Factorization (NMF) on Loisel23 data.
 
     Args:
+        decomp (str): Decomposition method ('pca' or 'nmf').    
         X (int): X-coordinate of the training data.
         Y (int): Y-coordinate of the training data.
         Ncomp (int): Number of components for NMF.
@@ -46,7 +46,7 @@ def nmf_loisel23(X:int=4, Y:int=0, Ncomp:int=3,
     d = load_rs.loisel23_rs(X=X, Y=Y)
 
     # Loop on IOP
-    outfiles = loisel23_filenames('nmf', (Ncomp,Ncomp), X, Y)
+    outfiles = loisel23_filenames(decomp, (Ncomp,Ncomp), X, Y)
     for outfile, iop in zip(outfiles, ['a', 'bb']):
 
         # Remove water
@@ -59,24 +59,35 @@ def nmf_loisel23(X:int=4, Y:int=0, Ncomp:int=3,
         nspec, _ = spec.shape
         spec = spec - np.outer(np.ones(nspec), iop_w)
             
-        # Prep for NMF
-        new_spec, mask, err  = cnmf_iops.prep(
-            spec, sigma=0.05)
+        # Go
+        if decomp == 'nmf':
+            # Prep for NMF
+            new_spec, mask, err  = cnmf_iops.prep(
+                spec, sigma=0.05)
 
-        # Do it
-        generate_nmf(new_spec, mask, err, outfile, Ncomp, 
+            # Do it
+            generate_nmf(new_spec, mask, err, outfile, Ncomp, 
                      clobber=clobber,
                      normalize=True,
                      wave=d['wave'],
                      Rs=d['Rs'])
+        elif decomp == 'pca':
+            generate_pca(d['inputs'][iop], outfile, Ncomp,
+                     extras={'Rs':d['Rs'], 'wave':d['wave']},
+                     clobber=clobber)
+        else:
+            raise ValueError("Bad decomp")
             
     
 if __name__ == '__main__':
 
     # L23
-    #pca_loisel23(clobber=True)
+    # PCA
+    decompose_loisel23(decomp='pca', clobber=True, Ncomp=2)  # for bb
+    decompose_loisel23(decomp='pca', clobber=True, Ncomp=4)  # for a
+
     #nmf_loisel23(clobber=True)
-    nmf_loisel23(Ncomp=2, clobber=True)
+    #nmf_loisel23(Ncomp=2, clobber=True)
     #nmf_loisel23(Ncomp=3, clobber=True)
     #nmf_loisel23(Ncomp=4, clobber=True)
     #nmf_loisel23(Ncomp=5, clobber=True)

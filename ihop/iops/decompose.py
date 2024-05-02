@@ -128,7 +128,7 @@ def generate_nmf(iop_data:np.ndarray, mask:np.ndarray,
                      mask[...,0], err[...,0], wave, Rs)
 
 def generate_pca(iop_data:np.ndarray,
-                 outroot:str,
+                 outfile:str,
                  Ncomp:int,
                  clobber:bool=False, 
                  extras:dict=None,
@@ -137,16 +137,12 @@ def generate_pca(iop_data:np.ndarray,
 
     Args:
         iop_data (np.ndarray): IOP data (n_samples, n_features)
-        outroot (str): Output root.
+        outfile (str): 
         Ncomp (int): Number of PCA components. Defaults to 3.
         clobber (bool, optional): Clobber existing model? Defaults to False.
         pca_path (str, optional): Path for output PCA files. Defaults to pca_path.
         extras (dict, optional): Extra arrays to save. Defaults to None.
     """
-
-    # Prep
-    outfile = os.path.join(pca_path, f'{outroot}_N{Ncomp}.npz')
-
     # Do it
     if not os.path.exists(outfile) or clobber:
         pca.fit_normal(iop_data, Ncomp, save_outputs=outfile,
