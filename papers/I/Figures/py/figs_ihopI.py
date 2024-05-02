@@ -42,6 +42,9 @@ from IPython import embed
 Ncomp = (4,2)
 
 
+clbls = [r'$H_'+f'{ii+2}'+r'^{a}$' for ii in range(Ncomp[0])]
+clbls += [r'$H_'+f'{ii+2}'+r'^{bb}$' for ii in range(Ncomp[1])]
+clbls += ['Chl']
 
 def fig_basis_functions(decomp:str,
                         outfile:str='fig_basis_functions.png', 
@@ -649,6 +652,89 @@ def fig_rmse_vs_sig(outroot:str='fig_rmse_vs_sig',
     plt.savefig(outfile, dpi=300)
     print(f"Saved: {outfile}")
 
+# ############################################################
+def fig_decompose_error(outfile:str='fig_decompose_error.png', 
+                    hidden_list:list=[512, 512, 512, 256], dataset:str='L23', 
+                    X:int=4, Y:int=0, debug:bool=False,
+                    decomp:str='nmf', chop_burn:int=-3000,
+                    perc:float=None, abs_sig:float=None):
+
+    # Prep
+    edict = emu_io.set_emulator_dict(dataset, decomp, Ncomp, 'Rrs',
+        'dense', hidden_list=hidden_list, include_chl=True, X=X, Y=Y)
+    # Prep
+    if decomp == 'pca':
+        rfunc = decompose.reconstruct_pca
+    elif decomp == 'nmf':
+        rfunc = decompose.reconstruct_nmf
+
+    # Load the chains
+    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_decomposition(decomp, Ncomp)
+    chain_file = inf_io.l23_chains_filename(
+            edict, perc if perc is not None else int(abs_sig)) 
+    d_chains = inf_io.load_chains(chain_file)
+
+    # Run stats
+    chains = d_chains['chains']
+    Nspec = chains.shape[0]
+    l23_idx = d_chains['idx']
+    # Quick chk on index
+    srt = np.argsort(l23_idx)
+    assert np.all(srt == l23_idx)
+
+    chains = chains[:, chop_burn:, :, :].reshape(
+        chains.shape[0], -1, chains.shape[-1])
+
+    comp_med = np.median(chains, axis=1)
+
+    # Offsets
+    rdiff_comp = np.zeros((Nspec, chains.shape[-1]))
+    # a, b
+    rdiff_comp[:, :ab.shape[1]] = (comp_med[:,:-1] - ab)/ab
+    # Chl
+    rdiff_comp[:, -1] = (comp_med[:,-1] - Chl)/Chl
+
+    # Percentiles
+    #comp_per_16 = np.percentile(chains, 16, axis=1)
+    #embed(header='fig_decompose_error 675')
+
+    # Plot
+    figsize=(6,12)
+    fig = plt.figure(figsize=figsize)
+    plt.clf()
+    gs = gridspec.GridSpec(4,2)
+
+    for ss, lbl in enumerate(clbls): 
+
+        # Plot the coefficients
+        ax = plt.subplot(gs[ss])
+        ax.hist(rdiff_comp[:,ss], bins=70, histtype='step', color='k', lw=2)
+
+        ax.set_xlim(-0.5, 0.5)
+
+        # Labels
+        ax.set_xlabel(f'Error in {lbl}')
+        ax.set_ylabel('Count')
+
+        # Stats
+        bias = np.median(rdiff_comp[:,ss])
+        std = np.std(rdiff_comp[:,ss])
+        print(std)
+        lsz = 15.
+        ax.text(0.95, 0.90, f'Bias: {bias:.3f}',
+                color='k',
+            transform=ax.transAxes,
+            fontsize=lsz, ha='right')
+        ax.text(0.95, 0.80, f'RMS: {std:.3f}',
+                color='k',
+            transform=ax.transAxes,
+            fontsize=lsz, ha='right')
+
+        plotting.set_fontsize(ax, 15)
+
+    plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
+    plt.savefig(outfile, dpi=300)
+    print(f"Saved: {outfile}")
 
 def main(flg):
     if flg== 'all':
@@ -708,6 +794,10 @@ def main(flg):
     if flg & (2**25):
         fig_mcmc_decompose(abs_sig=1., in_idx=0)
 
+    # Decompose
+    if flg & (2**26):
+        fig_decompose_error(abs_sig=1.)
+
 
 # Command line execution
 if __name__ == '__main__':
@@ -718,10 +808,12 @@ if __name__ == '__main__':
 
         #flg += 2 ** 0  # Basis functions of the decomposition
         #flg += 2 ** 20  # RMSE of emulators
-        flg += 2 ** 21  # Single MCMC fit (example)
+        #flg += 2 ** 21  # Single MCMC fit (example)
         #flg += 2 ** 22  # RMSE of L23 fits
         #flg += 2 ** 23  # Fit corner
         #flg += 2 ** 24  # NMF corner plots
+
+        flg += 2 ** 26  # Decompose error
 
         #flg += 2 ** 2  # 4 -- Indiv
         #flg += 2 ** 3  # 8 -- Coeff
