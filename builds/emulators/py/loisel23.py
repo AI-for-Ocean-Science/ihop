@@ -121,9 +121,8 @@ if __name__ == '__main__':
         #flg += 2 ** 1  # 2 -- L23 + NMF
         #flg += 2 ** 2  # 4 -- L23 + NMF 4
         #flg += 2 ** 3  # 8 -- L23 + NMF 4,3
-        #flg += 2 ** 4  # 16 -- L23 + NMF 4,2
 
-        #flg += 2 ** 5  # 32 -- L23 + PCA 4,2 + norm_Rs=False
+        #flg += 2 ** 4  # 16 -- L23 + PCA 4,2 + norm_Rs=False
 
         
     else:
