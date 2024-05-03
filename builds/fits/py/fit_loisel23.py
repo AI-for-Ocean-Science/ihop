@@ -69,7 +69,7 @@ def load(edict:dict):
             ab, Chl, Rs, emulator, d_a.
     """
     # Load data
-    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_decomposition(
+    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_full(
         edict['decomps'], edict['Ncomps'])
     # Load emulator
     emulator, e_file = emu_io.load_emulator_from_dict(
@@ -78,7 +78,7 @@ def load(edict:dict):
     # Return
     return ab, Chl, Rs, emulator, d_a
 
-def fit_without_error(edict:dict, Nspec:str='all',
+def fit_without_error(edict:dict, Nspec:int=None,
                       debug:bool=False, n_cores:int=1,
                       max_wv:float=None):
     """
@@ -86,7 +86,7 @@ def fit_without_error(edict:dict, Nspec:str='all',
 
     Args:
         edict (dict): A dictionary containing the necessary information for fitting.
-        Nspec (str): The number of spectra to fit. Default is 'all'.
+        Nspec (int): The number of spectra to fit. Default is None = all
         debug (bool): Whether to run in debug mode. Default is False.
         n_cores (int): The number of CPU cores to use for parallel processing. Default is 1.
         max_wv (float): The maximum wavelength to consider. Default is None.
@@ -115,10 +115,10 @@ def fit_without_error(edict:dict, Nspec:str='all',
     use_Rs = Rs.copy()
 
     # Prep
-    if Nspec == 'all':
+    if Nspec is None:
         idx = np.arange(len(Chl))
     else:
-        raise ValueError("Bad Nspec")
+        idx = np.arange(Nspec)
     if debug:
         idx = idx[0:2]
     items = [(use_Rs[i], ab[i].tolist()+[Chl[i]], i) for i in idx]
@@ -260,7 +260,8 @@ def main(flg):
 
         # Analysis params
 
-        fit_without_error(edict, n_cores=n_cores, debug=True)
+        fit_without_error(edict, n_cores=n_cores, 
+                          Nspec=100)#, debug=True)
 
 
     # Testing
@@ -288,6 +289,7 @@ if __name__ == '__main__':
         #flg += 2 ** 0  # 1 -- Noiseless
         #flg += 2 ** 1  # 2 -- Noiseless + cut at 600nm
         #flg += 2 ** 2  # 4 -- Noiseless, PCA 
+        #flg += 2 ** 3  # 8 -- Noiseless, INT/NMF
 
         # Tests
         flg += 2 ** 30  # 16 -- L23 + NMF 4,2
