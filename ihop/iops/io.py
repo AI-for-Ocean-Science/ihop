@@ -46,24 +46,25 @@ def load_loisel23_iop(iop:str, X:int=4, Y:int=0,
     # Load
     ds = loisel23.load_ds(X, Y)
 
-    # Unpack and cut
+    # Unpack 
     spec = ds[iop].data
     wave = ds.Lambda.data 
     Rs = ds.Rrs.data
 
+    # Remove water?
+    if remove_water:
+        if iop == 'a':
+            iop_w = absorption.a_water(wave, data='IOCCG')
+            nspec, _ = spec.shape
+            spec = spec - np.outer(np.ones(nspec), iop_w)
+        elif iop == 'bb':
+            spec = ds['bbnw']
+        
+    # Cut
     cut = (wave >= min_wv) & (wave <= high_cut)
     spec = spec[:,cut]
     wave = wave[cut]
     Rs = Rs[:,cut]
-
-    # Remove water
-    if iop == 'a' and remove_water:
-        iop_w = absorption.a_water(wave, data='IOCCG')
-    elif iop == 'bb' and remove_water:
-        iop_w = d['bb_w']
-
-    nspec, _ = spec.shape
-    spec = spec - np.outer(np.ones(nspec), iop_w)
 
     # Return
     return spec, wave, Rs, ds
@@ -90,6 +91,7 @@ def load_loisel2023_decomp(decomps:tuple,
     # Filenames
     l23_a_file, l23_bb_file = loisel23_filenames(
         decomps, Ncomps, X, Y)
+    print(f"Loading decomps from {l23_a_file} and {l23_bb_file}")
 
     # Load up
     d_a = np.load(l23_a_file)

@@ -18,7 +18,7 @@ import seaborn as sns
 
 from oceancolor.hydrolight import loisel23
 from oceancolor.utils import plotting 
-from oceancolor.iop import cross
+from oceancolor.water import absorption
 
 from ihop import io as ihop_io
 from ihop.iops import decompose 
@@ -46,14 +46,15 @@ clbls = [r'$H_'+f'{ii+2}'+r'^{a}$' for ii in range(Ncomps[0])]
 clbls += [r'$H_'+f'{ii+2}'+r'^{bb}$' for ii in range(Ncomps[1])]
 clbls += ['Chl']
 
-def fig_basis_functions(decomp:str,
+def fig_basis_functions(decomps:tuple,
                         outfile:str='fig_basis_functions.png', 
                         norm:bool=False):
 
     X, Y = 4, 0
 
     # Load
-    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_decomposition(decomp, Ncomp)
+    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_full(
+        decomps, Ncomps)
     wave = d_a['wave']
 
     # Load training data
@@ -77,7 +78,7 @@ def fig_basis_functions(decomp:str,
 
         d = d_a if IOP == 'a' else d_bb
         if IOP == 'a':
-            iop_w = cross.a_water(wave, data='IOCCG')
+            iop_w = absorption.a_water(wave, data='IOCCG')
         else:
             iop_w = d_train['bb_w']
         iop_w /= np.sum(iop_w)
@@ -90,10 +91,13 @@ def fig_basis_functions(decomp:str,
         # Now the rest
         M = d['M']
         # Variance
-        evar_i = cnmf_stats.evar_computation(
-            d['spec'], d['coeff'], d['M'])
+        if decomps[ss] == 'nmf':
+            evar_i = cnmf_stats.evar_computation(
+                d['spec'], d['coeff'], d['M'])
+        else:
+            evar_i = np.sum(d['explained_variance'])
         # Plot
-        for ii in range(Ncomp[ss]):
+        for ii in range(Ncomps[ss]):
             # Normalize
             if norm:
                 iwv = np.argmin(np.abs(wave-440.))
@@ -744,7 +748,9 @@ def main(flg):
     # Decomposition
     if flg & (2**0):
         #fig_emulator_rmse('L23_PCA')
-        fig_basis_functions('nmf')
+        #fig_basis_functions('nmf')
+        fig_basis_functions(('pca', 'pca'),
+                            outfile='fig_basis_functions_pca.png')
 
     # Example spectra
     if flg & (2**20):

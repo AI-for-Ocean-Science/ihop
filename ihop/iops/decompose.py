@@ -20,35 +20,6 @@ nmf_path = os.path.join(resources.files('ihop'),
                             'data', 'NMF')
 
 
-def loisel23_filenames(decomp:str, Ncomp:tuple,
-                       X:int, Y:int):
-    """
-    Generate filenames for Loisel23 decomposition.
-
-    Args:
-        decomp (str): The decomposition type. pca, nmf
-        Ncomp (tuple): The number of components, (a,bb)
-        X (int): simulation scenario   
-        Y (int):  solar zenith angle used in the simulation, and 
-
-    Returns:
-        tuple: A tuple containing the filenames for L23_a and L23_bb.
-    """
-    raise DeprecationWarning("Use loisel23_filename")
-    # Root for a
-    roota = f'{decomp}_L23_X{X}Y{Y}_a_N{Ncomp[0]:02d}'
-    rootbb = f'{decomp}_L23_X{X}Y{Y}_bb_N{Ncomp[1]:02d}'
-    # Load up data
-    d_path = os.path.join(resources.files('ihop'),
-                            'data', decomp.upper())
-    l23_a_file = os.path.join(d_path, f'{roota}.npz')
-    l23_bb_file = os.path.join(d_path, f'{rootbb}.npz')
-
-    # Return
-    return l23_a_file, l23_bb_file
-
-
-
 def generate_nmf(iop_data:np.ndarray, mask:np.ndarray, 
                  err:np.ndarray,
                  outfile:str,
@@ -113,6 +84,8 @@ def generate_pca(iop_data:np.ndarray,
     if not os.path.exists(outfile) or clobber:
         pca.fit_normal(iop_data, Ncomp, save_outputs=outfile,
                        extra_arrays=extras)
+    else:
+        print("File exists.  Use clobber=True to overwrite")
 
 def generate_int(iop_data:np.ndarray,
                  outfile:str,

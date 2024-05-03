@@ -11,7 +11,7 @@ from ihop.iops.io import load_loisel2023_decomp
 from IPython import embed
 
 
-def load_l23_decomposition(decomps:tuple, Ncomp:tuple, X:int=4, Y:int=0):
+def load_l23_full(decomps:tuple, Ncomp:tuple, X:int=4, Y:int=0):
     """
     Load L23 data and decomposition
 

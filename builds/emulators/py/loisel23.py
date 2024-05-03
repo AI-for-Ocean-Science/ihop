@@ -4,7 +4,7 @@ import numpy as np
 
 from oceancolor.hydrolight import loisel23
 
-from ihop.iops.decompose import load_loisel2023
+from ihop.iops import io as iops_io
 from ihop.emulators import build
 from ihop.emulators import io as emu_io
 
@@ -13,7 +13,7 @@ from ulmo import io as ulmo_io
 from IPython import embed
 
 
-def emulate_l23(decomp:str, Ncomp:tuple, include_chl:bool=True, 
+def emulate_l23(decomps:tuple, Ncomps:tuple, include_chl:bool=True, 
                 X:int=4, Y:int=0, hidden_list:list=[512, 512, 256], 
                 real_loss:bool=False, norm_Rs:bool=True,
     nepochs:int=100, lr:float=1e-2, p_drop:float=0.,
@@ -23,8 +23,8 @@ def emulate_l23(decomp:str, Ncomp:tuple, include_chl:bool=True,
     of the Loisel+23 dataset.
 
     Args:
-        decomp (str): The decomposition type. pca, nmf
-        Ncomp (tuple): The number of components. (a,bb)
+        decomps (tuple): The decomposition type. pca, nmf
+        Ncomps (tuple): The number of components. (a,bb)
         include_chl (bool, optional): Flag indicating whether to include chlorophyll in the input data. Defaults to True.
         X (int, optional): X-coordinate of the dataset. Defaults to 4.
         Y (int, optional): Y-coordinate of the dataset. Defaults to 0.
@@ -36,10 +36,12 @@ def emulate_l23(decomp:str, Ncomp:tuple, include_chl:bool=True,
     """
     dataset = 'L23'
     # Load data
-    ab, Rs, _, _ = load_loisel2023(decomp, Ncomp, X=X, Y=Y)
+    ab, Rs, _, _ = iops_io.load_loisel2023_decomp(
+        decomps, Ncomps, X=X, Y=Y)
 
     # Emulator dict
-    edict = emu_io.set_emulator_dict(dataset, decomp, Ncomp, 'Rrs',
+    edict = emu_io.set_emulator_dict(
+        dataset, decomps, Ncomps, 'Rrs',
         'dense', hidden_list=hidden_list, 
         include_chl=include_chl, X=X, Y=Y)
 
@@ -71,6 +73,7 @@ def emulate_l23(decomp:str, Ncomp:tuple, include_chl:bool=True,
             # Do it
             ulmo_io.upload_file_to_s3(f'{root}.{ext}', s3_file)
     
+
 def main(flg):
     if flg== 'all':
         flg= np.sum(np.array([2 ** ii for ii in range(25)]))
@@ -106,9 +109,9 @@ def main(flg):
 
     # flg=5;  L23 + PCA, m=4,2
     if flg & (2**4):
-        emulate_l23('pca', (4,2), hidden_list=[512, 512, 512, 256],
-            nepochs=25000, norm_Rs=False,
-            push_to_s3=True)
+        emulate_l23(('pca','pca'), (4,2), 
+                    hidden_list=[512, 512, 512, 256], 
+                    nepochs=25000, norm_Rs=False, push_to_s3=True)
 
 
 # Command line execution

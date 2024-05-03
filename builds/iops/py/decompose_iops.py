@@ -10,8 +10,10 @@ from cnmf.oceanography import iops as cnmf_iops
 from ihop.training_sets import load_rs
 from ihop.iops.decompose import generate_pca
 from ihop.iops.decompose import generate_nmf
-from ihop.iops import io as ihop_io
+from ihop.iops.decompose import generate_int
+from ihop.iops import io as iops_io
 
+from IPython import embed
         
 
 def decompose_loisel23_iop(decomp:str, Ncomp:int, iop:str,
@@ -30,25 +32,12 @@ def decompose_loisel23_iop(decomp:str, Ncomp:int, iop:str,
 
     """
     # Loop on IOP
-    outfile = ihop_io.loisel23_filename(decomp, iop, Ncomp, X, Y)
+    outfile = iops_io.loisel23_filename(decomp, iop, Ncomp, X, Y)
 
     # Load training data
-    spec, wave, Rs, d = ihop_io.load_loisel23(
+    spec, wave, Rs, d = iops_io.load_loisel23_iop(
         iop, X=X, Y=Y, remove_water=True)
 
-    '''
-    d = load_rs.loisel23_rs(X=X, Y=Y)
-    # Remove water
-    print("Removing water")
-    if iop == 'a':
-        iop_w = cross.a_water(d['wave'], data='IOCCG')
-    else:
-        iop_w = d['bb_w']
-    spec = d['inputs'][iop]
-    nspec, _ = spec.shape
-    spec = spec - np.outer(np.ones(nspec), iop_w)
-    '''
-        
     # Go
     if decomp == 'nmf':
         # Prep for NMF
@@ -62,7 +51,7 @@ def decompose_loisel23_iop(decomp:str, Ncomp:int, iop:str,
                     wave=wave,
                     Rs=Rs)
     elif decomp == 'pca':
-        generate_pca(d['inputs'][iop], outfile, Ncomp,
+        generate_pca(spec, outfile, Ncomp,
                     extras={'Rs':Rs, 'wave':wave},
                     clobber=clobber)
     elif decomp == 'int': # interpolate
@@ -80,8 +69,8 @@ def main(flg):
 
     # L23 + PCA
     if flg & (2**0):
-        decompose_loisel23_iop('pca', clobber=True, Ncomp=2)  # for bb
-        decompose_loisel23_iop('pca', clobber=True, Ncomp=4)  # for a
+        decompose_loisel23_iop('pca', 4, 'a', clobber=True)  # for a
+        decompose_loisel23_iop('pca', 2, 'bb', clobber=True)  # for bb
     
 if __name__ == '__main__':
     import sys
