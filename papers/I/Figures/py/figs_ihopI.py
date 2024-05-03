@@ -22,6 +22,7 @@ from oceancolor.water import absorption
 
 from ihop import io as ihop_io
 from ihop.iops import decompose 
+from ihop.iops import io as iops_io
 from ihop.emulators import io as emu_io
 from ihop.inference import io as inf_io
 from ihop.training_sets import load_rs
@@ -198,7 +199,7 @@ def fig_emulator_rmse(dataset:str, Ncomps:tuple, hidden_list:list,
     ax_bias = plt.subplot(gs[3])
     ax_abs = plt.subplot(gs[0:2])
 
-    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_decomposition(
+    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_full(
         decomps, Ncomps)
     emulator, e_file = emu_io.load_emulator_from_dict(edict)
     print(f"Using: {e_file} for the emulator")
@@ -763,8 +764,14 @@ def main(flg):
         #fig_emulator_rmse('L23', (4,2), [512, 512, 512, 256],
         #                  log_rrmse=True)
         #fig_emulator_rmse(['L23_NMF', 'L23_PCA'], [3, 3])
-        fig_emulator_rmse('L23', (4,2), [512, 512, 512, 256],
-                          ('pca', 'pca'), log_rrmse=True) 
+        # PCA
+        #fig_emulator_rmse('L23', (4,2), [512, 512, 512, 256],
+        #                  ('pca', 'pca'), log_rrmse=True,
+        #                  outfile='fig_emulator_rmse_pca.png') 
+        # INT
+        fig_emulator_rmse('L23', (40,2), [512, 512, 512, 256],
+                          ('int', 'nmf'), log_rrmse=True,
+                          outfile='fig_emulator_rmse_intnmf.png') 
 
     # L23 IHOP performance vs. perc error
     if flg & (2**21):
@@ -815,10 +822,10 @@ if __name__ == '__main__':
         flg = 0
 
         #flg += 2 ** 0  # Basis functions of the decomposition
-        #flg += 2 ** 20  # RMSE of emulators
+        flg += 2 ** 20  # RMSE of emulators
         #flg += 2 ** 21  # Single MCMC fit (example)
         #flg += 2 ** 22  # RMSE of L23 fits
-        flg += 2 ** 23  # Fit corner
+        #flg += 2 ** 23  # Fit corner
         #flg += 2 ** 24  # NMF corner plots
 
         #flg += 2 ** 26  # Decompose error
