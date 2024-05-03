@@ -39,11 +39,11 @@ from IPython import embed
 
 # Number of components
 #Ncomp = (4,3)
-Ncomp = (4,2)
+Ncomps = (4,2)
 
 
-clbls = [r'$H_'+f'{ii+2}'+r'^{a}$' for ii in range(Ncomp[0])]
-clbls += [r'$H_'+f'{ii+2}'+r'^{bb}$' for ii in range(Ncomp[1])]
+clbls = [r'$H_'+f'{ii+2}'+r'^{a}$' for ii in range(Ncomps[0])]
+clbls += [r'$H_'+f'{ii+2}'+r'^{bb}$' for ii in range(Ncomps[1])]
 clbls += ['Chl']
 
 def fig_basis_functions(decomp:str,
@@ -173,14 +173,17 @@ def fig_nmf_corner(outroot='fig_nmf_corner', decomp:str='nmf',
         print(f"Saved: {outfile}")
 
 
-def fig_emulator_rmse(dataset:str, Ncomp:tuple, hidden_list:list,
+def fig_emulator_rmse(dataset:str, Ncomps:tuple, hidden_list:list,
+                      decomps:tuple,
                       outfile:str='fig_emulator_rmse.png',
                       log_rrmse:bool=False,
-                      X:int=4, Y:int=0, decomp:str='nmf'):
+                      X:int=4, Y:int=0):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    edict = emu_io.set_emulator_dict(dataset, decomp, Ncomp, 'Rrs',
-        'dense', hidden_list=hidden_list, include_chl=True, X=X, Y=Y)
+    edict = emu_io.set_emulator_dict(
+        dataset, decomps, Ncomps, 'Rrs',
+        'dense', hidden_list=hidden_list, 
+        include_chl=True, X=X, Y=Y)
 
     # Init the Plot
     figsize=(8,6)
@@ -191,7 +194,8 @@ def fig_emulator_rmse(dataset:str, Ncomp:tuple, hidden_list:list,
     ax_bias = plt.subplot(gs[3])
     ax_abs = plt.subplot(gs[0:2])
 
-    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_decomposition(decomp, Ncomp)
+    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_decomposition(
+        decomps, Ncomps)
     emulator, e_file = emu_io.load_emulator_from_dict(edict)
     print(f"Using: {e_file} for the emulator")
     wave = d_a['wave']
@@ -755,9 +759,11 @@ def main(flg):
         #                  log_rrmse=True)
         #fig_emulator_rmse('L23', (4,3), [512, 512, 512, 256],
         #                  log_rrmse=True)
-        fig_emulator_rmse('L23', (4,2), [512, 512, 512, 256],
-                          log_rrmse=True)
+        #fig_emulator_rmse('L23', (4,2), [512, 512, 512, 256],
+        #                  log_rrmse=True)
         #fig_emulator_rmse(['L23_NMF', 'L23_PCA'], [3, 3])
+        fig_emulator_rmse('L23', (4,2), [512, 512, 512, 256],
+                          ('pca', 'pca'), log_rrmse=True) 
 
     # L23 IHOP performance vs. perc error
     if flg & (2**21):
@@ -807,13 +813,13 @@ if __name__ == '__main__':
         flg = 0
 
         #flg += 2 ** 0  # Basis functions of the decomposition
-        #flg += 2 ** 20  # RMSE of emulators
+        flg += 2 ** 20  # RMSE of emulators
         #flg += 2 ** 21  # Single MCMC fit (example)
         #flg += 2 ** 22  # RMSE of L23 fits
         #flg += 2 ** 23  # Fit corner
         #flg += 2 ** 24  # NMF corner plots
 
-        flg += 2 ** 26  # Decompose error
+        #flg += 2 ** 26  # Decompose error
 
         #flg += 2 ** 2  # 4 -- Indiv
         #flg += 2 ** 3  # 8 -- Coeff

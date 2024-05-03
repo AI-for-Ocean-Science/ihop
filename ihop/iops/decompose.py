@@ -6,7 +6,6 @@ import numpy as np
 from importlib import resources
 
 from oceancolor.utils import pca
-from oceancolor.hydrolight import loisel23
 
 from cnmf.oceanography.iops import tara_matched_to_l23
 from cnmf import nmf_imaging
@@ -20,27 +19,6 @@ pca_path = os.path.join(resources.files('ihop'),
 nmf_path = os.path.join(resources.files('ihop'),
                             'data', 'NMF')
 
-def loisel23_filename(decomp:str, iop:str, Ncomp:int,
-                       X:int, Y:int):
-    """
-    Generate filenames for Loisel23 decomposition.
-
-    Args:
-        decomp (str): The decomposition type. pca, nmf, int
-        iop (str): The IOP decomposed. a, bb
-        Ncomp (int): The number of components
-        X (int): simulation scenario   
-        Y (int):  solar zenith angle used in the simulation, and 
-
-    Returns:
-        tuple: A tuple containing the filenames for L23_a and L23_bb.
-    """
-    root = f'{decomp}_L23_X{X}Y{Y}_{iop}_N{Ncomp:02d}'
-    # Load up data
-    d_path = os.path.join(resources.files('ihop'),
-                            'data', decomp.upper())
-    l23_file = os.path.join(d_path, f'{root}.npz')
-    return l23_file
 
 def loisel23_filenames(decomp:str, Ncomp:tuple,
                        X:int, Y:int):
@@ -69,42 +47,7 @@ def loisel23_filenames(decomp:str, Ncomp:tuple,
     # Return
     return l23_a_file, l23_bb_file
 
-def load_loisel2023(decomp:str, Ncomp:tuple, X:int=4, Y:int=0, 
-                    scale_Rs:float=1.e4):
-    """ Load the NMF or PCA-based parameterization of IOPs from Loisel 2023
 
-    Args:
-        decomp (str): The decomposition type. pca, nmf
-        Ncomp (tuple): Number of components. (a,bb)
-        X (int, optional): simulation scenario   
-        Y (int, optional):  solar zenith angle used in the simulation, and 
-
-    Returns:
-        tuple: 
-            - **ab** (*np.ndarray*) -- coefficients
-            - **Rs** (*np.ndarray*) -- Rrs values scaled by 1e4
-            - **d_a** (*dict*) -- dict of PCA 
-            - **d_bb** (*dict*) -- dict of PCA
-    """
-    # Filenames
-    l23_a_file, l23_bb_file = loisel23_filenames(
-        decomp, Ncomp, X, Y)
-
-    # Load up
-    d_a = np.load(l23_a_file)
-    d_bb = np.load(l23_bb_file)
-    key = 'Y' if decomp == 'pca' else 'coeff'
-
-    nparam = d_a[key].shape[1]+d_bb[key].shape[1]
-    ab = np.zeros((d_a[key].shape[0], nparam))
-    ab[:,0:d_a[key].shape[1]] = d_a[key]
-    ab[:,d_a[key].shape[1]:] = d_bb[key]
-
-    # Rs
-    Rs = d_a['Rs'] * scale_Rs
-
-    # Return
-    return ab, Rs, d_a, d_bb
 
 def generate_nmf(iop_data:np.ndarray, mask:np.ndarray, 
                  err:np.ndarray,

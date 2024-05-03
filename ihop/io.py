@@ -6,19 +6,17 @@ import numpy as np
 
 from oceancolor.hydrolight import loisel23
 
-from ihop.iops.decompose import load_loisel2023
+from ihop.iops.io import load_loisel2023_decomp
 
 from IPython import embed
 
 
-
-
-def load_l23_decomposition(decomp:str, Ncomp:tuple, X:int=4, Y:int=0):
+def load_l23_decomposition(decomps:tuple, Ncomp:tuple, X:int=4, Y:int=0):
     """
     Load L23 data and decomposition
 
     Args:
-        decomp (str): Decomposition method. pca, nmf
+        decomps (tuple): Decomposition methods. pca, nmf
         Ncomp (tuple): The number of components (a,bb)
         X (int): simulation scenario   
         Y (int):  solar zenith angle used in the simulation, and 
@@ -33,7 +31,7 @@ def load_l23_decomposition(decomp:str, Ncomp:tuple, X:int=4, Y:int=0):
             - d_bb (dict): Hydrolight data for backscattering coefficients.
     """
     print("Loading... ")
-    ab, Rs, d_a, d_bb = load_loisel2023(decomp, Ncomp)
+    ab, Rs, d_a, d_bb = load_loisel2023_decomp(decomps, Ncomp)
     # Chl
     ds_l23 = loisel23.load_ds(X, Y)
     Chl = loisel23.calc_Chl(ds_l23)

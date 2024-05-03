@@ -10,7 +10,7 @@ from cnmf.oceanography import iops as cnmf_iops
 from ihop.training_sets import load_rs
 from ihop.iops.decompose import generate_pca
 from ihop.iops.decompose import generate_nmf
-from ihop.iops.decompose import loisel23_filename
+from ihop.iops import io as ihop_io
 
         
 
@@ -29,13 +29,15 @@ def decompose_loisel23_iop(decomp:str, Ncomp:int, iop:str,
         clobber (bool): Flag indicating whether to overwrite existing files.
 
     """
+    # Loop on IOP
+    outfile = ihop_io.loisel23_filename(decomp, iop, Ncomp, X, Y)
 
     # Load training data
+    spec, wave, Rs, d = ihop_io.load_loisel23(
+        iop, X=X, Y=Y, remove_water=True)
+
+    '''
     d = load_rs.loisel23_rs(X=X, Y=Y)
-
-    # Loop on IOP
-    outfile = loisel23_filename(decomp, iop, Ncomp, X, Y)
-
     # Remove water
     print("Removing water")
     if iop == 'a':
@@ -45,6 +47,7 @@ def decompose_loisel23_iop(decomp:str, Ncomp:int, iop:str,
     spec = d['inputs'][iop]
     nspec, _ = spec.shape
     spec = spec - np.outer(np.ones(nspec), iop_w)
+    '''
         
     # Go
     if decomp == 'nmf':
@@ -56,15 +59,15 @@ def decompose_loisel23_iop(decomp:str, Ncomp:int, iop:str,
         generate_nmf(new_spec, mask, err, outfile, Ncomp, 
                     clobber=clobber,
                     normalize=True,
-                    wave=d['wave'],
-                    Rs=d['Rs'])
+                    wave=wave,
+                    Rs=Rs)
     elif decomp == 'pca':
         generate_pca(d['inputs'][iop], outfile, Ncomp,
-                    extras={'Rs':d['Rs'], 'wave':d['wave']},
+                    extras={'Rs':Rs, 'wave':wave},
                     clobber=clobber)
     elif decomp == 'int': # interpolate
         generate_int(d['inputs'][iop], outfile, Ncomp,
-                    extras={'Rs':d['Rs'], 'wave':d['wave']},
+                    extras={'Rs':Rs, 'wave':wave},
                     clobber=clobber)
     else:
         raise ValueError("Bad decomp")

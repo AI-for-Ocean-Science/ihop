@@ -50,7 +50,16 @@ def load_emulator_from_dict(edict:dict, use_s3:bool=False):
     # Return
     return emulator, emulator_file
         
-def set_l23_emulator_root(edict:dict):
+def set_l23_emulator_root(edict: dict):
+    """
+    Constructs the root path for the L23 emulator based on the provided parameters.
+
+    Parameters:
+    - edict (dict): A dictionary containing the parameters for constructing the root path.
+
+    Returns:
+    - root (str): The constructed root path for the L23 emulator.
+    """
     # Dataset
     root = f'{edict["dataset"]}'
 
@@ -59,9 +68,9 @@ def set_l23_emulator_root(edict:dict):
     if edict['dataset'] == 'L23':
         root += f'_X{edict["X"]}_Y{edict["Y"]}'
     # Decomp
-    root += f'_{edict["decomp"]}'
+    root += f'_{edict["decomps"][0]}{edict["decomps"][1]}'
     # Ncomp (tuple)
-    root += f'_{edict["Ncomp"][0]}{edict["Ncomp"][1]}'
+    root += f'_{edict["Ncomps"][0]}{edict["Ncomps"][1]}'
     # Chl?
     if edict['include_chl']:
         root += '_chl'
@@ -77,7 +86,8 @@ def set_l23_emulator_root(edict:dict):
     # Return
     return root
 
-def set_emulator_dict(dataset:str, decomp:str, Ncomp:tuple, outputs:str,
+def set_emulator_dict(dataset:str, decomps:tuple, 
+                      Ncomps:tuple, outputs:str,
         emulator:str, hidden_list:list=None, 
         include_chl:bool=False, X:int=None, Y:int=None): 
     """
@@ -85,7 +95,7 @@ def set_emulator_dict(dataset:str, decomp:str, Ncomp:tuple, outputs:str,
 
     Args:
         dataset (str): The dataset used for training the emulator.
-        decomp (str): The decomposition method used for the dataset.
+        decomp (tuple): The decomposition methods used for the dataset.
         Ncomp (tuple): The number of components used in the decomposition.
         outputs (str): The output variables predicted by the emulator.
         emulator (str): The type of emulator used.
@@ -100,8 +110,8 @@ def set_emulator_dict(dataset:str, decomp:str, Ncomp:tuple, outputs:str,
     # Dict
     emulator_dict = {
         'dataset': dataset,
-        'decomp': decomp,
-        'Ncomp': Ncomp,
+        'decomps': decomps,
+        'Ncomps': Ncomps,
         'outputs': outputs,
         'emulator': emulator,
         'hidden_list': hidden_list,
