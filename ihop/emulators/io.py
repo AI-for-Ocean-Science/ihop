@@ -39,6 +39,7 @@ def load_emulator_from_dict(edict:dict, use_s3:bool=False):
     # Download from s3?
     if use_s3:
         from ulmo import io as ulmo_io
+        print(f'Downloading: {emulator_file}')
         local_file = os.path.basename(emulator_file)
         ulmo_io.download_file_from_s3(local_file, emulator_file)
         emulator_file = local_file

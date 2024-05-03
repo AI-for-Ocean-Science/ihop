@@ -70,9 +70,10 @@ def load(edict:dict):
     """
     # Load data
     ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_decomposition(
-        edict['decomp'], edict['Ncomp'])
+        edict['decomps'], edict['Ncomps'])
     # Load emulator
-    emulator, e_file = emu_io.load_emulator_from_dict(edict, use_s3=True)
+    emulator, e_file = emu_io.load_emulator_from_dict(
+        edict, use_s3=True)
 
     # Return
     return ab, Chl, Rs, emulator, d_a
@@ -223,6 +224,26 @@ def main(flg):
 
         fit_without_error(edict, n_cores=n_cores, max_wv=max_wv)#, debug=True)
 
+    # Noiseless, PCA
+    if flg & (2**2):
+
+        # Emulator
+        hidden_list=[512, 512, 512, 256]
+        decomps = ('pca', 'pca')
+        Ncomps = (4,2)
+        X, Y = 4, 0
+        n_cores = 20
+        dataset = 'L23'
+        edict = emu_io.set_emulator_dict(
+            dataset, decomps, Ncomps, 'Rrs',
+            'dense', hidden_list=hidden_list, 
+            include_chl=True, X=X, Y=Y)
+
+        # Analysis params
+
+        fit_without_error(edict, n_cores=n_cores, debug=True)
+
+
     # Testing
     if flg & (2**30):
         hidden_list=[512, 512, 512, 256]
@@ -247,6 +268,7 @@ if __name__ == '__main__':
         flg = 0
         #flg += 2 ** 0  # 1 -- Noiseless
         #flg += 2 ** 1  # 2 -- Noiseless + cut at 600nm
+        #flg += 2 ** 2  # 4 -- Noiseless, PCA 
 
         # Tests
         flg += 2 ** 30  # 16 -- L23 + NMF 4,2
