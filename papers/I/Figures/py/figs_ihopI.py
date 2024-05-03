@@ -492,33 +492,28 @@ def fig_mcmc_fit(outroot='fig_mcmc_fit', decomp:str='nmf',
     plt.savefig(outfile, dpi=300)
     print(f"Saved: {outfile}")
 
-def fig_corner(outroot:str='fig_corner', decomp:str='nmf',
+def fig_corner(decomps:tuple, outroot:str='fig_corner', 
         hidden_list:list=[512, 512, 512, 256], dataset:str='L23', 
         chop_burn:int=-3000, perc:int=None, abs_sig:float=None,
         X:int=4, Y:int=0, in_idx:int=0,
         test:bool=False):
 
     # Load
-    edict = emu_io.set_emulator_dict(dataset, decomp, Ncomp, 'Rrs',
+    edict = emu_io.set_emulator_dict(dataset, decomps, Ncomps, 'Rrs',
         'dense', hidden_list=hidden_list, include_chl=True, X=X, Y=Y)
 
-    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_decomposition(decomp, Ncomp)
+    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_decomposition(
+        decomps, Ncomps)
 
     emulator, e_file = emu_io.load_emulator_from_dict(edict)
 
-    chain_file = inf_io.l23_chains_filename(edict, 
-                                            perc if perc is not None else int(abs_sig), 
-                                            test=test)
+    chain_file = inf_io.l23_chains_filename(
+        edict, 
+        perc if perc is not None else int(abs_sig), test=test)
     d_chains = inf_io.load_chains(chain_file)
 
     chains = d_chains['chains'][in_idx]
-    coeff = chains[chop_burn:, :, :].reshape(-1,Ncomp[0]+Ncomp[1]+1)
-
-    #print(f"L23 index = {idx}")
-    # Labels
-    lbls = [r'$H_'+f'{ii+2}'+r'^{a}$' for ii in range(Ncomp[0])]
-    lbls += [r'$H_'+f'{ii+2}'+r'^{bb}$' for ii in range(Ncomp[1])]
-    lbls += ['Chl']
+    coeff = chains[chop_burn:, :, :].reshape(-1,Ncomps[0]+Ncomps[1]+1)
 
     idx = d_chains['idx'][in_idx]
     # Outfile
@@ -527,7 +522,7 @@ def fig_corner(outroot:str='fig_corner', decomp:str='nmf',
     truths = np.concatenate((ab[idx], Chl[idx].reshape(1,)))
 
     fig = corner.corner(
-        coeff, labels=lbls,
+        coeff, labels=clbls,
         label_kwargs={'fontsize':17},
         color='k',
         #axes_scale='log',
@@ -790,7 +785,8 @@ def main(flg):
         #fig_corner(test=True, perc=10)
         #fig_corner(test=True, abs_sig=2.)
         #fig_corner(abs_sig=1., in_idx=275) # Turbid
-        fig_corner(abs_sig=1., in_idx=0) # Clear
+        #fig_corner(abs_sig=1., in_idx=0) # Clear
+        fig_corner(('pca', 'pca'), abs_sig=1., in_idx=0) # 
 
     # L23 IHOP performance vs. perc error
     if flg & (2**24):
@@ -813,10 +809,10 @@ if __name__ == '__main__':
         flg = 0
 
         #flg += 2 ** 0  # Basis functions of the decomposition
-        flg += 2 ** 20  # RMSE of emulators
+        #flg += 2 ** 20  # RMSE of emulators
         #flg += 2 ** 21  # Single MCMC fit (example)
         #flg += 2 ** 22  # RMSE of L23 fits
-        #flg += 2 ** 23  # Fit corner
+        flg += 2 ** 23  # Fit corner
         #flg += 2 ** 24  # NMF corner plots
 
         #flg += 2 ** 26  # Decompose error
