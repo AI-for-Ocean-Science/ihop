@@ -241,6 +241,25 @@ def main(flg):
 
         # Analysis params
 
+        fit_without_error(edict, n_cores=n_cores)
+
+    # Noiseless, INT/NMF
+    if flg & (2**3):
+
+        # Emulator
+        hidden_list=[512, 512, 512, 256]
+        decomps = ('int', 'nmf')
+        Ncomps = (40,2)
+        X, Y = 4, 0
+        n_cores = 20
+        dataset = 'L23'
+        edict = emu_io.set_emulator_dict(
+            dataset, decomps, Ncomps, 'Rrs',
+            'dense', hidden_list=hidden_list, 
+            include_chl=True, X=X, Y=Y)
+
+        # Analysis params
+
         fit_without_error(edict, n_cores=n_cores, debug=True)
 
 
