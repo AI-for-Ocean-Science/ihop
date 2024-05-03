@@ -55,7 +55,7 @@ def decompose_loisel23_iop(decomp:str, Ncomp:int, iop:str,
                     extras={'Rs':Rs, 'wave':wave},
                     clobber=clobber)
     elif decomp == 'int': # interpolate
-        generate_int(d['inputs'][iop], outfile, Ncomp,
+        generate_int(spec, outfile, Ncomp, wave,
                     extras={'Rs':Rs, 'wave':wave},
                     clobber=clobber)
     else:
@@ -71,6 +71,11 @@ def main(flg):
     if flg & (2**0):
         decompose_loisel23_iop('pca', 4, 'a', clobber=True)  # for a
         decompose_loisel23_iop('pca', 2, 'bb', clobber=True)  # for bb
+
+    # L23 + Interpolate,NMF
+    if flg & (2**1):
+        decompose_loisel23_iop('int', 40, 'a', clobber=True)  # for a
+        #decompose_loisel23_iop('nmf', 2, 'bb', clobber=True)  # for bb
     
 if __name__ == '__main__':
     import sys
@@ -78,7 +83,7 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         flg = 0
         #flg += 2 ** 0  # 1 -- L23 + PCA
-        #flg += 2 ** 1  # 2 -- L23 + NMF
+        #flg += 2 ** 1  # 2 -- L23 + Int on a
         #flg += 2 ** 2  # 4 -- L23 + NMF 4
         #flg += 2 ** 3  # 8 -- L23 + NMF 4,3
 

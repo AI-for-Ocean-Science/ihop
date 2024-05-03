@@ -8,6 +8,8 @@ from oceancolor.water import absorption
 
 import numpy as np
 
+from IPython import embed
+
 
 def loisel23_filename(decomp:str, iop:str, Ncomp:int,
                        X:int, Y:int):
@@ -72,7 +74,7 @@ def load_loisel23_iop(iop:str, X:int=4, Y:int=0,
 def load_loisel2023_decomp(decomps:tuple, 
                            Ncomps:tuple, X:int=4, 
                            Y:int=0, scale_Rs:float=1.e4):
-    """ Load the NMF or PCA-based parameterization of IOPs from Loisel 2023
+    """ Load the INT, NMF or PCA-based parameterization of IOPs from Loisel 2023
 
     Args:
         decomps (tuple): The decomposition type. pca, nmf
@@ -80,13 +82,14 @@ def load_loisel2023_decomp(decomps:tuple,
         Ncomps (tuple): Number of components. (a,bb)
         X (int, optional): simulation scenario   
         Y (int, optional):  solar zenith angle used in the simulation, and 
+        scale_Rs (float, optional): Scaling factor for Rs. Defaults to 1.e4.
 
     Returns:
         tuple: 
             - **ab** (*np.ndarray*) -- coefficients
             - **Rs** (*np.ndarray*) -- Rrs values scaled by 1e4
-            - **d_a** (*dict*) -- dict of PCA 
-            - **d_bb** (*dict*) -- dict of PCA
+            - **d_a** (*dict*) -- dict of decomposition
+            - **d_bb** (*dict*) -- dict of decomposition
     """
     # Filenames
     l23_a_file, l23_bb_file = loisel23_filenames(
@@ -96,11 +99,15 @@ def load_loisel2023_decomp(decomps:tuple,
     # Load up
     d_a = np.load(l23_a_file)
     d_bb = np.load(l23_bb_file)
-    keya = 'Y' if decomps[0] == 'pca' else 'coeff'
-    keyb = 'Y' if decomps[1] == 'pca' else 'coeff'
 
-    nparam = d_a[keya].shape[1]+d_bb[keya].shape[1]
+    # Prep
+    keys = dict(pca='Y', nmf='coeff', int='new_spec')
+    keya = keys[decomps[0]]
+    keyb = keys[decomps[1]]
+
+    nparam = d_a[keya].shape[1]+d_bb[keyb].shape[1]
     ab = np.zeros((d_a[keya].shape[0], nparam))
+
     ab[:,0:d_a[keya].shape[1]] = d_a[keya]
     ab[:,d_a[keya].shape[1]:] = d_bb[keyb]
 

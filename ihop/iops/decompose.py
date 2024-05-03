@@ -5,6 +5,8 @@ import numpy as np
 
 from importlib import resources
 
+from scipy.interpolate import interp1d
+
 from oceancolor.utils import pca
 
 from cnmf.oceanography.iops import tara_matched_to_l23
@@ -68,8 +70,7 @@ def generate_pca(iop_data:np.ndarray,
                  outfile:str,
                  Ncomp:int,
                  clobber:bool=False, 
-                 extras:dict=None,
-                 pca_path:str=pca_path):
+                 extras:dict=None):
     """ Generate PCA model for input IOP 
 
     Args:
@@ -77,7 +78,6 @@ def generate_pca(iop_data:np.ndarray,
         outfile (str): 
         Ncomp (int): Number of PCA components. Defaults to 3.
         clobber (bool, optional): Clobber existing model? Defaults to False.
-        pca_path (str, optional): Path for output PCA files. Defaults to pca_path.
         extras (dict, optional): Extra arrays to save. Defaults to None.
     """
     # Do it
@@ -88,25 +88,37 @@ def generate_pca(iop_data:np.ndarray,
         print("File exists.  Use clobber=True to overwrite")
 
 def generate_int(iop_data:np.ndarray,
-                 outfile:str,
-                 Ncomp:int,
+                 outfile:str, Ncomp:int, wave:np.ndarray,
                  clobber:bool=False, 
-                 extras:dict=None,
-                 pca_path:str=pca_path):
+                 extras:dict=None):
     """ Generate PCA model for input IOP 
 
     Args:
         iop_data (np.ndarray): IOP data (n_samples, n_features)
         outfile (str): 
-        Ncomp (int): Number of PCA components. Defaults to 3.
+        Ncomp (int): Number of points to interpolate down to. Defaults to 3.
+        wave (np.ndarray): Wavelengths of original
         clobber (bool, optional): Clobber existing model? Defaults to False.
         pca_path (str, optional): Path for output PCA files. Defaults to pca_path.
         extras (dict, optional): Extra arrays to save. Defaults to None.
     """
     # Do it
     if not os.path.exists(outfile) or clobber:
-        pca.fit_normal(iop_data, Ncomp, save_outputs=outfile,
-                       extra_arrays=extras)
+        new_wave = np.linspace(wave[0], wave[-1], Ncomp)
+        new_spec = np.zeros((iop_data.shape[0], Ncomp))
+#
+        for ss in range(new_spec.shape[0]):
+            f = interp1d(wave, iop_data[ss,:], kind='cubic')
+            new_spec[ss,:] = f(new_wave)
+        # Save
+        outputs = dict(data=iop_data, new_wave=new_wave, 
+                       new_spec=new_spec)
+        if extras:
+            outputs.update(extras)
+        # Save
+        np.savez(outfile, **outputs)
+        print(f'Wrote: {outfile}')
+
 
 def generate_l23_tara_pca(clobber:bool=False, return_N:int=None):
     """ Generate a PCA for L23 + Tara
