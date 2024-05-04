@@ -20,6 +20,9 @@ from oceancolor.hydrolight import loisel23
 from oceancolor.utils import plotting 
 from oceancolor.water import absorption
 
+from ihop.iops.decompose import reconstruct_nmf
+from ihop.iops.decompose import reconstruct_pca
+
 from ihop import io as ihop_io
 from ihop.iops import decompose 
 from ihop.iops import io as iops_io
@@ -27,6 +30,7 @@ from ihop.emulators import io as emu_io
 from ihop.inference import io as inf_io
 from ihop.inference import analysis as inf_analysis
 from ihop.training_sets import load_rs
+from ihop.inference import io as fitting_io
 
 from cnmf import stats as cnmf_stats
 
@@ -289,72 +293,60 @@ def fig_emulator_rmse(dataset:str, Ncomps:tuple, hidden_list:list,
 
 
 # ############################################################
-def fig_rmse_Rrs_a(decomps:tuple, outroot='fig_rmse_Rrs_a', 
+def fig_rmse_Rrs_a(decomps:tuple, outfile=str, 
         hidden_list:list=[512, 512, 512, 256], dataset:str='L23', use_quick:bool=False,
         X:int=4, Y:int=0, show_zoom:bool=False, 
         perc:int=None, abs_sig:float=None,
         nchains:int=None,
-        wvmnx:tuple=None,
-        water:bool=False, 
         test:bool=False):
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
     # Load
+    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_full(
+        decomps, Ncomps)
+    wave = d_a['wave']
     edict = emu_io.set_emulator_dict(
         dataset, decomps, Ncomps, 'Rrs',
         'dense', hidden_list=hidden_list, 
         include_chl=True, X=X, Y=Y)
+    recon_file = os.path.join(
+        '../Analysis/',
+        os.path.basename(fitting_io.l23_chains_filename(
+        edict, int(abs_sig)).replace('fit', 'recon')))
+    d_recon = np.load(recon_file)
+    chain_idx = d_recon['idx']
 
-    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_full(
-        decomps, Ncomps)
-    wave = d_a['wave']
+    # #############################
+    # a
+    a_true = d_a['spec'][chain_idx]
 
-    emulator, e_file = emu_io.load_emulator_from_dict(edict)
+    fit_diff = d_recon['fit_a_mean'] - a_true
+    a_fit_RMSE = np.sqrt(np.mean((fit_diff)**2, axis=0))
+    a_fit_MAD = np.median(np.abs(fit_diff), axis=0)
 
-    # Chains
-    chain_file = inf_io.l23_chains_filename(
-        edict, perc if perc is not None else int(abs_sig), 
-        test=test)
-    d_chains = inf_io.load_chains(chain_file)
 
-    if nchains is not None:
-        chains = d_chains['chains'][:nchains]
-    else:
-        chains = d_chains['chains']
-        nchains = chains.shape[0]
-    chain_idx = d_chains['idx'][:nchains]
-    
-    # Chop off the burn
-    chains = inf_analysis.chop_chains(chains)
-
+    # ############################
     # Calc Rrs
-    fit_Rrs = inf_analysis.calc_Rrs(emulator, chains)
 
     # RMSE
-    fit_diff = fit_Rrs - Rs[chain_idx]
+    fit_diff = d_recon['fit_Rrs'] - Rs[chain_idx]
     fit_rrmse = np.sqrt(np.mean((fit_diff/Rs[chain_idx])**2, 
                                 axis=0))
-    items = [ab[i].tolist()+[Chl[i]] for i in chain_idx]
-    corr_Rrs = []
-    for item in items:
-        iRs = emulator.prediction(item, device)
-        corr_Rrs.append(iRs)
-    corr_Rrs = np.array(corr_Rrs)
 
-    corr_diff = corr_Rrs - Rs[chain_idx]
+    corr_diff = d_recon['corr_Rrs'] - Rs[chain_idx]
     corr_rrmse = np.sqrt(np.mean((corr_diff/Rs[chain_idx])**2, 
                                 axis=0))
 
-    # Calc a(lambda)
-
-    embed(header='325 of figs')
-
+    # ######################################################
+    # ######################################################
     fig = plt.figure(figsize=(12,8))
     plt.clf()
-    gs = gridspec.GridSpec(2,1)
+    gs = gridspec.GridSpec(3,1)
 
     aaxes = [] 
 
+    # ##############################
     # Rrs
     ax_R = plt.subplot(gs[0])
     aaxes.append(ax_R)
@@ -367,16 +359,32 @@ def fig_rmse_Rrs_a(decomps:tuple, outroot='fig_rmse_Rrs_a',
 
     ax_R.legend()
     ax_R.set_ylabel(r'RMSE $R_{\rm rs}$')
-    ax_R.set_xlabel('Wavelength (nm)')
 
-    #ax_R.set_ylabel(r'$a_{\rm nw}(\lambda) \; [{\rm m}^{-1}]$')
+
+    # ##############################
+    # Absolute a
+    ax_a = plt.subplot(gs[1])
+    aaxes.append(ax_a)
+
+    ax_a.plot(wave, a_fit_MAD, 'bo', label='Fit MAD')
+    ax_a.plot(wave, a_fit_RMSE, 'ro', label='Fit RMSE')
+
+    ax_a.set_ylabel(r'Absolute $a_{\rm nw}(\lambda)$ Error')
+
+    # ##############################
+    # Relative a
+    ax_ra = plt.subplot(gs[2])
+    aaxes.append(ax_ra)
+
+    ax_ra.set_ylabel(r'Relative $a_{\rm nw}(\lambda)$ Error')
 
     # All
     for ax in aaxes:
         plotting.set_fontsize(ax, 15)
+        ax.legend()
+        ax.set_xlabel('Wavelength (nm)')
 
     #plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
-    outfile = 'tmp.png'
     plt.savefig(outfile, dpi=300)
     print(f"Saved: {outfile}")
 
@@ -908,8 +916,8 @@ def main(flg):
 
     # RMSE of Rrs and a
     if flg & (2**27):
-        fig_rmse_Rrs_a(('nmf', 'nmf'), abs_sig=1.,
-                       nchains=100)
+        fig_rmse_Rrs_a(('nmf', 'nmf'), 'fig_rmse_Rrs_a_nmfnmf.png',
+                       abs_sig=1., nchains=100)
 
 
 # Command line execution

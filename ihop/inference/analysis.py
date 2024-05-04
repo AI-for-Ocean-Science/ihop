@@ -4,6 +4,9 @@ import numpy as np
 
 import torch
 
+from ihop.iops.decompose import reconstruct_nmf
+from ihop.iops.decompose import reconstruct_pca
+
 from IPython import embed
 
 def chop_chains(chains:np.ndarray, burn:int=7000, thin:int=1):
@@ -40,3 +43,28 @@ def calc_Rrs(emulator, chains:np.ndarray):
 
     # Turn into a numpy array
     return np.array(list_Rrs)
+
+def calc_iop(iop_chains:np.ndarray, decomp:str,
+           d_iop:dict):
+
+    # Prep
+    if decomp == 'pca':
+        rfunc = reconstruct_pca
+    elif decomp == 'nmf':
+        rfunc = reconstruct_nmf
+    else:
+        raise ValueError("Bad decomp")
+
+    # a
+    all_mean = []
+    all_std = []
+    for idx in range(iop_chains.shape[0]):
+        _, iop_recon = rfunc(iop_chains[idx], d_iop, idx)
+        iop_mean = np.median(iop_recon, axis=0)
+        iop_std = np.std(iop_recon, axis=0)
+        # Save
+        all_mean.append(iop_mean)
+        all_std.append(iop_std)
+
+    # Return
+    return np.array(all_mean), np.array(all_std)

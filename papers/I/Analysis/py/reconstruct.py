@@ -1,10 +1,16 @@
 """ Methods for paper specfici reconstruction """
 
+import os
 import numpy as np
 import torch
 
 from ihop.iops.decompose import reconstruct_nmf
 from ihop.iops.decompose import reconstruct_pca
+from ihop.emulators import io as emu_io
+from ihop import io as ihop_io
+from ihop.inference import io as inf_io
+from ihop.inference import analysis as inf_analysis
+from ihop.inference import io as fitting_io
 
 from IPython import embed
 
@@ -60,3 +66,110 @@ def one_spectrum(in_idx:int, ab, Chl, d_chains, d_a, d_bb, emulator,
     return idx, orig, a_mean, a_std, a_pca, obs_Rs,\
         pred_Rs, std_pred, NN_Rs, allY, wave,\
         orig_bb, bb_mean, bb_std, a_nmf, bb_nmf
+
+def all_spectra(decomps:tuple, Ncomps:tuple, 
+                hidden_list:list=[512, 512, 512, 256], 
+                dataset:str='L23', perc:int=None, 
+                abs_sig:float=None, nchains:int=None,
+                X:int=4, Y:int=0):
+
+    d_keys = dict(pca='Y', nmf='coeff', int='new_spec')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    outputs = {}
+
+    # Load
+    edict = emu_io.set_emulator_dict(
+        dataset, decomps, Ncomps, 'Rrs',
+        'dense', hidden_list=hidden_list, 
+        include_chl=True, X=X, Y=Y)
+
+    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_full(
+        decomps, Ncomps)
+    wave = d_a['wave']
+
+    emulator, e_file = emu_io.load_emulator_from_dict(edict)
+
+    outfile = os.path.basename(fitting_io.l23_chains_filename(
+        edict, int(abs_sig)).replace('fit', 'recon'))
+    embed(header='Loaded emulator and data')
+
+    # Chains
+    chain_file = inf_io.l23_chains_filename(
+        edict, perc if perc is not None else int(abs_sig)) 
+    d_chains = inf_io.load_chains(chain_file)
+
+    if nchains is not None:
+        chains = d_chains['chains'][:nchains]
+    else:
+        chains = d_chains['chains']
+        nchains = chains.shape[0]
+    chain_idx = d_chains['idx'][:nchains]
+    outputs['idx'] = chain_idx
+    
+    # Chop off the burn
+    chains = inf_analysis.chop_chains(chains)
+
+    # ##############
+    # Rrs
+    fit_Rrs = inf_analysis.calc_Rrs(emulator, chains)
+    outputs['fit_Rrs'] = fit_Rrs
+
+    # Correct estimates
+    items = [ab[i].tolist()+[Chl[i]] for i in chain_idx]
+    corr_Rrs = []
+    for item in items:
+        iRs = emulator.prediction(item, device)
+        corr_Rrs.append(iRs)
+    corr_Rrs = np.array(corr_Rrs)
+
+    outputs['corr_Rrs'] = corr_Rrs
+
+    # ##############
+    # a
+    a_means, a_stds = inf_analysis.calc_iop(
+        chains[...,:Ncomps[0]], decomps[0], d_a)
+    outputs['fit_a_mean'] = a_means
+    outputs['fit_a_std'] = a_stds
+
+    # Decomposed
+    if decomps[0] == 'pca':
+        rfunc = reconstruct_pca
+    elif decomps[0] == 'nmf':
+        rfunc = reconstruct_nmf
+
+    a_recons = []
+    for idx in chain_idx:
+        _, a_recon = rfunc(d_a[d_keys[decomps[0]]][idx], d_a, idx)
+        a_recons.append(a_recon)
+    outputs['decomp_a'] = np.array(a_recons)
+
+    # ##############
+    # bb
+    bb_means, bb_stds = inf_analysis.calc_iop(
+        chains[...,Ncomps[0]:Ncomps[0]+Ncomps[1]], 
+        decomps[1], d_bb)
+    outputs['fit_bb_mean'] = bb_means
+    outputs['fit_bb_std'] = bb_stds
+
+    # Decomposed
+    if decomps[1] == 'pca':
+        rfunc = reconstruct_pca
+    elif decomps[1] == 'nmf':
+        rfunc = reconstruct_nmf
+
+    bb_recons = []
+    for idx in chain_idx:
+        _, bb_recon = rfunc(d_bb[d_keys[decomps[1]]][idx], d_bb, idx)
+        bb_recons.append(a_recon)
+    outputs['decomp_bb'] = np.array(bb_recons)
+
+    # Save!
+    np.savez(outfile, **outputs)
+    print(f'Saved to: {outfile}')
+
+# Command line execution
+if __name__ == '__main__':
+
+    # NMF
+    all_spectra(('nmf', 'nmf'), (4,2), abs_sig=1.0,
+                nchains=100)
