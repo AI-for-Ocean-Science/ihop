@@ -297,7 +297,6 @@ def fig_rmse_Rrs_a(decomps:tuple, outfile=str,
         hidden_list:list=[512, 512, 512, 256], dataset:str='L23', use_quick:bool=False,
         X:int=4, Y:int=0, show_zoom:bool=False, 
         perc:int=None, abs_sig:float=None,
-        nchains:int=None,
         test:bool=False):
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -325,6 +324,10 @@ def fig_rmse_Rrs_a(decomps:tuple, outfile=str,
     a_fit_RMSE = np.sqrt(np.mean((fit_diff)**2, axis=0))
     a_fit_MAD = np.median(np.abs(fit_diff), axis=0)
 
+    # Set min
+    a_true_min = np.maximum(a_true, 1e-4)
+    a_fit_rMAD = np.median(np.abs(fit_diff/a_true_min), axis=0)
+    a_fit_rRMSE = np.sqrt(np.mean((fit_diff/a_true_min)**2, axis=0))
 
     # ############################
     # Calc Rrs
@@ -359,6 +362,7 @@ def fig_rmse_Rrs_a(decomps:tuple, outfile=str,
 
     ax_R.legend()
     ax_R.set_ylabel(r'RMSE $R_{\rm rs}$')
+    ax_R.tick_params(labelbottom=False)  # Hide x-axis labels
 
 
     # ##############################
@@ -370,6 +374,7 @@ def fig_rmse_Rrs_a(decomps:tuple, outfile=str,
     ax_a.plot(wave, a_fit_RMSE, 'ro', label='Fit RMSE')
 
     ax_a.set_ylabel(r'Absolute $a_{\rm nw}(\lambda)$ Error')
+    ax_a.tick_params(labelbottom=False)  # Hide x-axis labels
 
     # ##############################
     # Relative a
@@ -378,13 +383,19 @@ def fig_rmse_Rrs_a(decomps:tuple, outfile=str,
 
     ax_ra.set_ylabel(r'Relative $a_{\rm nw}(\lambda)$ Error')
 
+    ax_ra.plot(wave, a_fit_rMAD, 'ks', label='Fit rMAD')
+    ax_ra.plot(wave, a_fit_rRMSE, 'gs', label='Fit rRMSE')
+
+    ax_ra.set_ylim(0., 0.2)
+    ax_ra.set_xlabel('Wavelength (nm)')
+
     # All
     for ax in aaxes:
         plotting.set_fontsize(ax, 15)
         ax.legend()
-        ax.set_xlabel('Wavelength (nm)')
+        ax.grid()
 
-    #plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
+    plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
     plt.savefig(outfile, dpi=300)
     print(f"Saved: {outfile}")
 
@@ -917,7 +928,7 @@ def main(flg):
     # RMSE of Rrs and a
     if flg & (2**27):
         fig_rmse_Rrs_a(('nmf', 'nmf'), 'fig_rmse_Rrs_a_nmfnmf.png',
-                       abs_sig=1., nchains=100)
+                       abs_sig=1.)
 
 
 # Command line execution

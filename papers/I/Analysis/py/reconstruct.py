@@ -91,7 +91,6 @@ def all_spectra(decomps:tuple, Ncomps:tuple,
 
     outfile = os.path.basename(fitting_io.l23_chains_filename(
         edict, int(abs_sig)).replace('fit', 'recon'))
-    embed(header='Loaded emulator and data')
 
     # Chains
     chain_file = inf_io.l23_chains_filename(
@@ -172,4 +171,4 @@ if __name__ == '__main__':
 
     # NMF
     all_spectra(('nmf', 'nmf'), (4,2), abs_sig=1.0,
-                nchains=100)
+                nchains=500)
