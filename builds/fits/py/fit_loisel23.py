@@ -111,6 +111,8 @@ def fit(edict:dict, Nspec:int=None, abs_sig:float=None,
     # Include a non-zero error to avoid bad chi^2 behavior
     if abs_sig is None:
         pdict['abs_sig'] = 1.
+    else:
+        pdict['abs_sig'] = abs_sig
 
     # Max wave?
     if max_wv is not None:
@@ -300,7 +302,7 @@ def main(flg):
         fit(edict, n_cores=n_cores, abs_sig=abs_sig)#, debug=True)
 
     # PCA, abs_sig=2
-    if flg & (2**5):
+    if flg & (2**5): # 32
 
         # Emulator
         hidden_list=[512, 512, 512, 256]
@@ -318,7 +320,7 @@ def main(flg):
         fit(edict, n_cores=n_cores, abs_sig=abs_sig)#, debug=True)
 
     # PCA, abs_sig=5
-    if flg & (2**6):
+    if flg & (2**6): # 64
 
         # Emulator
         hidden_list=[512, 512, 512, 256]
