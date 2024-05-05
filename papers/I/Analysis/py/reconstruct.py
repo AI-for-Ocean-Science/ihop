@@ -171,7 +171,7 @@ def all_spectra(decomps:tuple, Ncomps:tuple,
     bb_recons = []
     for idx in chain_idx:
         _, bb_recon = rfunc(d_bb[d_keys[decomps[1]]][idx], d_bb, idx)
-        bb_recons.append(a_recon)
+        bb_recons.append(bb_recon)
     outputs['decomp_bb'] = np.array(bb_recons)
 
     # Save!
@@ -182,11 +182,11 @@ def all_spectra(decomps:tuple, Ncomps:tuple,
 if __name__ == '__main__':
 
     # NMF
-    #all_spectra(('nmf', 'nmf'), (4,2), abs_sig=1.0,
-    #            nchains=500)
+    all_spectra(('nmf', 'nmf'), (4,2), abs_sig=1.0,
+                nchains=500)
     # PCA
-    #all_spectra(('pca', 'pca'), (4,2), abs_sig=1.0,
-    #            nchains=500)
+    all_spectra(('pca', 'pca'), (4,2), abs_sig=1.0,
+                nchains=500)
     # INT/NMF
     all_spectra(('int', 'nmf'), (40,2), abs_sig=1.0,
                 nchains=25)
