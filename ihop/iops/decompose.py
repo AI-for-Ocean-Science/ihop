@@ -7,6 +7,10 @@ from importlib import resources
 
 from scipy.interpolate import interp1d
 
+from functools import partial
+from concurrent.futures import ProcessPoolExecutor
+from tqdm import tqdm
+
 from oceancolor.utils import pca
 
 from cnmf.oceanography.iops import tara_matched_to_l23
@@ -192,13 +196,14 @@ def reconstruct_nmf(Y:np.ndarray, nmf_dict:dict, idx:int):
 
     return orig, recon
 
-def reconstruct_int(Y:np.ndarray, int_dict:dict, idx:int):
+def reconstruct_int(Y:np.ndarray, int_dict:dict, idx:int,
+                    n_cores:int=10, single:bool=False):
     """
     Reconstructs the original data point from the INT-encoded representation.
 
     Args:
         Y (np.ndarray): The INT-encoded representation of the data point.
-            nchains, nfeatures
+            nchains, nfeatures or nfeatures
         int_dict (dict): A dictionary containing the Int transformation parameters.
         idx (int): The index of the data point to reconstruct.
 
@@ -210,9 +215,34 @@ def reconstruct_int(Y:np.ndarray, int_dict:dict, idx:int):
 
     # Do it (slowly!)
     # TODO -- Parallelize this
-    recon = np.zeros((Y.shape[0], int_dict['wave'].size))
-    for ichain in range(Y.shape[0]):
-        f = interp1d(int_dict['new_wave'], Y[ichain,:], kind='cubic')
-        recon[ichain,:] = f(int_dict['wave'])
+    map_fn = partial(partial_int)
+
+    if single:
+        items = [(int_dict['new_wave'], Y, int_dict['wave'])]
+    else:
+        items = [(int_dict['new_wave'], Y[ichain,:], int_dict['wave']) 
+             for ichain in range(Y.shape[0])]
+
+    with ProcessPoolExecutor(max_workers=n_cores) as executor:
+        chunksize = len(items) // n_cores if len(items) // n_cores > 0 else 1
+        recon = list(tqdm(executor.map(map_fn, items,
+                                            chunksize=chunksize), total=len(items)))
+
+    recon = np.array(recon)
+    #for ichain in range(Y.shape[0]):
+    #    f = interp1d(int_dict['new_wave'], Y[ichain,:], kind='cubic')
+    #    recon[ichain,:] = f(int_dict['wave'])
 
     return orig, recon
+
+
+def partial_int(items:list):
+    # Unpack
+    new_wave = items[0]
+    new_spec = items[1]
+    wave = items[2]
+
+    # Do it (slowly!)
+    f = interp1d(new_wave, new_spec, kind='cubic')
+    return f(wave)
+    

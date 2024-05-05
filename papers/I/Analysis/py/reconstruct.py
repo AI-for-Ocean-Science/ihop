@@ -142,6 +142,8 @@ def all_spectra(decomps:tuple, Ncomps:tuple,
     else:
         raise ValueError(f"Your decomps={decomps[0]} is not supported.")
 
+    # Original reconstruction 
+    embed(header='Check this 146')
     a_recons = []
     for idx in chain_idx:
         _, a_recon = rfunc(d_a[d_keys[decomps[0]]][idx], d_a, idx)
