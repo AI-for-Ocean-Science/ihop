@@ -6,6 +6,7 @@ import torch
 
 from ihop.iops.decompose import reconstruct_nmf
 from ihop.iops.decompose import reconstruct_pca
+from ihop.iops.decompose import reconstruct_int
 
 from IPython import embed
 
@@ -28,6 +29,19 @@ def chop_chains(chains:np.ndarray, burn:int=7000, thin:int=1):
     return chains
 
 def calc_Rrs(emulator, chains:np.ndarray):
+    """
+    Calculate Rrs values for each chain in the given emulator.
+
+    We take simple median here for the chains
+        but should take the full distribution for correlations. 
+
+    Args:
+        emulator: The emulator object used for prediction.
+        chains (np.ndarray): The chains containing coefficients for each spectrum.
+
+    Returns:
+        np.ndarray: An array of Rrs values calculated for each chain.
+    """
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -44,14 +58,28 @@ def calc_Rrs(emulator, chains:np.ndarray):
     # Turn into a numpy array
     return np.array(list_Rrs)
 
-def calc_iop(iop_chains:np.ndarray, decomp:str,
-           d_iop:dict):
+def calc_iop(iop_chains:np.ndarray, decomp:str, d_iop:dict):
+    """
+    Calculate the mean and standard deviation of the reconstructed IOPs.
+
+    Parameters:
+        iop_chains (np.ndarray): Array of IOP chains.
+        decomp (str): Decomposition method ('pca' or 'nmf').
+        d_iop (dict): Dictionary of IOP values.
+
+    Returns:
+        tuple: 
+            np.ndarray: Array of mean IOP values.
+            np.ndarray: Array of standard deviation of IOP values.
+    """
 
     # Prep
     if decomp == 'pca':
         rfunc = reconstruct_pca
     elif decomp == 'nmf':
         rfunc = reconstruct_nmf
+    elif decomp == 'int':
+        rfunc = reconstruct_int
     else:
         raise ValueError("Bad decomp")
 

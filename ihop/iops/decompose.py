@@ -91,7 +91,7 @@ def generate_int(iop_data:np.ndarray,
                  outfile:str, Ncomp:int, wave:np.ndarray,
                  clobber:bool=False, 
                  extras:dict=None):
-    """ Generate PCA model for input IOP 
+    """ Generate Interpolation model for input IOP 
 
     Args:
         iop_data (np.ndarray): IOP data (n_samples, n_features)
@@ -189,5 +189,30 @@ def reconstruct_nmf(Y:np.ndarray, nmf_dict:dict, idx:int):
 
     # Reconstruct
     recon = np.dot(Y, nmf_dict['M'])
+
+    return orig, recon
+
+def reconstruct_int(Y:np.ndarray, int_dict:dict, idx:int):
+    """
+    Reconstructs the original data point from the INT-encoded representation.
+
+    Args:
+        Y (np.ndarray): The INT-encoded representation of the data point.
+            nchains, nfeatures
+        int_dict (dict): A dictionary containing the Int transformation parameters.
+        idx (int): The index of the data point to reconstruct.
+
+    Returns:
+        tuple: A tuple containing the original data and its reconstructed version.
+    """
+    # Grab the original
+    orig = int_dict['data'][idx]
+
+    # Do it (slowly!)
+    # TODO -- Parallelize this
+    recon = np.zeros((Y.shape[0], int_dict['wave'].size))
+    for ichain in range(Y.shape[0]):
+        f = interp1d(int_dict['new_wave'], Y[ichain,:], kind='cubic')
+        recon[ichain,:] = f(int_dict['wave'])
 
     return orig, recon

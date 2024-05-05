@@ -6,6 +6,8 @@ import torch
 
 from ihop.iops.decompose import reconstruct_nmf
 from ihop.iops.decompose import reconstruct_pca
+from ihop.iops.decompose import reconstruct_int
+
 from ihop.emulators import io as emu_io
 from ihop import io as ihop_io
 from ihop.inference import io as inf_io
@@ -135,6 +137,10 @@ def all_spectra(decomps:tuple, Ncomps:tuple,
         rfunc = reconstruct_pca
     elif decomps[0] == 'nmf':
         rfunc = reconstruct_nmf
+    elif decomps[0] == 'int':
+        rfunc = reconstruct_int
+    else:
+        raise ValueError(f"Your decomps={decomps[0]} is not supported.")
 
     a_recons = []
     for idx in chain_idx:
@@ -155,6 +161,8 @@ def all_spectra(decomps:tuple, Ncomps:tuple,
         rfunc = reconstruct_pca
     elif decomps[1] == 'nmf':
         rfunc = reconstruct_nmf
+    else:
+        raise ValueError(f"Your decomps={decomps[1]} is not supported.")
 
     bb_recons = []
     for idx in chain_idx:
@@ -170,5 +178,11 @@ def all_spectra(decomps:tuple, Ncomps:tuple,
 if __name__ == '__main__':
 
     # NMF
-    all_spectra(('nmf', 'nmf'), (4,2), abs_sig=1.0,
-                nchains=500)
+    #all_spectra(('nmf', 'nmf'), (4,2), abs_sig=1.0,
+    #            nchains=500)
+    # PCA
+    #all_spectra(('pca', 'pca'), (4,2), abs_sig=1.0,
+    #            nchains=500)
+    # INT/NMF
+    all_spectra(('int', 'nmf'), (40,2), abs_sig=1.0,
+                nchains=25)

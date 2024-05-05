@@ -295,9 +295,7 @@ def fig_emulator_rmse(dataset:str, Ncomps:tuple, hidden_list:list,
 # ############################################################
 def fig_rmse_Rrs_a(decomps:tuple, outfile=str, 
         hidden_list:list=[512, 512, 512, 256], dataset:str='L23', use_quick:bool=False,
-        X:int=4, Y:int=0, show_zoom:bool=False, 
-        perc:int=None, abs_sig:float=None,
-        test:bool=False):
+        X:int=4, Y:int=0, abs_sig:float=None):
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -318,7 +316,8 @@ def fig_rmse_Rrs_a(decomps:tuple, outfile=str,
 
     # #############################
     # a
-    a_true = d_a['spec'][chain_idx]
+    tkey = 'spec' if decomps[0] == 'nmf' else 'data'
+    a_true = d_a[tkey][chain_idx]
 
     fit_diff = d_recon['fit_a_mean'] - a_true
     a_fit_RMSE = np.sqrt(np.mean((fit_diff)**2, axis=0))
@@ -927,7 +926,9 @@ def main(flg):
 
     # RMSE of Rrs and a
     if flg & (2**27):
-        fig_rmse_Rrs_a(('nmf', 'nmf'), 'fig_rmse_Rrs_a_nmfnmf.png',
+        #fig_rmse_Rrs_a(('nmf', 'nmf'), 'fig_rmse_Rrs_a_nmfnmf.png',
+        #               abs_sig=1.)
+        fig_rmse_Rrs_a(('pca', 'pca'), 'fig_rmse_Rrs_a_pcapca.png',
                        abs_sig=1.)
 
 
