@@ -78,15 +78,17 @@ def load(edict:dict):
     # Return
     return ab, Chl, Rs, emulator, d_a
 
-def fit_without_error(edict:dict, Nspec:int=None,
+def fit(edict:dict, Nspec:int=None, abs_sig:float=None,
                       debug:bool=False, n_cores:int=1,
                       max_wv:float=None):
     """
-    Fits the data without considering any errors.
+    Fits the data with or without considering any errors.
 
     Args:
         edict (dict): A dictionary containing the necessary information for fitting.
         Nspec (int): The number of spectra to fit. Default is None = all
+        abs_sig (float): The absolute value of the error to consider. Default is None.
+            if None, use no error!
         debug (bool): Whether to run in debug mode. Default is False.
         n_cores (int): The number of CPU cores to use for parallel processing. Default is 1.
         max_wv (float): The maximum wavelength to consider. Default is None.
@@ -98,13 +100,17 @@ def fit_without_error(edict:dict, Nspec:int=None,
     # Output
     root = emu_io.set_l23_emulator_root(edict)
     outroot = f'fit_Rs01_{root}'
+    if abs_sig is None:
+        outroot.replace('fit', 'fitN')
     if max_wv is not None:
         outroot += f'_max{int(max_wv)}'
 
     # Init MCMC
     pdict = init_mcmc(emulator, ab.shape[1]+1)
+
     # Include a non-zero error to avoid bad chi^2 behavior
-    pdict['abs_sig'] = 1.
+    if abs_sig is None:
+        pdict['abs_sig'] = 1.
 
     # Max wave?
     if max_wv is not None:
@@ -112,7 +118,10 @@ def fit_without_error(edict:dict, Nspec:int=None,
         pdict['cut'] = cut
 
     # No noise
-    use_Rs = Rs.copy()
+    if abs_sig is None:
+        use_Rs = Rs.copy()
+    else:
+        use_Rs = add_noise(Rs, abs_sig=abs_sig)
 
     # Prep
     if Nspec is None:
@@ -159,7 +168,7 @@ def test_fit(edict:dict, Nspec:int=100, abs_sig:float=None,
     # Select a random sample
     idx = select_spectra(Nspec, len(Chl))
 
-    # Add noise 
+    # Add noise fit_Rs01_L23_X4_Y0_pcapca_42_chl_Rrs_dense_512_512_512_256.npz
     use_Rs = add_noise(Rs, abs_sig=pdict['abs_sig'])
 
     # Prep                           #
@@ -173,6 +182,16 @@ def test_fit(edict:dict, Nspec:int=100, abs_sig:float=None,
 
 
 def save_fits(all_samples, all_idx, Rs, use_Rs, outroot):
+    """
+    Save the fitting results to a file.
+
+    Parameters:
+        all_samples (numpy.ndarray): Array of fitting chains.
+        all_idx (numpy.ndarray): Array of indices.
+        Rs (numpy.ndarray): Array of Rs values.
+        use_Rs (numpy.ndarray): Array of observed Rs values.
+        outroot (str): Root name for the output file.
+    """
     # Save
     outdir = 'Fits/L23'
     if not os.path.isdir(outdir):
@@ -202,7 +221,7 @@ def main(flg):
             'dense', hidden_list=hidden_list, include_chl=True, 
             X=X, Y=Y)
 
-        fit_without_error(edict, n_cores=n_cores)#, debug=True)
+        fit(edict, n_cores=n_cores)#, debug=True)
 
     # Noiseless, cut at 600nm
     if flg & (2**1):
@@ -222,7 +241,7 @@ def main(flg):
         # Analysis params
         max_wv=600.
 
-        fit_without_error(edict, n_cores=n_cores, max_wv=max_wv)#, debug=True)
+        fit(edict, n_cores=n_cores, max_wv=max_wv)#, debug=True)
 
     # Noiseless, PCA
     if flg & (2**2):
@@ -241,7 +260,7 @@ def main(flg):
 
         # Analysis params
 
-        fit_without_error(edict, n_cores=n_cores)
+        fit(edict, n_cores=n_cores)
 
     # Noiseless, INT/NMF
     if flg & (2**3):
@@ -259,10 +278,26 @@ def main(flg):
             include_chl=True, X=X, Y=Y)
 
         # Analysis params
-
-        fit_without_error(edict, n_cores=n_cores, 
+        fit(edict, n_cores=n_cores, 
                           Nspec=100)#, debug=True)
 
+    # PCA, abs_sig=1
+    if flg & (2**4):
+
+        # Emulator
+        hidden_list=[512, 512, 512, 256]
+        decomps = ('pca', 'pca')
+        Ncomps = (4,2)
+        X, Y = 4, 0
+        n_cores = 20
+        dataset = 'L23'
+        abs_sig = 1.
+        edict = emu_io.set_emulator_dict(
+            dataset, decomps, Ncomps, 'Rrs',
+            'dense', hidden_list=hidden_list, 
+            include_chl=True, X=X, Y=Y)
+
+        fit(edict, n_cores=n_cores, abs_sig=abs_sig)#, debug=True)
 
     # Testing
     if flg & (2**30):
@@ -286,10 +321,15 @@ if __name__ == '__main__':
 
     if len(sys.argv) == 1:
         flg = 0
+
+        # NOISELESS
         #flg += 2 ** 0  # 1 -- Noiseless
         #flg += 2 ** 1  # 2 -- Noiseless + cut at 600nm
         #flg += 2 ** 2  # 4 -- Noiseless, PCA 
         #flg += 2 ** 3  # 8 -- Noiseless, INT/NMF
+
+        # PCA with Noise
+        #flg += 2 ** 4  # 16 -- Noiseless, INT/NMF
 
         # Tests
         flg += 2 ** 30  # 16 -- L23 + NMF 4,2

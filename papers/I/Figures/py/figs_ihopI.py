@@ -294,11 +294,12 @@ def fig_emulator_rmse(dataset:str, Ncomps:tuple, hidden_list:list,
 
 # ############################################################
 def fig_rmse_Rrs_a(decomps:tuple, outfile=str, 
-        hidden_list:list=[512, 512, 512, 256], dataset:str='L23', use_quick:bool=False,
+        hidden_list:list=[512, 512, 512, 256], dataset:str='L23', 
         X:int=4, Y:int=0, abs_sig:float=None):
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+    # ######################
     # Load
     ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_full(
         decomps, Ncomps)
@@ -307,10 +308,12 @@ def fig_rmse_Rrs_a(decomps:tuple, outfile=str,
         dataset, decomps, Ncomps, 'Rrs',
         'dense', hidden_list=hidden_list, 
         include_chl=True, X=X, Y=Y)
+
+    # Load chains
     recon_file = os.path.join(
         '../Analysis/',
         os.path.basename(fitting_io.l23_chains_filename(
-        edict, int(abs_sig)).replace('fit', 'recon')))
+        edict, abs_sig).replace('fit', 'recon')))
     d_recon = np.load(recon_file)
     chain_idx = d_recon['idx']
 
@@ -390,8 +393,8 @@ def fig_rmse_Rrs_a(decomps:tuple, outfile=str,
 
     # All
     for ax in aaxes:
-        plotting.set_fontsize(ax, 15)
-        ax.legend()
+        plotting.set_fontsize(ax, 18)
+        ax.legend(fontsize=17.)
         ax.grid()
 
     plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
@@ -927,9 +930,9 @@ def main(flg):
     # RMSE of Rrs and a
     if flg & (2**27):
         #fig_rmse_Rrs_a(('nmf', 'nmf'), 'fig_rmse_Rrs_a_nmfnmf.png',
-        #               abs_sig=1.)
+        #               abs_sig=None)
         fig_rmse_Rrs_a(('pca', 'pca'), 'fig_rmse_Rrs_a_pcapca.png',
-                       abs_sig=1.)
+                       abs_sig=None)
 
 
 # Command line execution
@@ -948,7 +951,7 @@ if __name__ == '__main__':
 
         #flg += 2 ** 26  # Decompose error
 
-        flg += 2 ** 27  # Decompose error
+        flg += 2 ** 27  # RMSE on Rrs and a
 
         #flg += 2 ** 2  # 4 -- Indiv
         #flg += 2 ** 3  # 8 -- Coeff

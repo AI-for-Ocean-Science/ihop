@@ -96,7 +96,7 @@ def all_spectra(decomps:tuple, Ncomps:tuple,
 
     # Chains
     chain_file = inf_io.l23_chains_filename(
-        edict, perc if perc is not None else int(abs_sig)) 
+        edict, perc if perc is not None else abs_sig) 
     d_chains = inf_io.load_chains(chain_file)
 
     if nchains is not None:
@@ -181,12 +181,10 @@ def all_spectra(decomps:tuple, Ncomps:tuple,
 # Command line execution
 if __name__ == '__main__':
 
+    # Noiseless
     # NMF
-    all_spectra(('nmf', 'nmf'), (4,2), abs_sig=1.0,
-                nchains=500)
+    all_spectra(('nmf', 'nmf'), (4,2), abs_sig=None)# nchains=500)
     # PCA
-    all_spectra(('pca', 'pca'), (4,2), abs_sig=1.0,
-                nchains=500)
+    all_spectra(('pca', 'pca'), (4,2), abs_sig=None)#, nchains=500)
     # INT/NMF
-    all_spectra(('int', 'nmf'), (40,2), abs_sig=1.0,
-                nchains=25)
+    all_spectra(('int', 'nmf'), (40,2), abs_sig=None)#, nchains=100)
