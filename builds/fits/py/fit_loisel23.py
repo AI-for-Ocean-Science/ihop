@@ -282,7 +282,7 @@ def main(flg):
                           Nspec=100)#, debug=True)
 
     # PCA, abs_sig=1
-    if flg & (2**4):
+    if flg & (2**4): # 16
 
         # Emulator
         hidden_list=[512, 512, 512, 256]
@@ -296,6 +296,8 @@ def main(flg):
             dataset, decomps, Ncomps, 'Rrs',
             'dense', hidden_list=hidden_list, 
             include_chl=True, X=X, Y=Y)
+
+        fit(edict, n_cores=n_cores, abs_sig=abs_sig)#, debug=True)
 
     # PCA, abs_sig=2
     if flg & (2**5):
@@ -330,6 +332,8 @@ def main(flg):
             dataset, decomps, Ncomps, 'Rrs',
             'dense', hidden_list=hidden_list, 
             include_chl=True, X=X, Y=Y)
+
+        fit(edict, n_cores=n_cores, abs_sig=abs_sig)#, debug=True)
 
     # Testing
     if flg & (2**30):
