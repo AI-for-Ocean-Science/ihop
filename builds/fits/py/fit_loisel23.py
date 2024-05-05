@@ -14,7 +14,18 @@ from ihop.inference import io as fitting_io
 from IPython import embed
 
 def init_mcmc(emulator, ndim, perc:int=None, abs_sig:float=None):
-    # MCMC
+    """
+    Initializes the MCMC parameters.
+
+    Args:
+        emulator: The emulator model.
+        ndim (int): The number of dimensions.
+        perc (int): The scaling factor for the sigma parameter (optional).
+        abs_sig (float): The absolute sigma parameter (optional).
+
+    Returns:
+        dict: A dictionary containing the MCMC parameters.
+    """
     pdict = dict(model=emulator)
     pdict['nwalkers'] = max(16,ndim*2)
     pdict['nsteps'] = 10000
@@ -38,7 +49,7 @@ def add_noise(Rs, perc:int=None, abs_sig:float=None):
     Add random noise to the input array Rs.
 
     Parameters:
-        Rs (ndarray): Input array.
+        Rs (np.ndarray): Input array.
         perc (int, optional): Percentage of noise to be added as a fraction of Rs. Default is None.
         abs_sig (float, optional): Absolute value of noise to be added. Default is None.
 
@@ -106,13 +117,11 @@ def fit(edict:dict, Nspec:int=None, abs_sig:float=None,
         outroot += f'_max{int(max_wv)}'
 
     # Init MCMC
-    pdict = init_mcmc(emulator, ab.shape[1]+1)
+    pdict = init_mcmc(emulator, ab.shape[1]+1, abs_sig=abs_sig)
 
     # Include a non-zero error to avoid bad chi^2 behavior
     if abs_sig is None:
         pdict['abs_sig'] = 1.
-    else:
-        pdict['abs_sig'] = abs_sig
 
     # Max wave?
     if max_wv is not None:
