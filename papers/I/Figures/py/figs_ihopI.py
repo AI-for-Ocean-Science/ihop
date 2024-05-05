@@ -230,6 +230,8 @@ def fig_emulator_rmse(dataset:str, Ncomps:tuple, hidden_list:list,
         
         # RMSE
         rmse = np.sqrt(np.mean(dev**2, axis=0))
+        rRMSE = np.sqrt(np.mean((dev/targets)**2, axis=0))
+        #rRMSE = rmse/mean_Rs
 
         # Mean Rs
         mean_Rs = np.mean(targets, axis=0)
@@ -255,7 +257,6 @@ def fig_emulator_rmse(dataset:str, Ncomps:tuple, hidden_list:list,
 
         # #####################################################
         # Relative
-        rRMSE = rmse/mean_Rs
         ax_rel.plot(wave, rRMSE, 'o', color=clr)
         ax_rel.set_ylabel('rRMSE')
         #ax_rel.set_ylim(0., rRMSE.max()*1.05)
@@ -293,9 +294,9 @@ def fig_emulator_rmse(dataset:str, Ncomps:tuple, hidden_list:list,
 
 
 # ############################################################
-def fig_rmse_Rrs_a(decomps:tuple, outfile=str, 
-        hidden_list:list=[512, 512, 512, 256], dataset:str='L23', 
-        X:int=4, Y:int=0, abs_sig:float=None):
+def fig_rmse_Rrs_a(decomps:tuple, Ncomps:tuple, outfile=str, 
+                   hidden_list:list=[512, 512, 512, 256], dataset:str='L23', 
+            X:int=4, Y:int=0, abs_sig:float=None):
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -340,8 +341,7 @@ def fig_rmse_Rrs_a(decomps:tuple, outfile=str,
                                 axis=0))
 
     corr_diff = d_recon['corr_Rrs'] - Rs[chain_idx]
-    corr_rrmse = np.sqrt(np.mean((corr_diff/Rs[chain_idx])**2, 
-                                axis=0))
+    corr_rrmse = np.sqrt(np.mean((corr_diff/Rs[chain_idx])**2, axis=0))
 
     # ######################################################
     # ######################################################
@@ -356,8 +356,8 @@ def fig_rmse_Rrs_a(decomps:tuple, outfile=str,
     ax_R = plt.subplot(gs[0])
     aaxes.append(ax_R)
 
-    ax_R.plot(wave, fit_rrmse, 'kx', label='Correct')
-    ax_R.plot(wave, corr_rrmse, 'ro', label='Fit')
+    ax_R.plot(wave, fit_rrmse, 'kx', label='Fit')
+    ax_R.plot(wave, corr_rrmse, 'ro', label='Correct')
 
     ax_R.set_ylim(0., 0.05)
 
@@ -929,11 +929,12 @@ def main(flg):
 
     # RMSE of Rrs and a
     if flg & (2**27):
-        #fig_rmse_Rrs_a(('nmf', 'nmf'), 'fig_rmse_Rrs_a_nmfnmf.png',
-        #               abs_sig=None)
-        fig_rmse_Rrs_a(('pca', 'pca'), 'fig_rmse_Rrs_a_pcapca.png',
+        fig_rmse_Rrs_a(('nmf', 'nmf'), (4,2),'fig_rmse_Rrs_a_nmfnmf.png',
                        abs_sig=None)
-
+        fig_rmse_Rrs_a(('pca', 'pca'), (4,2),'fig_rmse_Rrs_a_pcapca.png',
+                      abs_sig=None)
+        fig_rmse_Rrs_a(('int', 'nmf'), (40,2), 'fig_rmse_Rrs_a_intnmf.png',
+                       abs_sig=None)
 
 # Command line execution
 if __name__ == '__main__':
@@ -943,6 +944,7 @@ if __name__ == '__main__':
         flg = 0
 
         #flg += 2 ** 0  # Basis functions of the decomposition
+
         #flg += 2 ** 20  # RMSE of emulators
         #flg += 2 ** 21  # Single MCMC fit (example)
         #flg += 2 ** 22  # RMSE of L23 fits
