@@ -297,7 +297,39 @@ def main(flg):
             'dense', hidden_list=hidden_list, 
             include_chl=True, X=X, Y=Y)
 
+    # PCA, abs_sig=2
+    if flg & (2**5):
+
+        # Emulator
+        hidden_list=[512, 512, 512, 256]
+        decomps = ('pca', 'pca')
+        Ncomps = (4,2)
+        X, Y = 4, 0
+        n_cores = 20
+        dataset = 'L23'
+        abs_sig = 2.
+        edict = emu_io.set_emulator_dict(
+            dataset, decomps, Ncomps, 'Rrs',
+            'dense', hidden_list=hidden_list, 
+            include_chl=True, X=X, Y=Y)
+
         fit(edict, n_cores=n_cores, abs_sig=abs_sig)#, debug=True)
+
+    # PCA, abs_sig=5
+    if flg & (2**6):
+
+        # Emulator
+        hidden_list=[512, 512, 512, 256]
+        decomps = ('pca', 'pca')
+        Ncomps = (4,2)
+        X, Y = 4, 0
+        n_cores = 20
+        dataset = 'L23'
+        abs_sig = 5.
+        edict = emu_io.set_emulator_dict(
+            dataset, decomps, Ncomps, 'Rrs',
+            'dense', hidden_list=hidden_list, 
+            include_chl=True, X=X, Y=Y)
 
     # Testing
     if flg & (2**30):
@@ -329,7 +361,9 @@ if __name__ == '__main__':
         #flg += 2 ** 3  # 8 -- Noiseless, INT/NMF
 
         # PCA with Noise
-        #flg += 2 ** 4  # 16 -- Noiseless, INT/NMF
+        #flg += 2 ** 4  # 16 -- PCA, abs_sig=1
+        #flg += 2 ** 5  # 32 -- PCA, abs_sig=2
+        #flg += 2 ** 6  # 64 -- PCA, abs_sig=5
 
         # Tests
         flg += 2 ** 30  # 16 -- L23 + NMF 4,2

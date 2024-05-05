@@ -1,9 +1,9 @@
-# Script to fit L23 with PCA decomposition; m=42
+# Script to fit L23 with PCA decomposition and abs_sig=1; m=42
 # kubectl exec -it test-pod -- /bin/bash
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-ihop-fit-l23-pca-m42
+  name: xavier-ihop-fit-l23-pca-m42-01
 spec:
   backoffLimit: 0
   template:
@@ -56,7 +56,7 @@ spec:
             pip install -e ".[dev]";
             cd builds/fits;
             aws --endpoint https://s3-west.nrp-nautilus.io s3 cp s3://ihop/OS_COLOR/data/Loisel2023/Hydrolight400.nc .;
-            python -u py/fit_loisel23.py 4;
+            python -u py/fit_loisel23.py 16;
             aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp Fits s3://ihop/Fits --recursive --force;
         env:
           - name: "ENDPOINT_URL"
