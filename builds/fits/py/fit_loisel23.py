@@ -109,11 +109,9 @@ def fit(edict:dict, Nspec:int=None, abs_sig:float=None,
     ab, Chl, Rs, emulator, d_a = load(edict)
 
     # Output
-    root = emu_io.set_l23_emulator_root(edict)
-    outroot = f'fit_Rs01_{root}'
-    if abs_sig is None:
-        outroot.replace('fit', 'fitN')
+    outfile = os.path.basename(fitting_io.l23_chains_filename(edict, abs_sig))
     if max_wv is not None:
+        embed(header='NEED TO FIX OUTFILE; 115 of fit_loisel23.py')
         outroot += f'_max{int(max_wv)}'
 
     # Init MCMC
@@ -147,7 +145,7 @@ def fit(edict:dict, Nspec:int=None, abs_sig:float=None,
     all_samples, all_idx = fitting.fit_batch(pdict, items,
                                              n_cores=n_cores)
     # Save
-    save_fits(all_samples, all_idx, Rs, use_Rs, outroot)
+    save_fits(all_samples, all_idx, Rs, use_Rs, outfile)
 
 def test_fit(edict:dict, Nspec:int=100, abs_sig:float=None,
              debug:bool=False, n_cores:int=1): 
@@ -326,7 +324,7 @@ def main(flg):
             'dense', hidden_list=hidden_list, 
             include_chl=True, X=X, Y=Y)
 
-        fit(edict, n_cores=n_cores, abs_sig=abs_sig)#, debug=True)
+        fit(edict, n_cores=n_cores, abs_sig=abs_sig, debug=True)
 
     # PCA, abs_sig=5
     if flg & (2**6): # 64
