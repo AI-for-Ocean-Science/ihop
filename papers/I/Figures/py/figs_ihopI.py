@@ -52,6 +52,32 @@ clbls = [r'$H_'+f'{ii+2}'+r'^{a}$' for ii in range(Ncomps[0])]
 clbls += [r'$H_'+f'{ii+2}'+r'^{bb}$' for ii in range(Ncomps[1])]
 clbls += ['Chl']
 
+def calc_rmses(d_a, d_recon, a_decomp):
+    
+    a_items = {}
+    # #############################
+    # a
+    tkey = 'spec' if a_decomp == 'nmf' else 'data'
+    chain_idx = d_recon['idx']
+    a_true = d_a[tkey][chain_idx]
+
+    fit_diff = d_recon['fit_a_mean'] - a_true
+    a_fit_RMSE = np.sqrt(np.mean((fit_diff)**2, axis=0))
+    a_fit_MAD = np.median(np.abs(fit_diff), axis=0)
+
+    # Set min
+    a_true_min = np.maximum(a_true, 1e-4)
+    a_fit_rMAD = np.median(np.abs(fit_diff/a_true_min), axis=0)
+    a_fit_rRMSE = np.sqrt(np.mean((fit_diff/a_true_min)**2, axis=0))
+
+    a_items['a_fit_RMSE'] = a_fit_RMSE
+    a_items['a_fit_MAD'] = a_fit_MAD
+    a_items['a_fit_rMAD'] = a_fit_rMAD
+    a_items['a_fit_rRMSE'] = a_fit_rRMSE
+
+    return a_items
+
+
 def fig_basis_functions(decomps:tuple,
                         outfile:str='fig_basis_functions.png', 
                         norm:bool=False):
@@ -342,10 +368,10 @@ def fig_rmse_Rrs_a(decomps:tuple, Ncomps:tuple, outfile:str,
 
     corr_diff = d_recon['corr_Rrs'] - Rs[chain_idx]
     corr_rrmse = np.sqrt(np.mean((corr_diff/Rs[chain_idx])**2, axis=0))
-    embed(header='345 of figs')
-    ii = 275
-    frmse = np.sum(fit_diff[ii,:]**2)
-    crmse = np.sum(corr_diff[ii,:]**2)
+    
+    #ii = 275
+    #frmse = np.sum(fit_diff[ii,:]**2)
+    #crmse = np.sum(corr_diff[ii,:]**2)
 
     # ######################################################
     # ######################################################
@@ -411,8 +437,6 @@ def fig_rmse_a_error(decomps:tuple, Ncomps:tuple, outfile:str,
                      abs_sigs:list, hidden_list:list=[512, 512, 512, 256], 
                      dataset:str='L23', X:int=4, Y:int=0):
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
     # ######################
     # Load
     ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_full(
@@ -427,98 +451,60 @@ def fig_rmse_a_error(decomps:tuple, Ncomps:tuple, outfile:str,
     recon_file = os.path.join(
         '../Analysis/',
         os.path.basename(fitting_io.l23_chains_filename(
-        edict, abs_sig).replace('fit', 'recon')))
-    d_recon = np.load(recon_file)
-    chain_idx = d_recon['idx']
+        edict, None).replace('fit', 'recon')))
+    d_nless = np.load(recon_file)
+    a_nless = calc_rmses(d_a, d_nless, decomps[0])
 
     # Loop on abs_sigs
+    a_rmses = []
+    for abs_sig in abs_sigs:
 
-    # Load chains
-    recon_file = os.path.join(
-        '../Analysis/',
-        os.path.basename(fitting_io.l23_chains_filename(
-        edict, abs_sig).replace('fit', 'recon')))
-    d_recon = np.load(recon_file)
-    chain_idx = d_recon['idx']
+        # #############################
 
-    # #############################
-    # a
-    tkey = 'spec' if decomps[0] == 'nmf' else 'data'
-    a_true = d_a[tkey][chain_idx]
+        # Load chains
+        recon_file = os.path.join(
+            '../Analysis/',
+            os.path.basename(fitting_io.l23_chains_filename(
+            edict, abs_sig).replace('fit', 'recon')))
+        d_recon = np.load(recon_file)
+        chain_idx = d_recon['idx']
 
-    fit_diff = d_recon['fit_a_mean'] - a_true
-    a_fit_RMSE = np.sqrt(np.mean((fit_diff)**2, axis=0))
-    a_fit_MAD = np.median(np.abs(fit_diff), axis=0)
-
-    # Set min
-    a_true_min = np.maximum(a_true, 1e-4)
-    a_fit_rMAD = np.median(np.abs(fit_diff/a_true_min), axis=0)
-    a_fit_rRMSE = np.sqrt(np.mean((fit_diff/a_true_min)**2, axis=0))
-
-    # ############################
-    # Calc Rrs
-
-    # RMSE
-    fit_diff = d_recon['fit_Rrs'] - Rs[chain_idx]
-    fit_rrmse = np.sqrt(np.mean((fit_diff/Rs[chain_idx])**2, 
-                                axis=0))
-
-    corr_diff = d_recon['corr_Rrs'] - Rs[chain_idx]
-    corr_rrmse = np.sqrt(np.mean((corr_diff/Rs[chain_idx])**2, axis=0))
+        a_recon = calc_rmses(d_a, d_recon, decomps[0])
+        a_rmses.append(a_recon)
 
     # ######################################################
     # ######################################################
     fig = plt.figure(figsize=(12,8))
     plt.clf()
-    gs = gridspec.GridSpec(3,1)
+    gs = gridspec.GridSpec(2,2)
 
     aaxes = [] 
+    akeys = ['a_fit_MAD', 'a_fit_RMSE',
+             'a_fit_rMAD', 'a_fit_rRMSE']
+    ylbls = [r'Absolute $a_{\rm nw}(\lambda)$ MAD', 
+             r'Absolute $a_{\rm nw}(\lambda)$ RMSE',
+                r'Relative $a_{\rm nw}(\lambda)$ MAD',
+                r'Relative $a_{\rm nw}(\lambda)$ RMSE']
 
-    # ##############################
-    # Rrs
-    ax_R = plt.subplot(gs[0])
-    aaxes.append(ax_R)
+    for tt, akey, ylbl in zip(range(len(akeys)), akeys, ylbls):
+        ax= plt.subplot(gs[tt])
+        aaxes.append(ax)
 
-    ax_R.plot(wave, fit_rrmse, 'ro', label='Fit')
-    ax_R.plot(wave, corr_rrmse, 'kx', label='Correct')
+        ax.plot(wave, a_nless[akey], 'kx', label='Noiseless')
+        for ss, abs_sig in enumerate(abs_sigs):
+            ax.plot(wave, a_rmses[ss][akey], 'o', label=f'abs_sig={abs_sig}')
 
-    ax_R.set_ylim(0., 0.05)
-
-
-    ax_R.legend()
-    ax_R.set_ylabel(r'RMSE $R_{\rm rs}$')
-    ax_R.tick_params(labelbottom=False)  # Hide x-axis labels
-
-
-    # ##############################
-    # Absolute a
-    ax_a = plt.subplot(gs[1])
-    aaxes.append(ax_a)
-
-    ax_a.plot(wave, a_fit_MAD, 'bo', label='Fit MAD')
-    ax_a.plot(wave, a_fit_RMSE, 'ro', label='Fit RMSE')
-
-    ax_a.set_ylabel(r'Absolute $a_{\rm nw}(\lambda)$ Error')
-    ax_a.tick_params(labelbottom=False)  # Hide x-axis labels
-
-    # ##############################
-    # Relative a
-    ax_ra = plt.subplot(gs[2])
-    aaxes.append(ax_ra)
-
-    ax_ra.set_ylabel(r'Relative $a_{\rm nw}(\lambda)$ Error')
-
-    ax_ra.plot(wave, a_fit_rMAD, 'ks', label='Fit rMAD')
-    ax_ra.plot(wave, a_fit_rRMSE, 'gs', label='Fit rRMSE')
-
-    ax_ra.set_ylim(0., 0.2)
-    ax_ra.set_xlabel('Wavelength (nm)')
+        ax.set_ylabel(ylbl)
 
     # All
-    for ax in aaxes:
+    for ii, ax in enumerate(aaxes):
         plotting.set_fontsize(ax, 18)
         ax.legend(fontsize=17.)
         ax.grid()
+        if ii > 1:
+            ax.set_xlabel('Wavelength (nm)')
+        else:
+            ax.tick_params(labelbottom=False)  # Hide x-axis labels
 
     plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
     plt.savefig(outfile, dpi=300)
@@ -1059,6 +1045,11 @@ def main(flg):
         #fig_rmse_Rrs_a(('int', 'nmf'), (40,2), 'fig_rmse_Rrs_a_intnmf.png',
         #               abs_sig=None)
 
+    # RMSE of Rrs and a
+    if flg & (2**28):
+        fig_rmse_a_error(('pca', 'pca'), (4,2), 
+                         'fig_rmse_a_error_pcapca.png', [1.])
+
 # Command line execution
 if __name__ == '__main__':
     import sys
@@ -1076,7 +1067,8 @@ if __name__ == '__main__':
 
         #flg += 2 ** 26  # Decompose error
 
-        flg += 2 ** 27  # RMSE on Rrs and a
+        #flg += 2 ** 27  # RMSE on Rrs and a
+        flg += 2 ** 28  # RMSE on a vs. abs_sig
 
         #flg += 2 ** 2  # 4 -- Indiv
         #flg += 2 ** 3  # 8 -- Coeff

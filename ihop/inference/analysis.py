@@ -58,7 +58,6 @@ def calc_Rrs(emulator, chains:np.ndarray, quick_and_dirty:bool=False,
     list_Rrs = []
     if quick_and_dirty:
         coeff_med = np.median(chains, axis=1)
-
         # Calc Rrs
         for ss in range(nspec):
             Rs = emulator.prediction(coeff_med[ss,:], device)

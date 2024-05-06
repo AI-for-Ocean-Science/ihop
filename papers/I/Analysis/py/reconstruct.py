@@ -78,7 +78,7 @@ def all_spectra(decomps:tuple, Ncomps:tuple,
                 hidden_list:list=[512, 512, 512, 256], 
                 dataset:str='L23', perc:int=None, 
                 abs_sig:float=None, nchains:int=None,
-                X:int=4, Y:int=0):
+                X:int=4, Y:int=0, quick_and_dirty:bool=False):
 
     d_keys = dict(pca='Y', nmf='coeff', int='new_spec')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -117,7 +117,8 @@ def all_spectra(decomps:tuple, Ncomps:tuple,
 
     # ##############
     # Rrs
-    fit_Rrs = inf_analysis.calc_Rrs(emulator, chains, verbose=True)
+    fit_Rrs = inf_analysis.calc_Rrs(
+        emulator, chains, quick_and_dirty=quick_and_dirty, verbose=False)
     outputs['fit_Rrs'] = fit_Rrs
 
     # Correct estimates
@@ -187,13 +188,13 @@ def all_spectra(decomps:tuple, Ncomps:tuple,
 if __name__ == '__main__':
 
     # Noiseless
-    all_spectra(('nmf', 'nmf'), (4,2), abs_sig=None, nchains=300)
     '''
+    all_spectra(('nmf', 'nmf'), (4,2), abs_sig=None, nchains=300)
     all_spectra(('pca', 'pca'), (4,2), abs_sig=None)#, nchains=500)
     all_spectra(('int', 'nmf'), (40,2), abs_sig=None)#, nchains=100)
     '''
 
     # PCA with noise
-    #all_spectra(('pca', 'pca'), (4,2), abs_sig=1.)#, nchains=500)
-    #all_spectra(('pca', 'pca'), (4,2), abs_sig=2.)#, nchains=500)
-    #all_spectra(('pca', 'pca'), (4,2), abs_sig=5.)#, nchains=500)
+    #all_spectra(('pca', 'pca'), (4,2), abs_sig=1., quick_and_dirty=True)#, nchains=500)
+    all_spectra(('pca', 'pca'), (4,2), abs_sig=2.)#, nchains=500)
+    all_spectra(('pca', 'pca'), (4,2), abs_sig=5.)#, nchains=500)
