@@ -1,8 +1,12 @@
 """ Methods for paper specfici reconstruction """
 
+from importlib import reload 
+
 import os
 import numpy as np
 import torch
+
+import datetime
 
 from ihop.iops.decompose import reconstruct_nmf
 from ihop.iops.decompose import reconstruct_pca
@@ -69,6 +73,7 @@ def one_spectrum(in_idx:int, ab, Chl, d_chains, d_a, d_bb, emulator,
         pred_Rs, std_pred, NN_Rs, allY, wave,\
         orig_bb, bb_mean, bb_std, a_nmf, bb_nmf
 
+# #############################################################################3
 def all_spectra(decomps:tuple, Ncomps:tuple, 
                 hidden_list:list=[512, 512, 512, 256], 
                 dataset:str='L23', perc:int=None, 
@@ -92,7 +97,7 @@ def all_spectra(decomps:tuple, Ncomps:tuple,
     emulator, e_file = emu_io.load_emulator_from_dict(edict)
 
     outfile = os.path.basename(fitting_io.l23_chains_filename(
-        edict, int(abs_sig)).replace('fit', 'recon'))
+        edict, abs_sig).replace('fit', 'recon'))
 
     # Chains
     chain_file = inf_io.l23_chains_filename(
@@ -112,7 +117,7 @@ def all_spectra(decomps:tuple, Ncomps:tuple,
 
     # ##############
     # Rrs
-    fit_Rrs = inf_analysis.calc_Rrs(emulator, chains)
+    fit_Rrs = inf_analysis.calc_Rrs(emulator, chains, verbose=True)
     outputs['fit_Rrs'] = fit_Rrs
 
     # Correct estimates
@@ -182,9 +187,13 @@ def all_spectra(decomps:tuple, Ncomps:tuple,
 if __name__ == '__main__':
 
     # Noiseless
-    # NMF
-    all_spectra(('nmf', 'nmf'), (4,2), abs_sig=None)# nchains=500)
-    # PCA
+    all_spectra(('nmf', 'nmf'), (4,2), abs_sig=None, nchains=300)
+    '''
     all_spectra(('pca', 'pca'), (4,2), abs_sig=None)#, nchains=500)
-    # INT/NMF
     all_spectra(('int', 'nmf'), (40,2), abs_sig=None)#, nchains=100)
+    '''
+
+    # PCA with noise
+    #all_spectra(('pca', 'pca'), (4,2), abs_sig=1.)#, nchains=500)
+    #all_spectra(('pca', 'pca'), (4,2), abs_sig=2.)#, nchains=500)
+    #all_spectra(('pca', 'pca'), (4,2), abs_sig=5.)#, nchains=500)

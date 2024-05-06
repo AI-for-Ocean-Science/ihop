@@ -1,8 +1,13 @@
 """ Module to analyze the Inference outputs (i.e. chains) """
+import datetime
 
 import numpy as np
 
 import torch
+
+from functools import partial
+from concurrent.futures import ProcessPoolExecutor
+from tqdm import tqdm
 
 from ihop.iops.decompose import reconstruct_nmf
 from ihop.iops.decompose import reconstruct_pca
@@ -28,7 +33,8 @@ def chop_chains(chains:np.ndarray, burn:int=7000, thin:int=1):
     chains = chains[:, burn::thin, :, :].reshape(nspec, -1, chains.shape[-1])
     return chains
 
-def calc_Rrs(emulator, chains:np.ndarray):
+def calc_Rrs(emulator, chains:np.ndarray, quick_and_dirty:bool=False,
+             verbose:bool=False):
     """
     Calculate Rrs values for each chain in the given emulator.
 
@@ -38,6 +44,7 @@ def calc_Rrs(emulator, chains:np.ndarray):
     Args:
         emulator: The emulator object used for prediction.
         chains (np.ndarray): The chains containing coefficients for each spectrum.
+        quick_and_dirty (bool, optional): Flag to use a quick and dirty method. Defaults to False.
 
     Returns:
         np.ndarray: An array of Rrs values calculated for each chain.
@@ -47,16 +54,29 @@ def calc_Rrs(emulator, chains:np.ndarray):
 
     # Find the median coefficients
     nspec = chains.shape[0]
-    coeff_med = np.median(chains, axis=1)
 
-    # Calc Rrs
     list_Rrs = []
-    for ss in range(nspec):
-        Rs = emulator.prediction(coeff_med[ss,:], device)
-        list_Rrs.append(Rs)
+    if quick_and_dirty:
+        coeff_med = np.median(chains, axis=1)
+
+        # Calc Rrs
+        for ss in range(nspec):
+            Rs = emulator.prediction(coeff_med[ss,:], device)
+            list_Rrs.append(Rs)
+    else:
+        start = datetime.datetime.now()
+        for ss in range(nspec):
+            tmp = []
+            for item in chains[ss]:
+                pred_Rs = emulator.prediction(item, device)
+                tmp.append(pred_Rs)
+            list_Rrs.append(np.median(np.array(tmp), axis=0))
+            if verbose and (ss % 10) == 0:
+                print(f'{ss} in {(datetime.datetime.now()-start).seconds}s')
 
     # Turn into a numpy array
     return np.array(list_Rrs)
+
 
 def calc_iop(iop_chains:np.ndarray, decomp:str, d_iop:dict):
     """

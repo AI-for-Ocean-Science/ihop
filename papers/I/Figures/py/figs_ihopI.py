@@ -294,7 +294,7 @@ def fig_emulator_rmse(dataset:str, Ncomps:tuple, hidden_list:list,
 
 
 # ############################################################
-def fig_rmse_Rrs_a(decomps:tuple, Ncomps:tuple, outfile=str, 
+def fig_rmse_Rrs_a(decomps:tuple, Ncomps:tuple, outfile:str, 
                    hidden_list:list=[512, 512, 512, 256], dataset:str='L23', 
             X:int=4, Y:int=0, abs_sig:float=None):
 
@@ -342,6 +342,10 @@ def fig_rmse_Rrs_a(decomps:tuple, Ncomps:tuple, outfile=str,
 
     corr_diff = d_recon['corr_Rrs'] - Rs[chain_idx]
     corr_rrmse = np.sqrt(np.mean((corr_diff/Rs[chain_idx])**2, axis=0))
+    embed(header='345 of figs')
+    ii = 275
+    frmse = np.sum(fit_diff[ii,:]**2)
+    crmse = np.sum(corr_diff[ii,:]**2)
 
     # ######################################################
     # ######################################################
@@ -356,8 +360,127 @@ def fig_rmse_Rrs_a(decomps:tuple, Ncomps:tuple, outfile=str,
     ax_R = plt.subplot(gs[0])
     aaxes.append(ax_R)
 
-    ax_R.plot(wave, fit_rrmse, 'kx', label='Fit')
-    ax_R.plot(wave, corr_rrmse, 'ro', label='Correct')
+    ax_R.plot(wave, fit_rrmse, 'ro', label='Fit')
+    ax_R.plot(wave, corr_rrmse, 'kx', label='Correct')
+
+    ax_R.set_ylim(0., 0.05)
+
+
+    ax_R.legend()
+    ax_R.set_ylabel(r'RMSE $R_{\rm rs}$')
+    ax_R.tick_params(labelbottom=False)  # Hide x-axis labels
+
+
+    # ##############################
+    # Absolute a
+    ax_a = plt.subplot(gs[1])
+    aaxes.append(ax_a)
+
+    ax_a.plot(wave, a_fit_MAD, 'bo', label='Fit MAD')
+    ax_a.plot(wave, a_fit_RMSE, 'ro', label='Fit RMSE')
+
+    ax_a.set_ylabel(r'Absolute $a_{\rm nw}(\lambda)$ Error')
+    ax_a.tick_params(labelbottom=False)  # Hide x-axis labels
+
+    # ##############################
+    # Relative a
+    ax_ra = plt.subplot(gs[2])
+    aaxes.append(ax_ra)
+
+    ax_ra.set_ylabel(r'Relative $a_{\rm nw}(\lambda)$ Error')
+
+    ax_ra.plot(wave, a_fit_rMAD, 'ks', label='Fit rMAD')
+    ax_ra.plot(wave, a_fit_rRMSE, 'gs', label='Fit rRMSE')
+
+    ax_ra.set_ylim(0., 0.2)
+    ax_ra.set_xlabel('Wavelength (nm)')
+
+    # All
+    for ax in aaxes:
+        plotting.set_fontsize(ax, 18)
+        ax.legend(fontsize=17.)
+        ax.grid()
+
+    plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
+    plt.savefig(outfile, dpi=300)
+    print(f"Saved: {outfile}")
+
+
+# ############################################################
+def fig_rmse_a_error(decomps:tuple, Ncomps:tuple, outfile:str, 
+                     abs_sigs:list, hidden_list:list=[512, 512, 512, 256], 
+                     dataset:str='L23', X:int=4, Y:int=0):
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    # ######################
+    # Load
+    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_full(
+        decomps, Ncomps)
+    wave = d_a['wave']
+    edict = emu_io.set_emulator_dict(
+        dataset, decomps, Ncomps, 'Rrs',
+        'dense', hidden_list=hidden_list, 
+        include_chl=True, X=X, Y=Y)
+
+    # Noiseless
+    recon_file = os.path.join(
+        '../Analysis/',
+        os.path.basename(fitting_io.l23_chains_filename(
+        edict, abs_sig).replace('fit', 'recon')))
+    d_recon = np.load(recon_file)
+    chain_idx = d_recon['idx']
+
+    # Loop on abs_sigs
+
+    # Load chains
+    recon_file = os.path.join(
+        '../Analysis/',
+        os.path.basename(fitting_io.l23_chains_filename(
+        edict, abs_sig).replace('fit', 'recon')))
+    d_recon = np.load(recon_file)
+    chain_idx = d_recon['idx']
+
+    # #############################
+    # a
+    tkey = 'spec' if decomps[0] == 'nmf' else 'data'
+    a_true = d_a[tkey][chain_idx]
+
+    fit_diff = d_recon['fit_a_mean'] - a_true
+    a_fit_RMSE = np.sqrt(np.mean((fit_diff)**2, axis=0))
+    a_fit_MAD = np.median(np.abs(fit_diff), axis=0)
+
+    # Set min
+    a_true_min = np.maximum(a_true, 1e-4)
+    a_fit_rMAD = np.median(np.abs(fit_diff/a_true_min), axis=0)
+    a_fit_rRMSE = np.sqrt(np.mean((fit_diff/a_true_min)**2, axis=0))
+
+    # ############################
+    # Calc Rrs
+
+    # RMSE
+    fit_diff = d_recon['fit_Rrs'] - Rs[chain_idx]
+    fit_rrmse = np.sqrt(np.mean((fit_diff/Rs[chain_idx])**2, 
+                                axis=0))
+
+    corr_diff = d_recon['corr_Rrs'] - Rs[chain_idx]
+    corr_rrmse = np.sqrt(np.mean((corr_diff/Rs[chain_idx])**2, axis=0))
+
+    # ######################################################
+    # ######################################################
+    fig = plt.figure(figsize=(12,8))
+    plt.clf()
+    gs = gridspec.GridSpec(3,1)
+
+    aaxes = [] 
+
+    # ##############################
+    # Rrs
+    ax_R = plt.subplot(gs[0])
+    aaxes.append(ax_R)
+
+    ax_R.plot(wave, fit_rrmse, 'ro', label='Fit')
+    ax_R.plot(wave, corr_rrmse, 'kx', label='Correct')
 
     ax_R.set_ylim(0., 0.05)
 
@@ -931,10 +1054,10 @@ def main(flg):
     if flg & (2**27):
         fig_rmse_Rrs_a(('nmf', 'nmf'), (4,2),'fig_rmse_Rrs_a_nmfnmf.png',
                        abs_sig=None)
-        fig_rmse_Rrs_a(('pca', 'pca'), (4,2),'fig_rmse_Rrs_a_pcapca.png',
-                      abs_sig=None)
-        fig_rmse_Rrs_a(('int', 'nmf'), (40,2), 'fig_rmse_Rrs_a_intnmf.png',
-                       abs_sig=None)
+        #fig_rmse_Rrs_a(('pca', 'pca'), (4,2),'fig_rmse_Rrs_a_pcapca.png',
+        #              abs_sig=None)
+        #fig_rmse_Rrs_a(('int', 'nmf'), (40,2), 'fig_rmse_Rrs_a_intnmf.png',
+        #               abs_sig=None)
 
 # Command line execution
 if __name__ == '__main__':
