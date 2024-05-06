@@ -197,4 +197,4 @@ if __name__ == '__main__':
     # PCA with noise
     #all_spectra(('pca', 'pca'), (4,2), abs_sig=1., quick_and_dirty=True)#, nchains=500)
     all_spectra(('pca', 'pca'), (4,2), abs_sig=2., quick_and_dirty=True)#, nchains=500)
-    all_spectra(('pca', 'pca'), (4,2), abs_sig=5., quick_and_dirty=True)#, nchains=500)
+    #all_spectra(('pca', 'pca'), (4,2), abs_sig=5., quick_and_dirty=True)#, nchains=500)

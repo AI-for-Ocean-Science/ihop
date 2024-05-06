@@ -514,6 +514,102 @@ def fig_rmse_a_error(decomps:tuple, Ncomps:tuple, outfile:str,
     print(f"Saved: {outfile}")
 
 # ############################################################
+def fig_a_examples(decomps:tuple, Ncomps:tuple, outfile:str, 
+                     abs_sigs:list, hidden_list:list=[512, 512, 512, 256], 
+                     dataset:str='L23', X:int=4, Y:int=0):
+
+    # ######################
+    # Load
+    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_full(
+        decomps, Ncomps)
+    wave = d_a['wave']
+    edict = emu_io.set_emulator_dict(
+        dataset, decomps, Ncomps, 'Rrs',
+        'dense', hidden_list=hidden_list, 
+        include_chl=True, X=X, Y=Y)
+
+    # Set the indices
+    tkey = 'spec' if decomps[0] == 'nmf' else 'data'
+    i440 = np.argmin(np.abs(wave-440.))
+    i_min = np.argmin(d_a[tkey][:,i440])
+    i_max = np.argmax(d_a[tkey][:,i440])
+    a_med = np.median(d_a[tkey][:,i440])
+    i_med = np.argmin(np.abs(d_a[tkey][:,i440] - a_med))
+
+    i_random = np.random.choice(d_a[tkey].shape[0], 1)[0]
+
+    # Noiseless
+    recon_file = os.path.join(
+        '../Analysis/',
+        os.path.basename(fitting_io.l23_chains_filename(
+        edict, None).replace('fit', 'recon')))
+    d_nless = np.load(recon_file)
+
+    # Load recons
+    d_recons = []
+    for abs_sig in abs_sigs:
+        recon_file = os.path.join(
+            '../Analysis/',
+            os.path.basename(fitting_io.l23_chains_filename(
+            edict, abs_sig).replace('fit', 'recon')))
+        print(f'Loading: {recon_file}')
+        d_recon = np.load(recon_file)
+        # Append
+        d_recons.append(d_recon)
+
+
+    # ######################################################
+    # ######################################################
+    fig = plt.figure(figsize=(12,8))
+    plt.clf()
+    gs = gridspec.GridSpec(2,2)
+
+    aaxes = [] 
+    idxs = [i_min, i_max, i_med, i_random]
+    ylbls = [r'$a_{\rm nw}(\lambda)$ min', 
+                r'$a_{\rm nw}(\lambda)$ max',
+                    r'$a_{\rm nw}(\lambda)$ median',
+                    r'$a_{\rm nw}(\lambda)$ random']
+
+    for tt, idx, ylbl in zip(range(len(idxs)), idxs, ylbls):
+        ii = np.where(d_nless['idx'] == idx)[0][0]
+        # 
+        ax= plt.subplot(gs[tt])
+        aaxes.append(ax)
+
+        # True
+        ax.plot(wave, d_a[tkey][idx], 'ko', label='True', ms=4)
+
+        # Noiseless
+        ax.plot(wave, d_nless['fit_a_mean'][ii], 'k-', label='Noiseless')
+
+        # Loop on abs_sigs
+        for jj, abs_sig in enumerate(abs_sigs):
+            ax.plot(wave, d_recons[jj]['fit_a_mean'][ii], '-', 
+                    label=f'abs_sig={abs_sig}')
+
+        ax.set_ylabel(ylbl)
+        embed(header='fig_a_examples 592')
+
+    # All
+    for ii, ax in enumerate(aaxes):
+        plotting.set_fontsize(ax, 18)
+        ax.grid()
+        # 
+        if ii == 2:
+            ax.legend(fontsize=17.)
+        if ii > 1:
+            ax.set_xlabel('Wavelength (nm)')
+            #ax.set_ylim(0., 0.3)
+        else:
+            ax.tick_params(labelbottom=False)  # Hide x-axis labels
+
+    plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
+    plt.savefig(outfile, dpi=300)
+    print(f"Saved: {outfile}")
+
+
+# ############################################################
 def fig_mcmc_decompose(outroot='fig_mcmc_decompose', decomp:str='nmf',
         hidden_list:list=[512, 512, 512, 256], dataset:str='L23', use_quick:bool=False,
         X:int=4, Y:int=0, show_zoom:bool=False, 
@@ -1051,7 +1147,12 @@ def main(flg):
     # RMSE of Rrs and a
     if flg & (2**28):
         fig_rmse_a_error(('pca', 'pca'), (4,2), 
-                         'fig_rmse_a_error_pcapca.png', [1., 2.])
+                         'fig_rmse_a_error_pcapca.png', [1., 2., 5.])
+
+    # RMSE of Rrs and a
+    if flg & (2**29):
+        fig_a_examples(('pca', 'pca'), (4,2), 
+                         'fig_a_examples.png', [1., 5.])
 
 # Command line execution
 if __name__ == '__main__':
@@ -1072,6 +1173,7 @@ if __name__ == '__main__':
 
         #flg += 2 ** 27  # RMSE on Rrs and a
         flg += 2 ** 28  # RMSE on a vs. abs_sig
+        #flg += 2 ** 29  # Examples
 
         #flg += 2 ** 2  # 4 -- Indiv
         #flg += 2 ** 3  # 8 -- Coeff
