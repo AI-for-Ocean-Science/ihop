@@ -499,10 +499,13 @@ def fig_rmse_a_error(decomps:tuple, Ncomps:tuple, outfile:str,
     # All
     for ii, ax in enumerate(aaxes):
         plotting.set_fontsize(ax, 18)
-        ax.legend(fontsize=17.)
         ax.grid()
+        # 
+        if ii == 2:
+            ax.legend(fontsize=17.)
         if ii > 1:
             ax.set_xlabel('Wavelength (nm)')
+            ax.set_ylim(0., 0.3)
         else:
             ax.tick_params(labelbottom=False)  # Hide x-axis labels
 
@@ -1048,7 +1051,7 @@ def main(flg):
     # RMSE of Rrs and a
     if flg & (2**28):
         fig_rmse_a_error(('pca', 'pca'), (4,2), 
-                         'fig_rmse_a_error_pcapca.png', [1.])
+                         'fig_rmse_a_error_pcapca.png', [1., 2.])
 
 # Command line execution
 if __name__ == '__main__':
