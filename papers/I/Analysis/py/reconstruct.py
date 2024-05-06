@@ -44,7 +44,7 @@ def one_spectrum(in_idx:int, ab, Chl, d_chains, d_a, d_bb, emulator,
     # a
     Y = chains[chop_burn:, :, 0:Ncomp[0]].reshape(-1,Ncomp[0])
     orig, a_recon = rfunc(Y, d_a, idx)
-    _, a_nmf = rfunc(d_a['coeff'][idx], d_a, idx)
+    #_, a_nmf = rfunc(d_a['coeff'][idx], d_a, idx)
     a_mean = np.median(a_recon, axis=0)
     a_std = np.std(a_recon, axis=0)
     _, a_pca = rfunc(ab[idx][:Ncomp[0]], d_a, idx)
@@ -52,7 +52,7 @@ def one_spectrum(in_idx:int, ab, Chl, d_chains, d_a, d_bb, emulator,
     # bb
     Y = chains[chop_burn:, :, Ncomp[0]:-1].reshape(-1,Ncomp[1])
     orig_bb, bb_recon = rfunc(Y, d_bb, idx)
-    _, bb_nmf = rfunc(d_bb['coeff'][idx], d_bb, idx)
+    #_, bb_nmf = rfunc(d_bb['coeff'][idx], d_bb, idx)
     bb_mean = np.median(bb_recon, axis=0)
     bb_std = np.std(bb_recon, axis=0)
     #_, a_pca = rfunc(ab[idx][:ncomp], d_a, idx)
@@ -69,6 +69,7 @@ def one_spectrum(in_idx:int, ab, Chl, d_chains, d_a, d_bb, emulator,
     std_pred = np.std(all_pred, axis=0)
     NN_Rs = emulator.prediction(ab[idx].tolist() + [Chl[idx]], device)
 
+    a_nmf, bb_nmf = None, None
     return idx, orig, a_mean, a_std, a_pca, obs_Rs,\
         pred_Rs, std_pred, NN_Rs, allY, wave,\
         orig_bb, bb_mean, bb_std, a_nmf, bb_nmf

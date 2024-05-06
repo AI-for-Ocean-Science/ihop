@@ -141,6 +141,9 @@ def fit(edict:dict, Nspec:int=None, abs_sig:float=None,
         idx = idx[0:2]
     items = [(use_Rs[i], ab[i].tolist()+[Chl[i]], i) for i in idx]
 
+    if debug:
+        embed(header='fit 145')
+
     # Fit
     all_samples, all_idx = fitting.fit_batch(pdict, items,
                                              n_cores=n_cores)
@@ -306,7 +309,7 @@ def main(flg):
             'dense', hidden_list=hidden_list, 
             include_chl=True, X=X, Y=Y)
 
-        fit(edict, n_cores=n_cores, abs_sig=abs_sig)#, debug=True)
+        fit(edict, n_cores=n_cores, abs_sig=abs_sig, debug=True)
 
     # PCA, abs_sig=2
     if flg & (2**5): # 32
@@ -324,7 +327,7 @@ def main(flg):
             'dense', hidden_list=hidden_list, 
             include_chl=True, X=X, Y=Y)
 
-        fit(edict, n_cores=n_cores, abs_sig=abs_sig)#, debug=True)
+        fit(edict, n_cores=n_cores, abs_sig=abs_sig, debug=True)
 
     # PCA, abs_sig=5
     if flg & (2**6): # 64
@@ -342,7 +345,7 @@ def main(flg):
             'dense', hidden_list=hidden_list, 
             include_chl=True, X=X, Y=Y)
 
-        fit(edict, n_cores=n_cores, abs_sig=abs_sig)#, debug=True)
+        fit(edict, n_cores=n_cores, abs_sig=abs_sig, debug=True)
 
     # Testing
     if flg & (2**30):
