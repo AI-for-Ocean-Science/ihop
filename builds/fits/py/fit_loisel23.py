@@ -324,7 +324,7 @@ def main(flg):
             'dense', hidden_list=hidden_list, 
             include_chl=True, X=X, Y=Y)
 
-        fit(edict, n_cores=n_cores, abs_sig=abs_sig, debug=True)
+        fit(edict, n_cores=n_cores, abs_sig=abs_sig)#, debug=True)
 
     # PCA, abs_sig=5
     if flg & (2**6): # 64
