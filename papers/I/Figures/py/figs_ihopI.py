@@ -518,7 +518,8 @@ def fig_rmse_a_error(decomps:tuple, Ncomps:tuple, outfile:str,
 # ############################################################
 def fig_a_examples(decomps:tuple, Ncomps:tuple, outfile:str, 
                      abs_sigs:list, hidden_list:list=[512, 512, 512, 256], 
-                     dataset:str='L23', X:int=4, Y:int=0):
+                     dataset:str='L23', X:int=4, Y:int=0,
+                     skip_fits:bool=False):
 
     # ######################
     # Load
@@ -530,34 +531,60 @@ def fig_a_examples(decomps:tuple, Ncomps:tuple, outfile:str,
         'dense', hidden_list=hidden_list, 
         include_chl=True, X=X, Y=Y)
 
-    # Set the indices
     tkey = 'spec' if decomps[0] == 'nmf' else 'data'
+
+    # Hack for normalized PCA
+    if decomps[0] == 'npca':
+        sdata = d_a['data'] * np.outer(d_a['norm_vals'], 
+                                             np.ones(d_a['data'].shape[1]))
+    else:
+        sdata = d_a[tkey]
+
+    # Set the indices
     i440 = np.argmin(np.abs(wave-440.))
-    i_min = np.argmin(d_a[tkey][:,i440])
-    i_max = np.argmax(d_a[tkey][:,i440])
-    a_med = np.median(d_a[tkey][:,i440])
-    i_med = np.argmin(np.abs(d_a[tkey][:,i440] - a_med))
+    i_min = np.argmin(sdata[:,i440])
+    i_max = np.argmax(sdata[:,i440])
+    a_med = np.median(sdata[:,i440])
+    i_med = np.argmin(np.abs(sdata[:,i440] - a_med))
 
-    i_random = np.random.choice(d_a[tkey].shape[0], 1)[0]
+    i_random = np.random.choice(sdata.shape[0], 1)[0]
 
-    # Noiseless
-    recon_file = os.path.join(
-        '../Analysis/',
-        os.path.basename(fitting_io.l23_chains_filename(
-        edict, None).replace('fit', 'recon')))
-    d_nless = np.load(recon_file)
 
-    # Load recons
-    d_recons = []
-    for abs_sig in abs_sigs:
+
+    # Decomposed
+    if skip_fits:
+        d_keys = dict(pca='Y', nmf='coeff', int='new_spec', npca='Y')
+        if decomps[0] in ['pca', 'npca']:
+            rfunc = reconstruct_pca
+        elif decomps[0] == 'nmf':
+            rfunc = reconstruct_nmf
+        elif decomps[0] == 'int':
+            rfunc = reconstruct_int
+        a_recons = []
+        for idx in range(d_a[tkey].shape[0]):
+            _, a_recon = rfunc(d_a[d_keys[decomps[0]]][idx], d_a, idx)
+            a_recons.append(a_recon)
+        a_recons = np.array(a_recons)
+    else:
+        # Noiseless
         recon_file = os.path.join(
             '../Analysis/',
             os.path.basename(fitting_io.l23_chains_filename(
-            edict, abs_sig).replace('fit', 'recon')))
-        print(f'Loading: {recon_file}')
-        d_recon = np.load(recon_file)
-        # Append
-        d_recons.append(d_recon)
+            edict, None).replace('fit', 'recon')))
+        d_nless = np.load(recon_file)
+        a_recons = d_nless['decomp_a']
+
+        # Load recons
+        d_recons = []
+        for abs_sig in abs_sigs:
+            recon_file = os.path.join(
+                '../Analysis/',
+                os.path.basename(fitting_io.l23_chains_filename(
+                edict, abs_sig).replace('fit', 'recon')))
+            print(f'Loading: {recon_file}')
+            d_recon = np.load(recon_file)
+            # Append
+            d_recons.append(d_recon)
 
 
     # ######################################################
@@ -574,24 +601,30 @@ def fig_a_examples(decomps:tuple, Ncomps:tuple, outfile:str,
                     r'$a_{\rm nw}(\lambda)$ random']
 
     for tt, idx, ylbl in zip(range(len(idxs)), idxs, ylbls):
-        ii = np.where(d_nless['idx'] == idx)[0][0]
         # 
         ax= plt.subplot(gs[tt])
         aaxes.append(ax)
 
+        scale = d_a['norm_vals'][idx] if decomps[0] == 'npca' else 1.
+
         # True
-        ax.plot(wave, d_a[tkey][idx], 'ko', label='True', ms=4)
+        ax.plot(wave, d_a[tkey][idx]*scale, 'ko', label='True', ms=4)
+    
+        # True Decomposition
+        ax.plot(wave, a_recons[idx], ':', color='gray', label='Decomposition')
 
-        # Noiseless
-        ax.plot(wave, d_nless['fit_a_mean'][ii], 'k-', label='Noiseless')
+        if not skip_fits:
+            ii = np.where(d_nless['idx'] == idx)[0][0]
+            # Noiseless
+            ax.plot(wave, d_nless['fit_a_mean'][ii], 'k-', label='Noiseless')
 
-        # Loop on abs_sigs
-        for jj, abs_sig in enumerate(abs_sigs):
-            ax.plot(wave, d_recons[jj]['fit_a_mean'][ii], '-', 
-                    label=f'abs_sig={abs_sig}')
+            # Loop on abs_sigs
+            for jj, abs_sig in enumerate(abs_sigs):
+                ax.plot(wave, d_recons[jj]['fit_a_mean'][ii], '-', 
+                        label=f'abs_sig={abs_sig}')
 
         ax.set_ylabel(ylbl)
-        embed(header='fig_a_examples 592')
+        #embed(header='fig_a_examples 592')
 
     # All
     for ii, ax in enumerate(aaxes):
@@ -1157,7 +1190,10 @@ def main(flg):
     # RMSE of Rrs and a
     if flg & (2**29):
         fig_a_examples(('pca', 'pca'), (4,2), 
-                         'fig_a_examples.png', [1., 5.])
+                         'fig_a_examples.png', [1., 5.], skip_fits=True)
+        #fig_a_examples(('npca', 'pca'), (4,2), 
+        #                 'fig_a_examples_npca.png', [1., 5.],
+        #                 skip_fits=True)
 
 # Command line execution
 if __name__ == '__main__':
@@ -1177,8 +1213,8 @@ if __name__ == '__main__':
         #flg += 2 ** 26  # Decompose error
 
         #flg += 2 ** 27  # RMSE on Rrs and a
-        flg += 2 ** 28  # RMSE on a vs. abs_sig
-        #flg += 2 ** 29  # Examples
+        #flg += 2 ** 28  # RMSE on a vs. abs_sig
+        flg += 2 ** 29  # Examples
 
         #flg += 2 ** 2  # 4 -- Indiv
         #flg += 2 ** 3  # 8 -- Coeff

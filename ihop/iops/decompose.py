@@ -185,6 +185,11 @@ def reconstruct_pca(Y:np.ndarray, pca_dict:dict, idx:int):
     # Reconstruct
     recon = np.dot(Y, pca_dict['M']) + pca_dict['mean']
 
+    # Scale?
+    if 'norm_vals' in pca_dict:
+        orig *= pca_dict['norm_vals'][idx]
+        recon *= pca_dict['norm_vals'][idx]
+
     return orig, recon
 
 def reconstruct_nmf(Y:np.ndarray, nmf_dict:dict, idx:int):
