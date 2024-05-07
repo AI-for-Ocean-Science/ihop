@@ -129,7 +129,8 @@ def main(flg):
     if flg & (2**6): # 64
         emulate_l23(('pca','pca'), (4,2), 
                     hidden_list=[512, 512, 512, 256], 
-                    nepochs=1000, preproc_Rs='lin-5', push_to_s3=True)
+                    nepochs=25000, preproc_Rs='lin-5', 
+                    push_to_s3=True)
 
 
 # Command line execution
