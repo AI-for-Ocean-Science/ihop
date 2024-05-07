@@ -213,12 +213,14 @@ def fig_emulator_rmse(dataset:str, Ncomps:tuple, hidden_list:list,
                       decomps:tuple,
                       outfile:str='fig_emulator_rmse.png',
                       log_rrmse:bool=False,
+                      preproc_Rs:str=None,
                       X:int=4, Y:int=0):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     edict = emu_io.set_emulator_dict(
         dataset, decomps, Ncomps, 'Rrs',
         'dense', hidden_list=hidden_list, 
+        preproc_Rs=preproc_Rs,
         include_chl=True, X=X, Y=Y)
 
     # Init the Plot
@@ -1075,8 +1077,8 @@ def main(flg):
         fig_basis_functions(('pca', 'pca'),
                             outfile='fig_basis_functions_pca.png')
 
-    # Example spectra
-    if flg & (2**20):
+    # Emulator RMSE
+    if flg & (2**1):
         #fig_emulator_rmse('L23', 3, [512, 512, 512, 256],
         #                  outfile='fig_emulator_rmse_3.png')
         #fig_emulator_rmse('L23', 4, [512, 512, 512, 256],
@@ -1087,13 +1089,14 @@ def main(flg):
         #                  log_rrmse=True)
         #fig_emulator_rmse(['L23_NMF', 'L23_PCA'], [3, 3])
         # PCA
-        #fig_emulator_rmse('L23', (4,2), [512, 512, 512, 256],
-        #                  ('pca', 'pca'), log_rrmse=True,
-        #                  outfile='fig_emulator_rmse_pca.png') 
+        fig_emulator_rmse('L23', (4,2), [512, 512, 512, 256],
+                          ('pca', 'pca'), log_rrmse=True, 
+                          preproc_Rs='lin-5', 
+                          outfile='fig_emulator_rmse_pca_lin-5.png') 
         # INT
-        fig_emulator_rmse('L23', (40,2), [512, 512, 512, 256],
-                          ('int', 'nmf'), log_rrmse=True,
-                          outfile='fig_emulator_rmse_intnmf.png') 
+        #fig_emulator_rmse('L23', (40,2), [512, 512, 512, 256],
+        #                  ('int', 'nmf'), log_rrmse=True,
+        #                  outfile='fig_emulator_rmse_intnmf.png') 
 
     # L23 IHOP performance vs. perc error
     if flg & (2**21):
@@ -1162,8 +1165,8 @@ if __name__ == '__main__':
         flg = 0
 
         #flg += 2 ** 0  # Basis functions of the decomposition
+        #flg += 2 ** 1  # RMSE of emulators
 
-        #flg += 2 ** 20  # RMSE of emulators
         #flg += 2 ** 21  # Single MCMC fit (example)
         #flg += 2 ** 22  # RMSE of L23 fits
         #flg += 2 ** 23  # Fit corner

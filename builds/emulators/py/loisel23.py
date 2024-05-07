@@ -126,7 +126,7 @@ def main(flg):
                     push_to_s3=True)
 
     # L23 + PCA, balance Rs 
-    if flg & (2**6):
+    if flg & (2**6): # 64
         emulate_l23(('pca','pca'), (4,2), 
                     hidden_list=[512, 512, 512, 256], 
                     nepochs=1000, preproc_Rs='lin-5', push_to_s3=True)
@@ -146,7 +146,7 @@ if __name__ == '__main__':
         #flg += 2 ** 4  # 16 -- L23 + PCA 4,2 + norm_Rs=False
         #flg += 2 ** 5  # 32 -- L23 + INT,NMF 40,2 + norm_Rs=False
 
-        #flg += 2 ** 6  # 64 -- L23 + PCA 4,2; linear scale Rs
+        #flg += 2 ** 6  # 64 -- L23 + PCA 4,2; linear scale Rs (-5)
 
         
     else:
