@@ -41,8 +41,10 @@ def log_prob(ab, Rs, model, device, scl_sig, abs_sig, priors,
     # Priors
     if priors is not None:
         lp = lnprior(ab, priors)
-    if np.min(ab) < 0:
-        return -np.inf
+
+    # NMF prior
+    #if np.min(ab) < 0:
+    #    return -np.inf
 
     # Proceed
     pred = model.prediction(ab, device)
@@ -108,7 +110,8 @@ def run_emcee_nn(nn_model, Rs, nwalkers:int=32, nsteps:int=20000,
         # Replicate for nwalkers
         p0 = np.tile(p0, (nwalkers, 1))
         # Perturb a tiny bit
-        p0 += p0*np.random.uniform(-1e-4, 1e-4, size=p0.shape)
+        #p0 += p0*np.random.uniform(-1e-4, 1e-4, size=p0.shape)
+        p0 += p0*np.random.uniform(-1e-2, 1e-2, size=p0.shape)
 
     #embed(header='run_emcee_nn 47')
     # Set up the backend

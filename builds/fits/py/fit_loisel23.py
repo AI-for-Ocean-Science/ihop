@@ -105,6 +105,10 @@ def fit(edict:dict, Nspec:int=None, abs_sig:float=None,
         max_wv (float): The maximum wavelength to consider. Default is None.
 
     """
+    # NEED TO DEAL WITH NMF PRIORS
+    if 'nmf' in edict['decomps']: 
+        raise ValueError('Need to deal with NMF priors')
+
     # Load
     ab, Chl, Rs, emulator, d_a = load(edict)
 
@@ -256,7 +260,7 @@ def main(flg):
         fit(edict, n_cores=n_cores, max_wv=max_wv)#, debug=True)
 
     # Noiseless, PCA
-    if flg & (2**2):
+    if flg & (2**2):  # 4
 
         # Emulator
         hidden_list=[512, 512, 512, 256]
@@ -272,7 +276,7 @@ def main(flg):
 
         # Analysis params
 
-        fit(edict, n_cores=n_cores)
+        fit(edict, n_cores=n_cores)#, Nspec=300)#debug=True)
 
     # Noiseless, INT/NMF
     if flg & (2**3):
