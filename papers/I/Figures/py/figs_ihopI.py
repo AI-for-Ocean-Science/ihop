@@ -1074,8 +1074,10 @@ def main(flg):
     if flg & (2**0):
         #fig_emulator_rmse('L23_PCA')
         #fig_basis_functions('nmf')
-        fig_basis_functions(('pca', 'pca'),
-                            outfile='fig_basis_functions_pca.png')
+        #fig_basis_functions(('pca', 'pca'),
+        #                    outfile='fig_basis_functions_pca.png')
+        fig_basis_functions(('npca', 'npca'),
+                            outfile='fig_basis_functions_npca.png')
 
     # Emulator RMSE
     if flg & (2**1):

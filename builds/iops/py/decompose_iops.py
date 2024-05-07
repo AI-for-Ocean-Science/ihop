@@ -54,6 +54,10 @@ def decompose_loisel23_iop(decomp:str, Ncomp:int, iop:str,
         generate_pca(spec, outfile, Ncomp,
                     extras={'Rs':Rs, 'wave':wave},
                     clobber=clobber)
+    elif decomp == 'npca':
+        generate_pca(spec, outfile, Ncomp, norm=True,
+                    extras={'Rs':Rs, 'wave':wave},
+                    clobber=clobber)
     elif decomp == 'int': # interpolate
         generate_int(spec, outfile, Ncomp, wave,
                     extras={'Rs':Rs, 'wave':wave},
@@ -76,6 +80,11 @@ def main(flg):
     if flg & (2**1):
         decompose_loisel23_iop('int', 40, 'a', clobber=True)  # for a
         #decompose_loisel23_iop('nmf', 2, 'bb', clobber=True)  # for bb
+
+    # L23 + Normalized PCA
+    if flg & (2**2):
+        decompose_loisel23_iop('npca', 4, 'a', clobber=True)  # for a
+        decompose_loisel23_iop('npca', 2, 'bb', clobber=True)  # for bb
     
 if __name__ == '__main__':
     import sys
@@ -84,7 +93,8 @@ if __name__ == '__main__':
         flg = 0
         #flg += 2 ** 0  # 1 -- L23 + PCA
         #flg += 2 ** 1  # 2 -- L23 + Int on a
-        #flg += 2 ** 2  # 4 -- L23 + NMF 4
+        #flg += 2 ** 2  # 4 -- L23 + Normalized PCA
+
         #flg += 2 ** 3  # 8 -- L23 + NMF 4,3
 
         #flg += 2 ** 4  # 16 -- L23 + PCA 4,2 + norm_Rs=False
@@ -94,13 +104,3 @@ if __name__ == '__main__':
         flg = sys.argv[1]
 
     main(flg)
-
-    # L23
-    # PCA
-
-    #nmf_loisel23(clobber=True)
-    #nmf_loisel23(Ncomp=2, clobber=True)
-    #nmf_loisel23(Ncomp=3, clobber=True)
-    #nmf_loisel23(Ncomp=4, clobber=True)
-    #nmf_loisel23(Ncomp=5, clobber=True)
-    #generate_l23_tara_pca()  # Broken

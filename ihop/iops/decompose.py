@@ -73,6 +73,7 @@ def generate_nmf(iop_data:np.ndarray, mask:np.ndarray,
 def generate_pca(iop_data:np.ndarray,
                  outfile:str,
                  Ncomp:int,
+                 norm:bool=False,
                  clobber:bool=False, 
                  extras:dict=None):
     """ Generate PCA model for input IOP 
@@ -81,9 +82,19 @@ def generate_pca(iop_data:np.ndarray,
         iop_data (np.ndarray): IOP data (n_samples, n_features)
         outfile (str): 
         Ncomp (int): Number of PCA components. Defaults to 3.
+        norm (bool, optional): Normalize the data? Defaults to False.
         clobber (bool, optional): Clobber existing model? Defaults to False.
         extras (dict, optional): Extra arrays to save. Defaults to None.
     """
+    # Normalize?
+    if norm:
+        norm_vals = np.sum(iop_data, axis=1)
+        iop_data = iop_data / np.outer(norm_vals, np.ones(iop_data.shape[1]))
+        # Save to extras
+        if extras is None:
+            extras = dict()
+        extras['norm_vals'] = norm_vals 
+        #embed(header='97 of decompose')
     # Do it
     if not os.path.exists(outfile) or clobber:
         pca.fit_normal(iop_data, Ncomp, save_outputs=outfile,
