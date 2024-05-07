@@ -78,19 +78,25 @@ def set_l23_emulator_root(edict: dict):
     # Outputs
     root += f'_{edict["outputs"]}'
 
+    # Preproc Rs?
+    if edict['preproc_Rs'] is not None:
+        root += f'_{edict["preproc_Rs"]}'
+
     # Emulator
     root += f'_{edict["emulator"]}'
     # Hidden list?
     if edict['emulator'] == 'dense':
         for item in edict['hidden_list']:
             root += f'_{item}'
+
     # Return
     return root
 
 def set_emulator_dict(dataset:str, decomps:tuple, 
-                      Ncomps:tuple, outputs:str,
-        emulator:str, hidden_list:list=None, 
-        include_chl:bool=False, X:int=None, Y:int=None): 
+                      Ncomps:tuple, outputs:str, 
+                      emulator:str, hidden_list:list=None, 
+                      include_chl:bool=False, X:int=None, Y:int=None,
+                      preproc_Rs:str=None): 
     """
     Create a dictionary containing the parameters for an emulator.
 
@@ -104,6 +110,9 @@ def set_emulator_dict(dataset:str, decomps:tuple,
         include_chl (bool, optional): Whether to include chlorophyll as an input variable. Defaults to False.
         X (int, optional): The X coordinate of the emulator. Defaults to None.
         Y (int, optional): The Y coordinate of the emulator. Defaults to None.
+        preproc_Rs (str, optional): Preprocessing method for Rrs. Defaults to None.
+            norm -- Normalize Rrs
+            balance -- Balance Rrs
 
     Returns:
         dict: A dictionary containing the emulator parameters.
@@ -117,6 +126,7 @@ def set_emulator_dict(dataset:str, decomps:tuple,
         'emulator': emulator,
         'hidden_list': hidden_list,
         'include_chl': include_chl,
+        'preproc_Rs': preproc_Rs,
         'X': X,
         'Y': Y,
     }

@@ -73,7 +73,7 @@ def densenet(hidden_list:list,
                    lr:float,
                    dropout_on:bool=False,
                    p_dropout:float=0.,
-                   norm_targets:bool=True,
+                   preproc_targets:str=None,
                    batchnorm:bool=True,
                    save:bool=True,
                    real_loss:bool=False,
@@ -102,12 +102,16 @@ def densenet(hidden_list:list,
 
     # Preprocess
     pre_inputs, mean_ab, std_ab = preprocess.normalize(inputs)
-    if norm_targets:
-        pre_targets, mean_targ, std_targ = preprocess.normalize(targets)
-    else:
+    if preproc_targets is None:
         pre_targets = targets
         mean_targ = 0.
         std_targ = 1.
+    elif preproc_targets == 'norm':
+        pre_targets, mean_targ, std_targ = preprocess.normalize(targets)
+    elif preproc_targets[0:3] == 'lin':
+        pre_targets, mean_targ, std_targ = preprocess.linear(targets, float(preproc_targets[3:]))
+    else:
+        raise ValueError(f"Bad preproc_targets: {preproc_targets}")
 
     # Dataset
     dataset = MyDataset(pre_inputs, pre_targets)

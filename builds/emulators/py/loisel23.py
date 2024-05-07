@@ -15,8 +15,8 @@ from IPython import embed
 
 def emulate_l23(decomps:tuple, Ncomps:tuple, include_chl:bool=True, 
                 X:int=4, Y:int=0, hidden_list:list=[512, 512, 256], 
-                real_loss:bool=False, norm_Rs:bool=True,
-    nepochs:int=100, lr:float=1e-2, p_drop:float=0.,
+                real_loss:bool=False, preproc_Rs:str=None,
+                nepochs:int=100, lr:float=1e-2, p_drop:float=0.,
     push_to_s3:bool=False):
     """
     Generate an emulator for a decomposition
@@ -33,6 +33,9 @@ def emulate_l23(decomps:tuple, Ncomps:tuple, include_chl:bool=True,
         lr (float, optional): Learning rate for the neural network. Defaults to 1e-2.
         p_drop (float, optional): Dropout probability for the neural network. Defaults to 0.
         push_to_s3 (bool, optional): Flag indicating whether to push the model to S3. Defaults to False.
+        preproc_Rs (str, optional): Preprocessing method for Rrs. Defaults to None.
+            norm -- Normalize Rrs
+            lin## -- Linear scaling for Rrs
     """
     dataset = 'L23'
     # Load data
@@ -43,7 +46,8 @@ def emulate_l23(decomps:tuple, Ncomps:tuple, include_chl:bool=True,
     edict = emu_io.set_emulator_dict(
         dataset, decomps, Ncomps, 'Rrs',
         'dense', hidden_list=hidden_list, 
-        include_chl=include_chl, X=X, Y=Y)
+        include_chl=include_chl, X=X, Y=Y,
+        preproc_Rs=preproc_Rs)
 
     # Outfile (local)
     root = emu_io.set_l23_emulator_root(edict)
@@ -59,7 +63,7 @@ def emulate_l23(decomps:tuple, Ncomps:tuple, include_chl:bool=True,
 
     build.densenet(hidden_list, nepochs, inputs, Rs,
                    lr, dropout_on=False,
-                   norm_targets=norm_Rs,
+                   preproc_targets=preproc_Rs,
                    batchnorm=True, save=True, root=root,
                    out_path=path, real_loss=real_loss)
 
@@ -91,33 +95,41 @@ def main(flg):
     # L23 + NMF, m=3
     if flg & (2**1):
         emulate_l23('nmf', 3, hidden_list=[512, 512, 512, 256],
-            nepochs=25000, norm_Rs=False,
+            nepochs=25000, #norm_Rs=False,
             push_to_s3=True)
 
     # flg=4;  L23 + NMF, m=4
     if flg & (2**2):
         # Now without water
         emulate_l23('nmf', 4, hidden_list=[512, 512, 512, 256],
-            nepochs=25000, norm_Rs=False,
+            nepochs=25000, #norm_Rs=False,
             push_to_s3=True)
 
     # flg=4;  L23 + NMF, m=4,3
     if flg & (2**3):
         emulate_l23('nmf', (4,3), hidden_list=[512, 512, 512, 256],
-            nepochs=25000, norm_Rs=False,
+            nepochs=25000, #norm_Rs=False,
             push_to_s3=True)
 
     # L23 + PCA, m=4,2
     if flg & (2**4):
         emulate_l23(('pca','pca'), (4,2), 
                     hidden_list=[512, 512, 512, 256], 
-                    nepochs=25000, norm_Rs=False, push_to_s3=True)
+                    nepochs=25000, #norm_Rs=False, 
+                    push_to_s3=True)
 
     # L23 + Int,NMF, m=40,2; Chl
     if flg & (2**5):
         emulate_l23(('int','nmf'), (40,2), 
                     hidden_list=[512, 512, 512, 256], 
-                    nepochs=25000, norm_Rs=False, push_to_s3=True)
+                    nepochs=25000, #norm_Rs=False, 
+                    push_to_s3=True)
+
+    # L23 + PCA, balance Rs 
+    if flg & (2**6):
+        emulate_l23(('pca','pca'), (4,2), 
+                    hidden_list=[512, 512, 512, 256], 
+                    nepochs=1000, preproc_Rs='lin-5', push_to_s3=True)
 
 
 # Command line execution
@@ -133,6 +145,8 @@ if __name__ == '__main__':
 
         #flg += 2 ** 4  # 16 -- L23 + PCA 4,2 + norm_Rs=False
         #flg += 2 ** 5  # 32 -- L23 + INT,NMF 40,2 + norm_Rs=False
+
+        #flg += 2 ** 6  # 64 -- L23 + PCA 4,2; linear scale Rs
 
         
     else:
