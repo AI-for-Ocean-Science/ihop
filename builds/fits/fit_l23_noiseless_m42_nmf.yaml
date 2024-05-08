@@ -1,9 +1,9 @@
-# Script to build an emulator for L23 + NMF decomposition; m=4
+# Script to Fit L23 with noiseless NMF decomposition; m=42
 # kubectl exec -it test-pod -- /bin/bash
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-ihop-fit-l23-nmf-m42
+  name: xavier-ihop-fit-l23-nmf-m42-noiseless
 spec:
   backoffLimit: 0
   template:

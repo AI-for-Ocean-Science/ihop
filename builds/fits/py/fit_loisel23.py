@@ -230,16 +230,16 @@ def main(flg):
     else:
         flg= int(flg)
 
-    # Noiseless
+    # Noiseless NMF
     if flg & (2**0):
         hidden_list=[512, 512, 512, 256]
-        decomp = 'nmf'
-        Ncomp = (4,2)
+        decomps = ('nmf', 'nmf')
+        Ncomps = (4,2)
         X, Y = 4, 0
         n_cores = 20
         dataset = 'L23'
         edict = emu_io.set_emulator_dict(
-            dataset, decomp, Ncomp, 'Rrs',
+            dataset, decomps, Ncomps, 'Rrs',
             'dense', hidden_list=hidden_list, include_chl=True, 
             X=X, Y=Y)
 
