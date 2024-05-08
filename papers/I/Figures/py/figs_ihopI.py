@@ -711,7 +711,7 @@ def fig_mcmc_decompose(outroot='fig_mcmc_decompose', decomp:str='nmf',
     print(f"Saved: {outfile}")
 
 # ############################################################
-def fig_mcmc_fit(outroot='fig_mcmc_fit', decomp:str='nmf',
+def fig_mcmc_fit(outroot='fig_mcmc_fit', decomps:str=('nmf','nmf'),
         hidden_list:list=[512, 512, 512, 256], dataset:str='L23', use_quick:bool=False,
         X:int=4, Y:int=0, show_zoom:bool=False, 
         perc:int=None, abs_sig:float=None,
@@ -721,10 +721,10 @@ def fig_mcmc_fit(outroot='fig_mcmc_fit', decomp:str='nmf',
         true_only:bool=False):
 
     # Load
-    edict = emu_io.set_emulator_dict(dataset, decomp, Ncomp, 'Rrs',
+    edict = emu_io.set_emulator_dict(dataset, decomps, Ncomps, 'Rrs',
         'dense', hidden_list=hidden_list, include_chl=True, X=X, Y=Y)
 
-    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_decomposition(decomp, Ncomp)
+    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_full(decomps, Ncomps)
 
     emulator, e_file = emu_io.load_emulator_from_dict(edict)
 
@@ -733,14 +733,35 @@ def fig_mcmc_fit(outroot='fig_mcmc_fit', decomp:str='nmf',
                                             test=test)
     d_chains = inf_io.load_chains(chain_file)
 
+    '''
     # Reconstruct
     items = reconstruct.one_spectrum(in_idx, ab, Chl, d_chains, 
                                      d_a, d_bb, 
-                                     emulator, decomp, Ncomp)
+                                     emulator, decomps, Ncomps)
     idx, orig, a_mean, a_std, a_iop, obs_Rs,\
         pred_Rs, std_pred, NN_Rs, allY, wave,\
         orig_bb, bb_mean, bb_std, a_nmf, bb_nmf = items
     print(f"L23 index = {idx}")
+    '''
+    recon_file = os.path.join(
+        '../Analysis/',
+        os.path.basename(fitting_io.l23_chains_filename(
+        edict, abs_sig).replace('fit', 'recon')))
+    d_recon = np.load(recon_file)
+    idx = np.where(d_recon['idx'] == in_idx)[0][0]
+
+    # Unpack here
+    wave = d_a['wave']
+    orig = d_a['spec'][in_idx]
+    a_mean = d_recon['fit_a_mean'][idx]
+    a_std = d_recon['fit_a_std'][idx]
+    orig_bb = d_bb['spec'][in_idx]
+    bb_mean = d_recon['fit_bb_mean'][idx]
+    bb_std = d_recon['fit_bb_std'][idx]
+
+    obs_Rs = d_chains['obs_Rs']
+    pred_Rs = d_recon['fit_Rrs'][idx]
+    std_pred = 0.01
 
     # Outfile
     outfile = outroot + f'_{idx}.png'
@@ -763,7 +784,7 @@ def fig_mcmc_fit(outroot='fig_mcmc_fit', decomp:str='nmf',
     # #########################################################
     # a
     if water:
-        a_w = cross.a_water(wave, data='IOCCG')
+        a_w = absorption.a_water(wave, data='IOCCG')
     else:
         a_w = 0
     ax_a = plt.subplot(gs[2])
@@ -1149,14 +1170,16 @@ def main(flg):
         #fig_mcmc_fit(test=True, abs_sig=2.)
         #fig_mcmc_fit(test=True, abs_sig=2., water=True)
         #fig_mcmc_fit(test=True, abs_sig=2., water=True)
-        #fig_mcmc_fit(abs_sig=1., in_idx=275) # Turbid
+        #fig_mcmc_fit(abs_sig=2., in_idx=275) # Turbid
+        fig_mcmc_fit(abs_sig=2., in_idx=2663) # Minimum
+        #fig_mcmc_fit(abs_sig=2., in_idx=2949) # Maximum absorption
         #fig_mcmc_fit(abs_sig=1., in_idx=0)#, wvmnx=[500, 600.]) # Clear
         #fig_mcmc_fit(abs_sig=1., in_idx=99) # Clear
 
         #fig_mcmc_fit(outroot='fig_mcmc_fit_true',
         #             test=True, abs_sig=2., true_only=True)
-        fig_mcmc_fit(outroot='fig_mcmc_fit_trueobs',
-                     test=True, abs_sig=2., true_obs_only=True)
+        #fig_mcmc_fit(outroot='fig_mcmc_fit_trueobs',
+        #             test=True, abs_sig=2., true_obs_only=True)
 
     # L23 IHOP performance vs. perc error
     if flg & (2**22):
@@ -1171,7 +1194,8 @@ def main(flg):
         #fig_corner(abs_sig=1., in_idx=0) # Clear
         #fig_corner(('pca', 'pca'), abs_sig=1., in_idx=0) # 
         #fig_corner(('nmf', 'nmf'), abs_sig=None, in_idx=2663) # Minimum
-        fig_corner(('nmf', 'nmf'), abs_sig=None, in_idx=2949) # Minimum
+        #fig_corner(('nmf', 'nmf'), abs_sig=None, in_idx=2949) # Maximum
+        fig_corner(('nmf', 'nmf'), abs_sig=2., in_idx=2949) # Maximum
 
     # 
     if flg & (2**24):
@@ -1196,13 +1220,15 @@ def main(flg):
 
     # RMSE of Rrs and a
     if flg & (2**28):
-        fig_rmse_a_error(('pca', 'pca'), (4,2), 
-                         'fig_rmse_a_error_pcapca.png', [1., 2., 5.])
+        fig_rmse_a_error(('nmf', 'nmf'), (4,2), 
+                         'fig_rmse_a_error_nmfnmf.png', [2.])
+        #fig_rmse_a_error(('pca', 'pca'), (4,2), 
+        #                 'fig_rmse_a_error_pcapca.png', [1., 2., 5.])
 
     # RMSE of Rrs and a
     if flg & (2**29):
         fig_a_examples(('nmf', 'nmf'), (4,2), 
-                         'fig_a_examples_nmf.png', [],
+                         'fig_a_examples_nmf.png', [2.],
                          show_noiseless_error=True)
         #fig_a_examples(('pca', 'pca'), (4,2), 
         #                 'fig_a_examples.png', [1., 5.], skip_fits=True)
@@ -1228,14 +1254,14 @@ if __name__ == '__main__':
 
         #flg += 2 ** 21  # Single MCMC fit (example)
         #flg += 2 ** 22  # RMSE of L23 fits
-        #flg += 2 ** 23  # Fit corner
+        flg += 2 ** 23  # Fit corner
         #flg += 2 ** 24  # NMF corner plots (decomposition only)
 
         #flg += 2 ** 26  # Decompose error
 
         #flg += 2 ** 27  # RMSE on Rrs and a
         #flg += 2 ** 28  # RMSE on a vs. abs_sig
-        flg += 2 ** 29  # Examples
+        #flg += 2 ** 29  # Examples
 
         #flg += 2 ** 2  # 4 -- Indiv
         #flg += 2 ** 3  # 8 -- Coeff

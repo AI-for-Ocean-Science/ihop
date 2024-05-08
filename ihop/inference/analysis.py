@@ -47,7 +47,9 @@ def calc_Rrs(emulator, chains:np.ndarray, quick_and_dirty:bool=False,
         quick_and_dirty (bool, optional): Flag to use a quick and dirty method. Defaults to False.
 
     Returns:
-        np.ndarray: An array of Rrs values calculated for each chain.
+        tuple: 
+            np.ndarray: An array of Rrs values calculated for each chain.
+            np.ndarray: An array of uncertainty in Rrs values 
     """
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -56,12 +58,14 @@ def calc_Rrs(emulator, chains:np.ndarray, quick_and_dirty:bool=False,
     nspec = chains.shape[0]
 
     list_Rrs = []
+    list_stdRrs = []
     if quick_and_dirty:
         coeff_med = np.median(chains, axis=1)
         # Calc Rrs
         for ss in range(nspec):
             Rs = emulator.prediction(coeff_med[ss,:], device)
             list_Rrs.append(Rs)
+            list_stdRrs.append(np.zeros(Rs.size))
     else:
         start = datetime.datetime.now()
         for ss in range(nspec):
@@ -70,11 +74,12 @@ def calc_Rrs(emulator, chains:np.ndarray, quick_and_dirty:bool=False,
                 pred_Rs = emulator.prediction(item, device)
                 tmp.append(pred_Rs)
             list_Rrs.append(np.median(np.array(tmp), axis=0))
+            list_stdRrs.append(np.std(np.array(tmp), axis=0))
             if verbose and (ss % 10) == 0:
                 print(f'{ss} in {(datetime.datetime.now()-start).seconds}s')
 
     # Turn into a numpy array
-    return np.array(list_Rrs)
+    return np.array(list_Rrs), np.array(list_stdRrs)
 
 
 def calc_iop(iop_chains:np.ndarray, decomp:str, d_iop:dict):
