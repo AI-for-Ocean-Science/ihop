@@ -522,7 +522,8 @@ def fig_rmse_a_error(decomps:tuple, Ncomps:tuple, outfile:str,
 def fig_a_examples(decomps:tuple, Ncomps:tuple, outfile:str, 
                      abs_sigs:list, hidden_list:list=[512, 512, 512, 256], 
                      dataset:str='L23', X:int=4, Y:int=0,
-                     skip_fits:bool=False):
+                     skip_fits:bool=False,
+                     show_noiseless_error:bool=False):
 
     # ######################
     # Load
@@ -621,6 +622,13 @@ def fig_a_examples(decomps:tuple, Ncomps:tuple, outfile:str,
             ii = np.where(d_nless['idx'] == idx)[0][0]
             # Noiseless
             ax.plot(wave, d_nless['fit_a_mean'][ii], 'k-', label='Noiseless')
+
+            if show_noiseless_error:
+                # Noiseless
+                ax.fill_between(wave, 
+                    d_nless['fit_a_mean'][ii] - d_nless['fit_a_std'][ii],
+                    d_nless['fit_a_mean'][ii] + d_nless['fit_a_std'][ii],
+                    color='gray', alpha=0.5)
 
             # Loop on abs_sigs
             for jj, abs_sig in enumerate(abs_sigs):
@@ -1194,7 +1202,8 @@ def main(flg):
     # RMSE of Rrs and a
     if flg & (2**29):
         fig_a_examples(('nmf', 'nmf'), (4,2), 
-                         'fig_a_examples_nmf.png', [])
+                         'fig_a_examples_nmf.png', [],
+                         show_noiseless_error=True)
         #fig_a_examples(('pca', 'pca'), (4,2), 
         #                 'fig_a_examples.png', [1., 5.], skip_fits=True)
         #fig_a_examples(('npca', 'pca'), (4,2), 
@@ -1219,14 +1228,14 @@ if __name__ == '__main__':
 
         #flg += 2 ** 21  # Single MCMC fit (example)
         #flg += 2 ** 22  # RMSE of L23 fits
-        flg += 2 ** 23  # Fit corner
+        #flg += 2 ** 23  # Fit corner
         #flg += 2 ** 24  # NMF corner plots (decomposition only)
 
         #flg += 2 ** 26  # Decompose error
 
         #flg += 2 ** 27  # RMSE on Rrs and a
         #flg += 2 ** 28  # RMSE on a vs. abs_sig
-        #flg += 2 ** 29  # Examples
+        flg += 2 ** 29  # Examples
 
         #flg += 2 ** 2  # 4 -- Indiv
         #flg += 2 ** 3  # 8 -- Coeff

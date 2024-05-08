@@ -357,6 +357,24 @@ def main(flg):
 
         fit(edict, n_cores=n_cores, abs_sig=abs_sig)#, debug=True)
 
+    # NMF, abs_sig=1
+    if flg & (2**7): # 128
+
+        # Emulator
+        hidden_list=[512, 512, 512, 256]
+        decomps = ('nmf', 'nmf')
+        Ncomps = (4,2)
+        X, Y = 4, 0
+        n_cores = 20
+        dataset = 'L23'
+        abs_sig = 1.
+        edict = emu_io.set_emulator_dict(
+            dataset, decomps, Ncomps, 'Rrs',
+            'dense', hidden_list=hidden_list, 
+            include_chl=True, X=X, Y=Y)
+
+        fit(edict, n_cores=n_cores, abs_sig=abs_sig)#, debug=True)
+
     # NMF, abs_sig=2
     if flg & (2**8): # 256
 
@@ -375,6 +393,23 @@ def main(flg):
 
         fit(edict, n_cores=n_cores, abs_sig=abs_sig)#, debug=True)
 
+    # NMF, abs_sig=5
+    if flg & (2**9): # 512
+
+        # Emulator
+        hidden_list=[512, 512, 512, 256]
+        decomps = ('nmf', 'nmf')
+        Ncomps = (4,2)
+        X, Y = 4, 0
+        n_cores = 20
+        dataset = 'L23'
+        abs_sig = 5.
+        edict = emu_io.set_emulator_dict(
+            dataset, decomps, Ncomps, 'Rrs',
+            'dense', hidden_list=hidden_list, 
+            include_chl=True, X=X, Y=Y)
+
+        fit(edict, n_cores=n_cores, abs_sig=abs_sig)#, debug=True)
 
     # Testing
     if flg & (2**30):
@@ -411,7 +446,9 @@ if __name__ == '__main__':
         #flg += 2 ** 6  # 64 -- PCA, abs_sig=5
 
         # NMF with Noise
-        #flg += 2 ** 8  # 246 -- NMF, abs_sig=2
+        #flg += 2 ** 7  # 128 -- NMF, abs_sig=1
+        #flg += 2 ** 8  # 256 -- NMF, abs_sig=2
+        #flg += 2 ** 9  # 512 -- NMF, abs_sig=5
 
         # Tests
         flg += 2 ** 30  # 16 -- L23 + NMF 4,2
