@@ -118,6 +118,7 @@ def all_spectra(decomps:tuple, Ncomps:tuple,
 
     # ##############
     # Rrs
+    print("Starting Rrs")
     fit_Rrs = inf_analysis.calc_Rrs(
         emulator, chains, quick_and_dirty=quick_and_dirty, verbose=False)
     outputs['fit_Rrs'] = fit_Rrs
@@ -131,9 +132,11 @@ def all_spectra(decomps:tuple, Ncomps:tuple,
     corr_Rrs = np.array(corr_Rrs)
 
     outputs['corr_Rrs'] = corr_Rrs
+    print("Done with Rrs")
 
     # ##############
     # a
+    print("Starting a")
     a_means, a_stds = inf_analysis.calc_iop(
         chains[...,:Ncomps[0]], decomps[0], d_a)
     outputs['fit_a_mean'] = a_means
@@ -158,6 +161,7 @@ def all_spectra(decomps:tuple, Ncomps:tuple,
             _, a_recon = rfunc(d_a[d_keys[decomps[0]]][idx], d_a, idx)
             a_recons.append(a_recon)
     outputs['decomp_a'] = np.array(a_recons)
+    print("Done with a")
 
     # ##############
     # bb
@@ -189,11 +193,9 @@ def all_spectra(decomps:tuple, Ncomps:tuple,
 if __name__ == '__main__':
 
     # Noiseless
-    '''
-    all_spectra(('nmf', 'nmf'), (4,2), abs_sig=None, nchains=300)
-    all_spectra(('pca', 'pca'), (4,2), abs_sig=None)#, nchains=500)
-    all_spectra(('int', 'nmf'), (40,2), abs_sig=None)#, nchains=100)
-    '''
+    #all_spectra(('nmf', 'nmf'), (4,2), abs_sig=None, nchains=300)
+    #all_spectra(('pca', 'pca'), (4,2), abs_sig=None, quick_and_dirty=True)#, nchains=500)
+    #all_spectra(('int', 'nmf'), (40,2), abs_sig=None)#, nchains=100)
 
     # PCA with noise
     #all_spectra(('pca', 'pca'), (4,2), abs_sig=1., quick_and_dirty=True)#, nchains=500)

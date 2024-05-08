@@ -1178,10 +1178,10 @@ def main(flg):
 
     # RMSE of Rrs and a
     if flg & (2**27):
-        fig_rmse_Rrs_a(('nmf', 'nmf'), (4,2),'fig_rmse_Rrs_a_nmfnmf.png',
-                       abs_sig=None)
-        #fig_rmse_Rrs_a(('pca', 'pca'), (4,2),'fig_rmse_Rrs_a_pcapca.png',
-        #              abs_sig=None)
+        #fig_rmse_Rrs_a(('nmf', 'nmf'), (4,2),'fig_rmse_Rrs_a_nmfnmf.png',
+        #               abs_sig=None)
+        fig_rmse_Rrs_a(('pca', 'pca'), (4,2),'fig_rmse_Rrs_a_pcapca.png',
+                      abs_sig=None)
         #fig_rmse_Rrs_a(('int', 'nmf'), (40,2), 'fig_rmse_Rrs_a_intnmf.png',
         #               abs_sig=None)
 
@@ -1197,6 +1197,12 @@ def main(flg):
         fig_a_examples(('npca', 'pca'), (4,2), 
                          'fig_a_examples_npca.png', [1., 5.],
                          skip_fits=True)
+        fig_a_examples(('pca', 'pca'), (4,2), 
+                         'fig_a_examples.png', [2.]) 
+                         #[1., 5.], skip_fits=True)
+        #fig_a_examples(('npca', 'pca'), (4,2), 
+        #                 'fig_a_examples_npca.png', [1., 5.],
+        #                 skip_fits=True)
 
 # Command line execution
 if __name__ == '__main__':

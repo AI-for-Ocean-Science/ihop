@@ -13,7 +13,8 @@ from ihop.inference import io as fitting_io
 
 from IPython import embed
 
-def init_mcmc(emulator, ndim, perc:int=None, abs_sig:float=None):
+def init_mcmc(emulator, ndim, perc:int=None, 
+              abs_sig:float=None, priors:dict=None):
     """
     Initializes the MCMC parameters.
 
@@ -22,6 +23,7 @@ def init_mcmc(emulator, ndim, perc:int=None, abs_sig:float=None):
         ndim (int): The number of dimensions.
         perc (int): The scaling factor for the sigma parameter (optional).
         abs_sig (float): The absolute sigma parameter (optional).
+        priors (dict): The prior information (optional).
 
     Returns:
         dict: A dictionary containing the MCMC parameters.
@@ -32,7 +34,7 @@ def init_mcmc(emulator, ndim, perc:int=None, abs_sig:float=None):
     pdict['save_file'] = None
     pdict['scl_sig'] = perc
     pdict['abs_sig'] = abs_sig
-    pdict['priors'] = None
+    pdict['priors'] = priors
     pdict['cut'] = None
     #
     return pdict
@@ -107,7 +109,10 @@ def fit(edict:dict, Nspec:int=None, abs_sig:float=None,
     """
     # NEED TO DEAL WITH NMF PRIORS
     if 'nmf' in edict['decomps']: 
-        raise ValueError('Need to deal with NMF priors')
+        priors = {}
+        priors['NMFpos'] = True
+    else:
+        priors = None
 
     # Load
     ab, Chl, Rs, emulator, d_a = load(edict)
@@ -119,7 +124,8 @@ def fit(edict:dict, Nspec:int=None, abs_sig:float=None,
         outroot += f'_max{int(max_wv)}'
 
     # Init MCMC
-    pdict = init_mcmc(emulator, ab.shape[1]+1, abs_sig=abs_sig)
+    pdict = init_mcmc(emulator, ab.shape[1]+1, 
+                      abs_sig=abs_sig, priors=priors)
 
     # Include a non-zero error to avoid bad chi^2 behavior
     if abs_sig is None:
@@ -224,16 +230,16 @@ def main(flg):
     else:
         flg= int(flg)
 
-    # Noiseless
+    # Noiseless NMF
     if flg & (2**0):
         hidden_list=[512, 512, 512, 256]
-        decomp = 'nmf'
-        Ncomp = (4,2)
+        decomps = ('nmf', 'nmf')
+        Ncomps = (4,2)
         X, Y = 4, 0
         n_cores = 20
         dataset = 'L23'
         edict = emu_io.set_emulator_dict(
-            dataset, decomp, Ncomp, 'Rrs',
+            dataset, decomps, Ncomps, 'Rrs',
             'dense', hidden_list=hidden_list, include_chl=True, 
             X=X, Y=Y)
 
@@ -351,6 +357,25 @@ def main(flg):
 
         fit(edict, n_cores=n_cores, abs_sig=abs_sig)#, debug=True)
 
+    # NMF, abs_sig=2
+    if flg & (2**8): # 256
+
+        # Emulator
+        hidden_list=[512, 512, 512, 256]
+        decomps = ('nmf', 'nmf')
+        Ncomps = (4,2)
+        X, Y = 4, 0
+        n_cores = 20
+        dataset = 'L23'
+        abs_sig = 2.
+        edict = emu_io.set_emulator_dict(
+            dataset, decomps, Ncomps, 'Rrs',
+            'dense', hidden_list=hidden_list, 
+            include_chl=True, X=X, Y=Y)
+
+        fit(edict, n_cores=n_cores, abs_sig=abs_sig)#, debug=True)
+
+
     # Testing
     if flg & (2**30):
         hidden_list=[512, 512, 512, 256]
@@ -384,6 +409,9 @@ if __name__ == '__main__':
         #flg += 2 ** 4  # 16 -- PCA, abs_sig=1
         #flg += 2 ** 5  # 32 -- PCA, abs_sig=2
         #flg += 2 ** 6  # 64 -- PCA, abs_sig=5
+
+        # NMF with Noise
+        #flg += 2 ** 8  # 246 -- NMF, abs_sig=2
 
         # Tests
         flg += 2 ** 30  # 16 -- L23 + NMF 4,2

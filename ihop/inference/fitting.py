@@ -28,7 +28,6 @@ def fit_one(items:list, pdict:dict=None, chains_only:bool=False):
     ndim = pdict['model'].ninput
 
     # Run
-    #embed(header='fit_one 208')
     sampler = mcmc.run_emcee_nn(
         pdict['model'], Rs,
         nwalkers=pdict['nwalkers'],
@@ -36,6 +35,7 @@ def fit_one(items:list, pdict:dict=None, chains_only:bool=False):
         scl_sig=pdict['scl_sig']/100. if pdict['scl_sig'] is not None else None,
         abs_sig=pdict['abs_sig'] if pdict['abs_sig'] is not None else None,
         cut=pdict['cut'] if pdict['cut'] is not None else None,
+        priors=pdict['priors'],
         p0=inputs,
         save_file=pdict['save_file'])
 
