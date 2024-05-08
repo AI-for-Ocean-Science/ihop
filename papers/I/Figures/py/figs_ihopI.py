@@ -1192,13 +1192,15 @@ def main(flg):
 
     # RMSE of Rrs and a
     if flg & (2**29):
+        fig_a_examples(('nmf', 'nmf'), (4,2), 
+                         'fig_a_examples_nmf.png', [])
         #fig_a_examples(('pca', 'pca'), (4,2), 
         #                 'fig_a_examples.png', [1., 5.], skip_fits=True)
-        fig_a_examples(('npca', 'pca'), (4,2), 
-                         'fig_a_examples_npca.png', [1., 5.],
-                         skip_fits=True)
-        fig_a_examples(('pca', 'pca'), (4,2), 
-                         'fig_a_examples.png', [2.]) 
+        #fig_a_examples(('npca', 'pca'), (4,2), 
+        #                 'fig_a_examples_npca.png', [1., 5.],
+        #                 skip_fits=True)
+        #fig_a_examples(('pca', 'pca'), (4,2), 
+        #                 'fig_a_examples.png', [2.]) 
                          #[1., 5.], skip_fits=True)
         #fig_a_examples(('npca', 'pca'), (4,2), 
         #                 'fig_a_examples_npca.png', [1., 5.],
