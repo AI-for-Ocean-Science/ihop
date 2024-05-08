@@ -173,26 +173,26 @@ def fig_basis_functions(decomps:tuple,
     print(f"Saved: {outfile}")
 
 
-def fig_nmf_corner(outroot='fig_nmf_corner', decomp:str='nmf',
+def fig_nmf_corner(outroot='fig_nmf_corner', decomps:tuple=('nmf','nmf'),
         dataset:str='L23', X:int=4, Y:int=0):
 
-    in_idx = 0
+    in_idx = 2663
     # Load
-    edict = emu_io.set_emulator_dict(dataset, decomp, Ncomp, 'Rrs',
+    edict = emu_io.set_emulator_dict(dataset, decomps, Ncomps, 'Rrs',
         'dense', include_chl=True, X=X, Y=Y)
 
-    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_decomposition(decomp, Ncomp)
+    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_full(decomps, Ncomps)
 
     for ss, iop in enumerate(['a', 'bb']):
 
-        lbls = [r'$H_'+f'{ii+2}'+r'^'+f'{iop}'+'$' for ii in range(Ncomp[ss])]
+        lbls = [r'$H_'+f'{ii+2}'+r'^'+f'{iop}'+'$' for ii in range(Ncomps[ss])]
         if ss == 0:
-            coeff = ab[:, :Ncomp[0]]
+            coeff = ab[:, :Ncomps[0]]
         else:
-            coeff = ab[:, Ncomp[0]:]
+            coeff = ab[:, Ncomps[0]:]
 
         # Set minimum
-        for ii in range(Ncomp[ss]):
+        for ii in range(Ncomps[ss]):
             coeff[:,ii] = np.maximum(coeff[:,ii], 1e-3)
 
         plt.clf()
@@ -549,6 +549,7 @@ def fig_a_examples(decomps:tuple, Ncomps:tuple, outfile:str,
     i_max = np.argmax(sdata[:,i440])
     a_med = np.median(sdata[:,i440])
     i_med = np.argmin(np.abs(sdata[:,i440] - a_med))
+    print(f'Min={i_min}, Max={i_max}, Med={i_med}')
 
     i_random = np.random.choice(sdata.shape[0], 1)[0]
 
@@ -860,21 +861,19 @@ def fig_mcmc_fit(outroot='fig_mcmc_fit', decomp:str='nmf',
 def fig_corner(decomps:tuple, outroot:str='fig_corner', 
         hidden_list:list=[512, 512, 512, 256], dataset:str='L23', 
         chop_burn:int=-3000, perc:int=None, abs_sig:float=None,
-        X:int=4, Y:int=0, in_idx:int=0,
-        test:bool=False):
+        X:int=4, Y:int=0, in_idx:int=0):
 
     # Load
     edict = emu_io.set_emulator_dict(dataset, decomps, Ncomps, 'Rrs',
         'dense', hidden_list=hidden_list, include_chl=True, X=X, Y=Y)
 
-    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_decomposition(
-        decomps, Ncomps)
+    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_full(decomps, Ncomps)
 
     emulator, e_file = emu_io.load_emulator_from_dict(edict)
 
     chain_file = inf_io.l23_chains_filename(
-        edict, 
-        perc if perc is not None else int(abs_sig), test=test)
+        edict, abs_sig)
+        #perc if perc is not None else int(abs_sig), test=test)
     d_chains = inf_io.load_chains(chain_file)
 
     chains = d_chains['chains'][in_idx]
@@ -903,11 +902,11 @@ def fig_corner(decomps:tuple, outroot:str='fig_corner',
     # Compare answers
     median_coeff = np.median(coeff, axis=0)
 
-    print(f"True a: {ab[idx, :Ncomp[0]]}")
-    print(f"Fitted a: {median_coeff[:Ncomp[0]]}")
+    print(f"True a: {ab[idx, :Ncomps[0]]}")
+    print(f"Fitted a: {median_coeff[:Ncomps[0]]}")
     print('---')
-    print(f"True b: {ab[idx, Ncomp[0]:]}")
-    print(f"Fitted b: {median_coeff[Ncomp[0]:-1]}")
+    print(f"True b: {ab[idx, Ncomps[0]:]}")
+    print(f"Fitted b: {median_coeff[Ncomps[0]:-1]}")
     print('---')
     print(f"True Chl: {Chl[idx]}")
     print(f"Fitted Chl: {median_coeff[-1]}")
@@ -1162,9 +1161,11 @@ def main(flg):
         #fig_corner(test=True, abs_sig=2.)
         #fig_corner(abs_sig=1., in_idx=275) # Turbid
         #fig_corner(abs_sig=1., in_idx=0) # Clear
-        fig_corner(('pca', 'pca'), abs_sig=1., in_idx=0) # 
+        #fig_corner(('pca', 'pca'), abs_sig=1., in_idx=0) # 
+        #fig_corner(('nmf', 'nmf'), abs_sig=None, in_idx=2663) # Minimum
+        fig_corner(('nmf', 'nmf'), abs_sig=None, in_idx=2949) # Minimum
 
-    # L23 IHOP performance vs. perc error
+    # 
     if flg & (2**24):
         fig_nmf_corner()
 
@@ -1218,14 +1219,14 @@ if __name__ == '__main__':
 
         #flg += 2 ** 21  # Single MCMC fit (example)
         #flg += 2 ** 22  # RMSE of L23 fits
-        #flg += 2 ** 23  # Fit corner
-        #flg += 2 ** 24  # NMF corner plots
+        flg += 2 ** 23  # Fit corner
+        #flg += 2 ** 24  # NMF corner plots (decomposition only)
 
         #flg += 2 ** 26  # Decompose error
 
         #flg += 2 ** 27  # RMSE on Rrs and a
         #flg += 2 ** 28  # RMSE on a vs. abs_sig
-        flg += 2 ** 29  # Examples
+        #flg += 2 ** 29  # Examples
 
         #flg += 2 ** 2  # 4 -- Indiv
         #flg += 2 ** 3  # 8 -- Coeff
