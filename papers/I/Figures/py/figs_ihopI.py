@@ -80,9 +80,12 @@ def calc_rmses(d_a, d_recon, a_decomp):
 
 def fig_basis_functions(decomps:tuple,
                         outfile:str='fig_basis_functions.png', 
+                        in_Ncomps=None,
                         norm:bool=False):
 
     X, Y = 4, 0
+    if in_Ncomps is not None:
+        Ncomps = in_Ncomps
 
     # Load
     ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_full(
@@ -1109,7 +1112,7 @@ def main(flg):
         #fig_basis_functions('nmf')
         #fig_basis_functions(('pca', 'pca'),
         #                    outfile='fig_basis_functions_pca.png')
-        fig_basis_functions(('npca', 'npca'),
+        fig_basis_functions(('npca', 'npca'), in_Ncomps=(4,2),
                             outfile='fig_basis_functions_npca.png')
 
     # Emulator RMSE
@@ -1189,11 +1192,11 @@ def main(flg):
 
     # RMSE of Rrs and a
     if flg & (2**29):
-        fig_a_examples(('pca', 'pca'), (4,2), 
-                         'fig_a_examples.png', [1., 5.], skip_fits=True)
-        #fig_a_examples(('npca', 'pca'), (4,2), 
-        #                 'fig_a_examples_npca.png', [1., 5.],
-        #                 skip_fits=True)
+        #fig_a_examples(('pca', 'pca'), (4,2), 
+        #                 'fig_a_examples.png', [1., 5.], skip_fits=True)
+        fig_a_examples(('npca', 'pca'), (4,2), 
+                         'fig_a_examples_npca.png', [1., 5.],
+                         skip_fits=True)
 
 # Command line execution
 if __name__ == '__main__':
