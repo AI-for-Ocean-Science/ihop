@@ -194,7 +194,7 @@ def all_spectra(decomps:tuple, Ncomps:tuple,
 if __name__ == '__main__':
 
     # Noiseless
-    all_spectra(('nmf', 'nmf'), (4,2), abs_sig=None)#, quick_and_dirty=True)#, nchains=300)
+    all_spectra(('nmf', 'nmf'), (4,2), abs_sig=None, quick_and_dirty=True)#, nchains=300)
     #all_spectra(('pca', 'pca'), (4,2), abs_sig=None, quick_and_dirty=True)#, nchains=500)
     #all_spectra(('int', 'nmf'), (40,2), abs_sig=None)#, nchains=100)
 
@@ -205,5 +205,5 @@ if __name__ == '__main__':
 
     # NMF with noise
     #all_spectra(('nmf', 'nmf'), (4,2), abs_sig=1., quick_and_dirty=True)#, nchains=500)
-    #all_spectra(('nmf', 'nmf'), (4,2), abs_sig=2., quick_and_dirty=True)#, nchains=500)
+    all_spectra(('nmf', 'nmf'), (4,2), abs_sig=2., quick_and_dirty=True)#, nchains=500)
     #all_spectra(('nmf', 'nmf'), (4,2), abs_sig=5., quick_and_dirty=True)#, nchains=500)
