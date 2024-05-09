@@ -40,6 +40,7 @@ mpl.rcParams['font.family'] = 'stixgeneral'
 # Local
 sys.path.append(os.path.abspath("../Analysis/py"))
 import reconstruct
+import ls2 as anly_ls2
 
 from IPython import embed
 
@@ -64,15 +65,19 @@ def calc_rmses(d_a, d_recon, a_decomp):
     fit_diff = d_recon['fit_a_mean'] - a_true
     a_fit_RMSE = np.sqrt(np.mean((fit_diff)**2, axis=0))
     a_fit_MAD = np.median(np.abs(fit_diff), axis=0)
+    a_fit_bias = np.median(fit_diff, axis=0)
 
     # Set min
     a_true_min = np.maximum(a_true, 1e-4)
     a_fit_rMAD = np.median(np.abs(fit_diff/a_true_min), axis=0)
+    a_fit_rBIAS = np.median(fit_diff/a_true_min, axis=0)
     a_fit_rRMSE = np.sqrt(np.mean((fit_diff/a_true_min)**2, axis=0))
 
     a_items['a_fit_RMSE'] = a_fit_RMSE
     a_items['a_fit_MAD'] = a_fit_MAD
+    a_items['a_fit_BIAS'] = a_fit_bias
     a_items['a_fit_rMAD'] = a_fit_rMAD
+    a_items['a_fit_rBIAS'] = a_fit_rBIAS
     a_items['a_fit_rRMSE'] = a_fit_rRMSE
 
     return a_items
@@ -440,7 +445,7 @@ def fig_rmse_Rrs_a(decomps:tuple, Ncomps:tuple, outfile:str,
 # ############################################################
 def fig_rmse_a_error(decomps:tuple, Ncomps:tuple, outfile:str, 
                      abs_sigs:list, hidden_list:list=[512, 512, 512, 256], 
-                     dataset:str='L23', X:int=4, Y:int=0):
+                     dataset:str='L23', X:int=4, Y:int=0, show_bias:bool=False):
 
     # ######################
     # Load
@@ -462,6 +467,7 @@ def fig_rmse_a_error(decomps:tuple, Ncomps:tuple, outfile:str,
 
     # Loop on abs_sigs
     a_rmses = []
+    a_biases = []
     for abs_sig in abs_sigs:
 
         # #############################
@@ -490,6 +496,12 @@ def fig_rmse_a_error(decomps:tuple, Ncomps:tuple, outfile:str,
              r'Absolute $a_{\rm nw}(\lambda)$ RMSE',
                 r'Relative $a_{\rm nw}(\lambda)$ MAD',
                 r'Relative $a_{\rm nw}(\lambda)$ RMSE']
+    if show_bias:
+        akeys[0] = 'a_fit_BIAS'
+        akeys[2] = 'a_fit_rBIAS'
+        #
+        ylbls[0] = r'Absolute $a_{\rm nw}(\lambda)$ Bias'
+        ylbls[2] = r'Relative $a_{\rm nw}(\lambda)$ Bias'
 
     for tt, akey, ylbl in zip(range(len(akeys)), akeys, ylbls):
         ax= plt.subplot(gs[tt])
@@ -522,7 +534,7 @@ def fig_rmse_a_error(decomps:tuple, Ncomps:tuple, outfile:str,
 def fig_a_examples(decomps:tuple, Ncomps:tuple, outfile:str, 
                      abs_sigs:list, hidden_list:list=[512, 512, 512, 256], 
                      dataset:str='L23', X:int=4, Y:int=0,
-                     skip_fits:bool=False,
+                     skip_fits:bool=False, show_LS2:bool=False,
                      show_noiseless_error:bool=False):
 
     # ######################
@@ -617,6 +629,11 @@ def fig_a_examples(decomps:tuple, Ncomps:tuple, outfile:str,
     
         # True Decomposition
         ax.plot(wave, a_recons[idx], ':', color='gray', label='Decomposition')
+
+        # LS2?
+        if show_LS2:
+            waves, all_a, all_anw, all_bb, all_bbp = anly_ls2.calc_ls2(idx)
+            ax.plot(waves, all_anw, 'o', color='cyan',ms=0.5, label='LS2')
 
         if not skip_fits:
             ii = np.where(d_nless['idx'] == idx)[0][0]
@@ -716,7 +733,8 @@ def fig_mcmc_fit(outroot='fig_mcmc_fit', decomps:str=('nmf','nmf'),
         X:int=4, Y:int=0, show_zoom:bool=False, 
         perc:int=None, abs_sig:float=None,
         wvmnx:tuple=None, show_NMF:bool=False,
-        water:bool=False, in_idx:int=0,
+        water:bool=False, in_idx:int=0, use_reconstruct:bool=False,
+        chain_file:str=None, in_log10:bool=False,
         test:bool=False, true_obs_only:bool=False,
         true_only:bool=False):
 
@@ -728,40 +746,42 @@ def fig_mcmc_fit(outroot='fig_mcmc_fit', decomps:str=('nmf','nmf'),
 
     emulator, e_file = emu_io.load_emulator_from_dict(edict)
 
-    chain_file = inf_io.l23_chains_filename(edict, 
+    if chain_file is None:
+        chain_file = inf_io.l23_chains_filename(edict, 
                                             perc if perc is not None else int(abs_sig), 
                                             test=test)
     d_chains = inf_io.load_chains(chain_file)
 
-    '''
-    # Reconstruct
-    items = reconstruct.one_spectrum(in_idx, ab, Chl, d_chains, 
+    if use_reconstruct:
+        # Reconstruct
+        items = reconstruct.one_spectrum(in_idx, ab, Chl, d_chains, 
                                      d_a, d_bb, 
-                                     emulator, decomps, Ncomps)
-    idx, orig, a_mean, a_std, a_iop, obs_Rs,\
-        pred_Rs, std_pred, NN_Rs, allY, wave,\
-        orig_bb, bb_mean, bb_std, a_nmf, bb_nmf = items
-    print(f"L23 index = {idx}")
-    '''
-    recon_file = os.path.join(
-        '../Analysis/',
-        os.path.basename(fitting_io.l23_chains_filename(
-        edict, abs_sig).replace('fit', 'recon')))
-    d_recon = np.load(recon_file)
-    idx = np.where(d_recon['idx'] == in_idx)[0][0]
+                                     emulator, decomps[0], Ncomps,
+                                     in_log10=in_log10)
+        idx, orig, a_mean, a_std, a_iop, obs_Rs,\
+            pred_Rs, std_pred, NN_Rs, allY, wave,\
+            orig_bb, bb_mean, bb_std, a_nmf, bb_nmf = items
+        print(f"L23 index = {idx}")
+    else:
+        recon_file = os.path.join(
+            '../Analysis/',
+            os.path.basename(fitting_io.l23_chains_filename(
+            edict, abs_sig).replace('fit', 'recon')))
+        d_recon = np.load(recon_file)
+        idx = np.where(d_recon['idx'] == in_idx)[0][0]
 
-    # Unpack here
-    wave = d_a['wave']
-    orig = d_a['spec'][in_idx]
-    a_mean = d_recon['fit_a_mean'][idx]
-    a_std = d_recon['fit_a_std'][idx]
-    orig_bb = d_bb['spec'][in_idx]
-    bb_mean = d_recon['fit_bb_mean'][idx]
-    bb_std = d_recon['fit_bb_std'][idx]
+        # Unpack here
+        wave = d_a['wave']
+        orig = d_a['spec'][in_idx]
+        a_mean = d_recon['fit_a_mean'][idx]
+        a_std = d_recon['fit_a_std'][idx]
+        orig_bb = d_bb['spec'][in_idx]
+        bb_mean = d_recon['fit_bb_mean'][idx]
+        bb_std = d_recon['fit_bb_std'][idx]
 
-    obs_Rs = d_chains['obs_Rs']
-    pred_Rs = d_recon['fit_Rrs'][idx]
-    std_pred = 0.01
+        obs_Rs = d_chains['obs_Rs']
+        pred_Rs = d_recon['fit_Rrs'][idx]
+        std_pred = 0.01
 
     # Outfile
     outfile = outroot + f'_{idx}.png'
@@ -789,7 +809,7 @@ def fig_mcmc_fit(outroot='fig_mcmc_fit', decomps:str=('nmf','nmf'),
         a_w = 0
     ax_a = plt.subplot(gs[2])
     def plot_spec(ax):
-        ax.plot(wave, orig+a_w, 'ko', label='True')
+        ax.plot(wave, orig+a_w, 'ko', label='True', zorder=1)
         ax.plot(wave, a_mean+a_w, 'r-', label='Retrieval')
         if show_NMF:
             ax.plot(wave, a_nmf+a_w, 'r:', label='Real Recon')
@@ -890,6 +910,7 @@ def fig_mcmc_fit(outroot='fig_mcmc_fit', decomps:str=('nmf','nmf'),
 def fig_corner(decomps:tuple, outroot:str='fig_corner', 
         hidden_list:list=[512, 512, 512, 256], dataset:str='L23', 
         chop_burn:int=-3000, perc:int=None, abs_sig:float=None,
+        chain_file:str=None, in_log10:bool=False,
         X:int=4, Y:int=0, in_idx:int=0):
 
     # Load
@@ -900,19 +921,28 @@ def fig_corner(decomps:tuple, outroot:str='fig_corner',
 
     emulator, e_file = emu_io.load_emulator_from_dict(edict)
 
-    chain_file = inf_io.l23_chains_filename(
-        edict, abs_sig)
+    if chain_file is None:
+        chain_file = inf_io.l23_chains_filename(
+            edict, abs_sig)
         #perc if perc is not None else int(abs_sig), test=test)
     d_chains = inf_io.load_chains(chain_file)
 
     chains = d_chains['chains'][in_idx]
     coeff = chains[chop_burn:, :, :].reshape(-1,Ncomps[0]+Ncomps[1]+1)
 
+    if in_log10:
+        coeff = 10**coeff
+
+
+    #embed(header='919 of figs')
+
     idx = d_chains['idx'][in_idx]
     # Outfile
     outfile = outroot + f'_{idx}.png'
 
     truths = np.concatenate((ab[idx], Chl[idx].reshape(1,)))
+    #if in_log10:
+    #    truths = np.log10(truths)
 
     fig = corner.corner(
         coeff, labels=clbls,
@@ -1165,13 +1195,15 @@ def main(flg):
         #                  outfile='fig_emulator_rmse_intnmf.png') 
 
     # L23 IHOP performance vs. perc error
-    if flg & (2**21):
+    if flg & (2**2):
         #fig_mcmc_fit(test=True, perc=10)
         #fig_mcmc_fit(test=True, abs_sig=2.)
         #fig_mcmc_fit(test=True, abs_sig=2., water=True)
         #fig_mcmc_fit(test=True, abs_sig=2., water=True)
-        #fig_mcmc_fit(abs_sig=2., in_idx=275) # Turbid
-        fig_mcmc_fit(abs_sig=2., in_idx=2663) # Minimum
+        #fig_mcmc_fit(abs_sig=5., in_idx=275) # Turbid
+        #fig_mcmc_fit(abs_sig=5., in_idx=2663) # Minimum
+        #fig_mcmc_fit(abs_sig=5., in_idx=170) # Median
+        fig_mcmc_fit(abs_sig=5., in_idx=180) # Median
         #fig_mcmc_fit(abs_sig=2., in_idx=2949) # Maximum absorption
         #fig_mcmc_fit(abs_sig=1., in_idx=0)#, wvmnx=[500, 600.]) # Clear
         #fig_mcmc_fit(abs_sig=1., in_idx=99) # Clear
@@ -1180,6 +1212,9 @@ def main(flg):
         #             test=True, abs_sig=2., true_only=True)
         #fig_mcmc_fit(outroot='fig_mcmc_fit_trueobs',
         #             test=True, abs_sig=2., true_obs_only=True)
+        #
+        #fig_mcmc_fit(abs_sig=5., in_idx=1, use_reconstruct=True, in_log10=True, # Median
+        #           chain_file='../../../builds/fits/Fits/L23/fit_Rs05_L23_X4_Y0_nmfnmf_42_chl_Rrs_dense_512_512_512_256.npz')
 
     # L23 IHOP performance vs. perc error
     if flg & (2**22):
@@ -1195,7 +1230,12 @@ def main(flg):
         #fig_corner(('pca', 'pca'), abs_sig=1., in_idx=0) # 
         #fig_corner(('nmf', 'nmf'), abs_sig=None, in_idx=2663) # Minimum
         #fig_corner(('nmf', 'nmf'), abs_sig=None, in_idx=2949) # Maximum
-        fig_corner(('nmf', 'nmf'), abs_sig=2., in_idx=2949) # Maximum
+        #fig_corner(('nmf', 'nmf'), abs_sig=2., in_idx=2949) # Maximum
+        #fig_corner(('nmf', 'nmf'), abs_sig=5., in_idx=180) #
+        #fig_corner(('nmf', 'nmf'), abs_sig=5., in_idx=170) # 
+        #
+        fig_corner(('nmf', 'nmf'), abs_sig=5., in_idx=1, in_log10=True,
+                   chain_file='../../../builds/fits/Fits/L23/fit_Rs05_L23_X4_Y0_nmfnmf_42_chl_Rrs_dense_512_512_512_256.npz')
 
     # 
     if flg & (2**24):
@@ -1211,25 +1251,27 @@ def main(flg):
 
     # RMSE of Rrs and a
     if flg & (2**27):
-        #fig_rmse_Rrs_a(('nmf', 'nmf'), (4,2),'fig_rmse_Rrs_a_nmfnmf.png',
-        #               abs_sig=None)
-        fig_rmse_Rrs_a(('pca', 'pca'), (4,2),'fig_rmse_Rrs_a_pcapca.png',
-                      abs_sig=None)
+        fig_rmse_Rrs_a(('nmf', 'nmf'), (4,2),'fig_rmse_Rrs_a_nmfnmf.png',
+                       abs_sig=None)
+        #fig_rmse_Rrs_a(('pca', 'pca'), (4,2),'fig_rmse_Rrs_a_pcapca.png',
+                      #abs_sig=None)
         #fig_rmse_Rrs_a(('int', 'nmf'), (40,2), 'fig_rmse_Rrs_a_intnmf.png',
         #               abs_sig=None)
 
     # RMSE of Rrs and a
     if flg & (2**28):
         fig_rmse_a_error(('nmf', 'nmf'), (4,2), 
-                         'fig_rmse_a_error_nmfnmf.png', [2.])
+                         'fig_rmse_a_error_nmfnmf.png', [1, 2., 5.],
+                         show_bias=True)
         #fig_rmse_a_error(('pca', 'pca'), (4,2), 
         #                 'fig_rmse_a_error_pcapca.png', [1., 2., 5.])
 
     # RMSE of Rrs and a
     if flg & (2**29):
         fig_a_examples(('nmf', 'nmf'), (4,2), 
-                         'fig_a_examples_nmf.png', [2.],
-                         show_noiseless_error=True)
+                         'fig_a_examples_nmf.png', [1.0, 2., 5.],
+                         show_noiseless_error=True,
+                         show_LS2=True)
         #fig_a_examples(('pca', 'pca'), (4,2), 
         #                 'fig_a_examples.png', [1., 5.], skip_fits=True)
         #fig_a_examples(('npca', 'pca'), (4,2), 
@@ -1251,8 +1293,8 @@ if __name__ == '__main__':
 
         #flg += 2 ** 0  # Basis functions of the decomposition
         #flg += 2 ** 1  # RMSE of emulators
+        #flg += 2 ** 2  # Single MCMC fit (example)
 
-        #flg += 2 ** 21  # Single MCMC fit (example)
         #flg += 2 ** 22  # RMSE of L23 fits
         flg += 2 ** 23  # Fit corner
         #flg += 2 ** 24  # NMF corner plots (decomposition only)

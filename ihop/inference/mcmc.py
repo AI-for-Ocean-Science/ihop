@@ -40,12 +40,19 @@ def log_prob(ab, Rs, model, device, scl_sig, abs_sig, priors,
     """
     # Priors
     if priors is not None:
-        lp = lnprior(ab, priors)
-    if np.min(ab) < 0:
-        return -np.inf
+        use_ab = ab
+        # Check for NMF positivity
+        if 'NMFpos' in priors.keys() and priors['NMFpos']:
+            if np.min(ab) < 0:
+                return -np.inf
+        elif 'use_log_ab' in priors.keys() and priors['use_log_ab']:
+            use_ab = 10**ab
+            if (np.min(ab) < -3) or (np.max(ab) > 2):
+                return -np.inf
+        #lp = lnprior(ab, priors)
 
     # Proceed
-    pred = model.prediction(ab, device)
+    pred = model.prediction(use_ab, device)
     # Error
     sig = scl_sig * Rs if scl_sig is not None else abs_sig
     #
@@ -80,7 +87,7 @@ def run_emcee_nn(nn_model, Rs, nwalkers:int=32, nsteps:int=20000,
         scl_sig (float, optional): The scaling factor for the sigma parameter. Defaults to None.
         abs_sig (float, optional): The absolute value of the sigma parameter. Defaults to None.
         skip_check (bool, optional): Whether to skip the initial state check. Defaults to False.
-        prior (tuple, optional): The prior information. Defaults to None.
+        prior (dict, optional): The prior information. Defaults to None.
         cut (np.ndarray, optional): Limit the likelihood calculation
             to a subset of the values
 
@@ -108,7 +115,7 @@ def run_emcee_nn(nn_model, Rs, nwalkers:int=32, nsteps:int=20000,
         # Replicate for nwalkers
         p0 = np.tile(p0, (nwalkers, 1))
         # Perturb a tiny bit
-        p0 += p0*np.random.uniform(-1e-4, 1e-4, size=p0.shape)
+        p0 += p0*np.random.uniform(-1e-2, 1e-2, size=p0.shape)
 
     #embed(header='run_emcee_nn 47')
     # Set up the backend

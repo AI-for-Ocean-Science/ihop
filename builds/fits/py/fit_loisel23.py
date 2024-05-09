@@ -110,7 +110,10 @@ def fit(edict:dict, Nspec:int=None, abs_sig:float=None,
     # NEED TO DEAL WITH NMF PRIORS
     if 'nmf' in edict['decomps']: 
         priors = {}
-        priors['NMFpos'] = True
+        # Positive priors
+        #priors['NMFpos'] = True
+        # Log priors
+        priors['use_log_ab'] = True
     else:
         priors = None
 
@@ -148,11 +151,15 @@ def fit(edict:dict, Nspec:int=None, abs_sig:float=None,
     else:
         idx = np.arange(Nspec)
     if debug:
-        idx = idx[0:2]
-    items = [(use_Rs[i], ab[i].tolist()+[Chl[i]], i) for i in idx]
+        #idx = idx[0:2]
+        idx = [170, 180]
+    if 'use_log_ab' in priors and priors['use_log_ab']:
+        items = [(use_Rs[i], np.log10(ab[i]).tolist()+[np.log10(Chl[i])], i) for i in idx]
+    else:
+        items = [(use_Rs[i], ab[i].tolist()+[Chl[i]], i) for i in idx]
 
-    if debug:
-        embed(header='fit 145')
+    #if debug:
+    #    embed(header='fit 145')
 
     # Fit
     all_samples, all_idx = fitting.fit_batch(pdict, items,
@@ -409,7 +416,7 @@ def main(flg):
             'dense', hidden_list=hidden_list, 
             include_chl=True, X=X, Y=Y)
 
-        fit(edict, n_cores=n_cores, abs_sig=abs_sig)#, debug=True)
+        fit(edict, n_cores=n_cores, abs_sig=abs_sig, debug=True)
 
     # Testing
     if flg & (2**30):

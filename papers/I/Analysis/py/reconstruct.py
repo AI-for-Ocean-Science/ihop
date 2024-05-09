@@ -22,8 +22,10 @@ from IPython import embed
 
 def one_spectrum(in_idx:int, ab, Chl, d_chains, d_a, d_bb, emulator,
                              decomp:str, Ncomp:tuple,
-                             chop_burn:int=-3000):
+                             chop_burn:int=-3000, in_log10:bool=False):
     chains = d_chains['chains'][in_idx]
+    if in_log10:
+        chains = 10**chains
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     l23_idx = d_chains['idx']
     obs_Rs = d_chains['obs_Rs']
@@ -194,7 +196,7 @@ def all_spectra(decomps:tuple, Ncomps:tuple,
 if __name__ == '__main__':
 
     # Noiseless
-    all_spectra(('nmf', 'nmf'), (4,2), abs_sig=None, quick_and_dirty=True)#, nchains=300)
+    #all_spectra(('nmf', 'nmf'), (4,2), abs_sig=None, quick_and_dirty=True)#, nchains=300)
     #all_spectra(('pca', 'pca'), (4,2), abs_sig=None, quick_and_dirty=True)#, nchains=500)
     #all_spectra(('int', 'nmf'), (40,2), abs_sig=None)#, nchains=100)
 
@@ -204,6 +206,6 @@ if __name__ == '__main__':
     #all_spectra(('pca', 'pca'), (4,2), abs_sig=5., quick_and_dirty=True)#, nchains=500)
 
     # NMF with noise
-    #all_spectra(('nmf', 'nmf'), (4,2), abs_sig=1., quick_and_dirty=True)#, nchains=500)
-    all_spectra(('nmf', 'nmf'), (4,2), abs_sig=2., quick_and_dirty=True)#, nchains=500)
-    #all_spectra(('nmf', 'nmf'), (4,2), abs_sig=5., quick_and_dirty=True)#, nchains=500)
+    all_spectra(('nmf', 'nmf'), (4,2), abs_sig=1., quick_and_dirty=True)#, nchains=500)
+    #all_spectra(('nmf', 'nmf'), (4,2), abs_sig=2., quick_and_dirty=True)#, nchains=500)
+    all_spectra(('nmf', 'nmf'), (4,2), abs_sig=5., quick_and_dirty=True)#, nchains=500)
