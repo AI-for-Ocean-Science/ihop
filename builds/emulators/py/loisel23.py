@@ -16,8 +16,8 @@ from IPython import embed
 def emulate_l23(decomps:tuple, Ncomps:tuple, include_chl:bool=True, 
                 X:int=4, Y:int=0, hidden_list:list=[512, 512, 256], 
                 real_loss:bool=False, preproc_Rs:str=None,
-                nepochs:int=100, lr:float=1e-2, p_drop:float=0.,
-    push_to_s3:bool=False):
+                nepochs:int=100, lr:float=1e-2, 
+                push_to_s3:bool=False):
     """
     Generate an emulator for a decomposition
     of the Loisel+23 dataset.
@@ -31,8 +31,8 @@ def emulate_l23(decomps:tuple, Ncomps:tuple, include_chl:bool=True,
         hidden_list (list, optional): List of hidden layer sizes for the dense neural network. Defaults to [512, 512, 256].
         nepochs (int, optional): Number of training epochs. Defaults to 100.
         lr (float, optional): Learning rate for the neural network. Defaults to 1e-2.
-        p_drop (float, optional): Dropout probability for the neural network. Defaults to 0.
         push_to_s3 (bool, optional): Flag indicating whether to push the model to S3. Defaults to False.
+        skip_Chl (bool, optional): Skip the chlorophyll input. Defaults to False.
         preproc_Rs (str, optional): Preprocessing method for Rrs. Defaults to None.
             norm -- Normalize Rrs
             lin## -- Linear scaling for Rrs
@@ -53,6 +53,7 @@ def emulate_l23(decomps:tuple, Ncomps:tuple, include_chl:bool=True,
     root = emu_io.set_l23_emulator_root(edict)
     path = emu_io.path_to_emulator(dataset)
     root = os.path.join(path, root)
+    print(f"Building emulator: {root}")
 
     if include_chl: 
         ds_l23 = loisel23.load_ds(X, Y)
@@ -139,6 +140,14 @@ def main(flg):
             nepochs=25000, 
             push_to_s3=True)
 
+    # flg=4;  L23 + NMF, m=4,2, no Chl
+    if flg & (2**8):
+        emulate_l23(('nmf', 'nmf'), (4,2), 
+                    hidden_list=[512, 512, 512, 256],
+            nepochs=25000, include_chl=False,
+            push_to_s3=True)
+
+
 # Command line execution
 if __name__ == '__main__':
     import sys
@@ -156,6 +165,7 @@ if __name__ == '__main__':
         #flg += 2 ** 6  # 64 -- L23 + PCA 4,2; linear scale Rs (-5)
         
         #flg += 2 ** 7  # 128 -- L23 + NMF 3,2 + norm_Rs=False
+        #flg += 2 ** 8  # 256 -- L23 + NMF 4,2 + norm_Rs=False, no Chl
 
         
     else:
