@@ -115,7 +115,8 @@ def load_loisel2023_decomp(decomps:tuple,
     d_bb = np.load(l23_bb_file)
 
     # Prep
-    keys = dict(pca='Y', nmf='coeff', int='new_spec', npca='Y')
+    keys = dict(pca='Y', nmf='coeff', int='new_spec', 
+                npca='Y', bsp='coeffs')
     keya = keys[decomps[0]]
     keyb = keys[decomps[1]]
 
