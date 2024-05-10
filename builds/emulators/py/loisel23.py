@@ -134,7 +134,8 @@ def main(flg):
 
     # flg=4;  L23 + NMF, m=3,2
     if flg & (2**7):
-        emulate_l23('nmf', (3,2), hidden_list=[512, 512, 512, 256],
+        emulate_l23(('nmf', 'nmf'), (3,2), 
+                    hidden_list=[512, 512, 512, 256],
             nepochs=25000, 
             push_to_s3=True)
 
