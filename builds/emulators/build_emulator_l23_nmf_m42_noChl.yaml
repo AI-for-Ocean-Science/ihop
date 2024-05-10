@@ -3,7 +3,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-ihop-emulator-l23-nmf-m42-noChl
+  name: xavier-ihop-emulator-l23-nmf-m42-nochl
 spec:
   backoffLimit: 0
   template:
