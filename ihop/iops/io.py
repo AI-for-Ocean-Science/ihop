@@ -44,6 +44,20 @@ def loisel23_filenames(decomps:tuple, Ncomps:tuple,
 def load_loisel23_iop(iop:str, X:int=4, Y:int=0, 
     min_wv:float=300., high_cut:float=1000.,
     remove_water:bool=False):
+    """
+    Load Loisel23 IOP data.
+
+    Parameters:
+        iop (str): The type of IOP data to load ('a' for absorption or 'bb' for backscattering).
+        X (int): The X-coordinate of the data to load.
+        Y (int): The Y-coordinate of the data to load.
+        min_wv (float): The minimum wavelength to include in the loaded data.
+        high_cut (float): The maximum wavelength to include in the loaded data.
+        remove_water (bool): Whether to remove the water contribution from the loaded data.
+
+    Returns:
+        tuple: A tuple containing the loaded IOP data, the corresponding wavelengths, the remote sensing reflectances, and the original dataset.
+    """
 
     # Load
     ds = loisel23.load_ds(X, Y)

@@ -94,6 +94,7 @@ def load(edict:dict):
 def fit(edict:dict, Nspec:int=None, abs_sig:float=None,
                       debug:bool=False, n_cores:int=1,
                       use_log_ab:bool=False,
+                      use_NMF_pos:bool=False,
                       max_wv:float=None):
     """
     Fits the data with or without considering any errors.
@@ -107,6 +108,7 @@ def fit(edict:dict, Nspec:int=None, abs_sig:float=None,
         n_cores (int): The number of CPU cores to use for parallel processing. Default is 1.
         max_wv (float): The maximum wavelength to consider. Default is None.
         use_log_ab (bool): Whether to use log(ab) in the priors. Default is False.
+        use_NMF_pos (bool): Whether to use positive priors for NMF. Default is False.
 
     """
     # Priors
@@ -116,8 +118,9 @@ def fit(edict:dict, Nspec:int=None, abs_sig:float=None,
             priors = {}
             priors['use_log_ab'] = True
         # Positive priors
-        #priors['NMFpos'] = True
-        # Log priors
+        if use_NMF_pos:
+            priors = {}
+            priors['NMFpos'] = True
 
     # Load
     ab, Chl, Rs, emulator, d_a = load(edict)
@@ -156,7 +159,7 @@ def fit(edict:dict, Nspec:int=None, abs_sig:float=None,
     if debug:
         #idx = idx[0:2]
         idx = [170, 180]
-    if 'use_log_ab' in priors and priors['use_log_ab']:
+    if priors is not None and 'use_log_ab' in priors and priors['use_log_ab']:
         items = [(use_Rs[i], np.log10(ab[i]).tolist()+[np.log10(Chl[i])], i) for i in idx]
     else:
         items = [(use_Rs[i], ab[i].tolist()+[Chl[i]], i) for i in idx]
@@ -438,7 +441,7 @@ def main(flg):
             include_chl=True, X=X, Y=Y)
 
         fit(edict, n_cores=n_cores, abs_sig=abs_sig, 
-            use_log_ab=True, debug=True)
+            use_log_ab=True)#, debug=True)
 
 
     # Testing
@@ -456,6 +459,26 @@ def main(flg):
             X=X, Y=Y)
         # Test fit
         test_fit(edict, abs_sig=2., n_cores=n_cores)
+
+    # NMF, abs_sig=2, log prior
+    if flg & (2**31): # 1024
+
+        # Emulator
+        hidden_list=[512, 512, 512, 256]
+        decomps = ('nmf', 'nmf')
+        Ncomps = (3,2)
+        X, Y = 4, 0
+        n_cores = 20
+        dataset = 'L23'
+        abs_sig = 2.
+        edict = emu_io.set_emulator_dict(
+            dataset, decomps, Ncomps, 'Rrs',
+            'dense', hidden_list=hidden_list, 
+            include_chl=True, X=X, Y=Y)
+
+        fit(edict, n_cores=n_cores, abs_sig=abs_sig, 
+            use_log_ab=True, debug=True)
+            #use_NMF_pos=True, debug=True)
 
 # Command line execution
 if __name__ == '__main__':
@@ -484,7 +507,8 @@ if __name__ == '__main__':
         #flg += 2 ** 10  # 1024 -- NMF, abs_sig=2, log prior
 
         # Tests
-        flg += 2 ** 30  # 16 -- L23 + NMF 4,2
+        #flg += 2 ** 30  # 16 -- L23 + NMF 4,2
+        flg += 2 ** 31  # 16 -- L23 + NMF 4,2
 
         
     else:

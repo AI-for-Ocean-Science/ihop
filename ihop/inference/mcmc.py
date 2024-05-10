@@ -39,8 +39,8 @@ def log_prob(ab, Rs, model, device, scl_sig, abs_sig, priors,
         float: The logarithm of the probability.
     """
     # Priors
+    use_ab = ab
     if priors is not None:
-        use_ab = ab
         # Check for NMF positivity
         if 'NMFpos' in priors.keys() and priors['NMFpos']:
             if np.min(ab) < 0:

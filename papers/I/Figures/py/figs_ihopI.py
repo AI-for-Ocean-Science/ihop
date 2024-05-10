@@ -729,8 +729,10 @@ def fig_mcmc_decompose(outroot='fig_mcmc_decompose', decomp:str='nmf',
 
 # ############################################################
 def fig_mcmc_fit(outroot='fig_mcmc_fit', decomps:str=('nmf','nmf'),
-        hidden_list:list=[512, 512, 512, 256], dataset:str='L23', use_quick:bool=False,
+        hidden_list:list=[512, 512, 512, 256], dataset:str='L23', 
+        use_quick:bool=False,
         X:int=4, Y:int=0, show_zoom:bool=False, 
+        in_Ncomps=None,
         perc:int=None, abs_sig:float=None,
         wvmnx:tuple=None, show_NMF:bool=False,
         water:bool=False, in_idx:int=0, use_reconstruct:bool=False,
@@ -738,6 +740,8 @@ def fig_mcmc_fit(outroot='fig_mcmc_fit', decomps:str=('nmf','nmf'),
         test:bool=False, true_obs_only:bool=False,
         true_only:bool=False):
 
+    if in_Ncomps is not None:
+        Ncomps = in_Ncomps
     # Load
     edict = emu_io.set_emulator_dict(dataset, decomps, Ncomps, 'Rrs',
         'dense', hidden_list=hidden_list, include_chl=True, X=X, Y=Y)
@@ -910,8 +914,12 @@ def fig_mcmc_fit(outroot='fig_mcmc_fit', decomps:str=('nmf','nmf'),
 def fig_corner(decomps:tuple, outroot:str='fig_corner', 
         hidden_list:list=[512, 512, 512, 256], dataset:str='L23', 
         chop_burn:int=-3000, perc:int=None, abs_sig:float=None,
+        in_Ncomps=None,
         chain_file:str=None, in_log10:bool=False,
         X:int=4, Y:int=0, in_idx:int=0):
+
+    if in_Ncomps is not None:
+        Ncomps = in_Ncomps
 
     # Load
     edict = emu_io.set_emulator_dict(dataset, decomps, Ncomps, 'Rrs',
@@ -1176,6 +1184,7 @@ def main(flg):
 
     # Emulator RMSE
     if flg & (2**1):
+        # NMF
         #fig_emulator_rmse('L23', 3, [512, 512, 512, 256],
         #                  outfile='fig_emulator_rmse_3.png')
         #fig_emulator_rmse('L23', 4, [512, 512, 512, 256],
@@ -1185,11 +1194,14 @@ def main(flg):
         #fig_emulator_rmse('L23', (4,2), [512, 512, 512, 256],
         #                  log_rrmse=True)
         #fig_emulator_rmse(['L23_NMF', 'L23_PCA'], [3, 3])
+        fig_emulator_rmse('L23', (3,2), [512, 512, 512, 256],
+                          ('nmf', 'nmf'), log_rrmse=True, 
+                          outfile='fig_emulator_rmse_nmf_32.png')
         # PCA
-        fig_emulator_rmse('L23', (4,2), [512, 512, 512, 256],
-                          ('pca', 'pca'), log_rrmse=True, 
-                          preproc_Rs='lin-5', 
-                          outfile='fig_emulator_rmse_pca_lin-5.png') 
+        #fig_emulator_rmse('L23', (4,2), [512, 512, 512, 256],
+        #                  ('pca', 'pca'), log_rrmse=True, 
+        #                  preproc_Rs='lin-5', 
+        #                  outfile='fig_emulator_rmse_pca_lin-5.png') 
         # INT
         #fig_emulator_rmse('L23', (40,2), [512, 512, 512, 256],
         #                  ('int', 'nmf'), log_rrmse=True,
@@ -1214,8 +1226,13 @@ def main(flg):
         #fig_mcmc_fit(outroot='fig_mcmc_fit_trueobs',
         #             test=True, abs_sig=2., true_obs_only=True)
         #
-        fig_mcmc_fit(abs_sig=5., in_idx=1, use_reconstruct=True, in_log10=True, # Median
-                   chain_file='../../../builds/fits/Fits/L23/fit_Rs05_L23_X4_Y0_nmfnmf_42_chl_Rrs_dense_512_512_512_256.npz')
+        #fig_mcmc_fit(abs_sig=5., in_idx=1, use_reconstruct=True, in_log10=True, # Median
+                   #chain_file='../../../builds/fits/Fits/L23/fit_Rs05_L23_X4_Y0_nmfnmf_42_chl_Rrs_dense_512_512_512_256.npz')
+        #fig_mcmc_fit(abs_sig=2., in_idx=1, use_reconstruct=True, in_log10=False, 
+        #             in_Ncomps=(3,2), 
+        #           chain_file='../../../builds/fits/Fits/L23/fit_Rs02_L23_X4_Y0_nmfnmf_32_chl_Rrs_dense_512_512_512_256.npz')
+        fig_mcmc_fit(abs_sig=2., in_idx=1, use_reconstruct=True, in_log10=True, in_Ncomps=(3,2), 
+                   chain_file='../../../builds/fits/Fits/L23/fit_Rs02_L23_X4_Y0_nmfnmf_32_chl_Rrs_dense_512_512_512_256_logab.npz')
         #fig_mcmc_fit(abs_sig=1., in_idx=1, use_reconstruct=True, in_log10=True, # Median
         #           chain_file='../../../builds/fits/Fits/L23/fit_Rs01_L23_X4_Y0_nmfnmf_42_chl_Rrs_dense_512_512_512_256.npz')
 
@@ -1233,12 +1250,16 @@ def main(flg):
         #fig_corner(('pca', 'pca'), abs_sig=1., in_idx=0) # 
         #fig_corner(('nmf', 'nmf'), abs_sig=None, in_idx=2663) # Minimum
         #fig_corner(('nmf', 'nmf'), abs_sig=None, in_idx=2949) # Maximum
-        #fig_corner(('nmf', 'nmf'), abs_sig=2., in_idx=2949) # Maximum
+        fig_corner(('nmf', 'nmf'), abs_sig=2., in_idx=170, in_Ncomps=(4,2)) # Maximum
         #fig_corner(('nmf', 'nmf'), abs_sig=5., in_idx=180) #
         #fig_corner(('nmf', 'nmf'), abs_sig=5., in_idx=170) # 
         #
-        fig_corner(('nmf', 'nmf'), abs_sig=5., in_idx=1, in_log10=True,
-                   chain_file='../../../builds/fits/Fits/L23/fit_Rs05_L23_X4_Y0_nmfnmf_42_chl_Rrs_dense_512_512_512_256.npz')
+        #fig_corner(('nmf', 'nmf'), abs_sig=5., in_idx=1, in_log10=True,
+        #           chain_file='../../../builds/fits/Fits/L23/fit_Rs05_L23_X4_Y0_nmfnmf_42_chl_Rrs_dense_512_512_512_256.npz')
+        #fig_corner(('nmf', 'nmf'), abs_sig=2., in_idx=1, in_Ncomps=(3,2), #in_log10=True,
+        #           chain_file='../../../builds/fits/Fits/L23/fit_Rs02_L23_X4_Y0_nmfnmf_32_chl_Rrs_dense_512_512_512_256.npz')
+        #fig_corner(('nmf', 'nmf'), abs_sig=2., in_idx=1, in_Ncomps=(3,2), in_log10=True,
+        #           chain_file='../../../builds/fits/Fits/L23/fit_Rs02_L23_X4_Y0_nmfnmf_32_chl_Rrs_dense_512_512_512_256_logab.npz')
         #fig_corner(('nmf', 'nmf'), abs_sig=1., in_idx=1, in_log10=True,
         #           chain_file='../../../builds/fits/Fits/L23/fit_Rs01_L23_X4_Y0_nmfnmf_42_chl_Rrs_dense_512_512_512_256.npz')
 
