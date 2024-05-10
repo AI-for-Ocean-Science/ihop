@@ -380,7 +380,7 @@ def main(flg):
             'dense', hidden_list=hidden_list, 
             include_chl=True, X=X, Y=Y)
 
-        fit(edict, n_cores=n_cores, abs_sig=abs_sig)#, debug=True)
+        fit(edict, n_cores=n_cores, abs_sig=abs_sig, debug=True)
 
     # NMF, abs_sig=2
     if flg & (2**8): # 256

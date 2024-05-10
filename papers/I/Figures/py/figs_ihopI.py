@@ -1167,11 +1167,12 @@ def main(flg):
     # Decomposition
     if flg & (2**0):
         #fig_emulator_rmse('L23_PCA')
-        #fig_basis_functions('nmf')
+        fig_basis_functions(('nmf', 'nmf'), in_Ncomps=(3,2),
+                            outfile='fig_basis_functions_nmf.png')
         #fig_basis_functions(('pca', 'pca'),
         #                    outfile='fig_basis_functions_pca.png')
-        fig_basis_functions(('npca', 'npca'), in_Ncomps=(4,2),
-                            outfile='fig_basis_functions_npca.png')
+        #fig_basis_functions(('npca', 'npca'), in_Ncomps=(4,2),
+        #                    outfile='fig_basis_functions_npca.png')
 
     # Emulator RMSE
     if flg & (2**1):
@@ -1203,7 +1204,7 @@ def main(flg):
         #fig_mcmc_fit(abs_sig=5., in_idx=275) # Turbid
         #fig_mcmc_fit(abs_sig=5., in_idx=2663) # Minimum
         #fig_mcmc_fit(abs_sig=5., in_idx=170) # Median
-        fig_mcmc_fit(abs_sig=5., in_idx=180) # Median
+        #fig_mcmc_fit(abs_sig=5., in_idx=180) # Median
         #fig_mcmc_fit(abs_sig=2., in_idx=2949) # Maximum absorption
         #fig_mcmc_fit(abs_sig=1., in_idx=0)#, wvmnx=[500, 600.]) # Clear
         #fig_mcmc_fit(abs_sig=1., in_idx=99) # Clear
@@ -1213,8 +1214,10 @@ def main(flg):
         #fig_mcmc_fit(outroot='fig_mcmc_fit_trueobs',
         #             test=True, abs_sig=2., true_obs_only=True)
         #
-        #fig_mcmc_fit(abs_sig=5., in_idx=1, use_reconstruct=True, in_log10=True, # Median
-        #           chain_file='../../../builds/fits/Fits/L23/fit_Rs05_L23_X4_Y0_nmfnmf_42_chl_Rrs_dense_512_512_512_256.npz')
+        fig_mcmc_fit(abs_sig=5., in_idx=1, use_reconstruct=True, in_log10=True, # Median
+                   chain_file='../../../builds/fits/Fits/L23/fit_Rs05_L23_X4_Y0_nmfnmf_42_chl_Rrs_dense_512_512_512_256.npz')
+        #fig_mcmc_fit(abs_sig=1., in_idx=1, use_reconstruct=True, in_log10=True, # Median
+        #           chain_file='../../../builds/fits/Fits/L23/fit_Rs01_L23_X4_Y0_nmfnmf_42_chl_Rrs_dense_512_512_512_256.npz')
 
     # L23 IHOP performance vs. perc error
     if flg & (2**22):
@@ -1236,6 +1239,8 @@ def main(flg):
         #
         fig_corner(('nmf', 'nmf'), abs_sig=5., in_idx=1, in_log10=True,
                    chain_file='../../../builds/fits/Fits/L23/fit_Rs05_L23_X4_Y0_nmfnmf_42_chl_Rrs_dense_512_512_512_256.npz')
+        #fig_corner(('nmf', 'nmf'), abs_sig=1., in_idx=1, in_log10=True,
+        #           chain_file='../../../builds/fits/Fits/L23/fit_Rs01_L23_X4_Y0_nmfnmf_42_chl_Rrs_dense_512_512_512_256.npz')
 
     # 
     if flg & (2**24):

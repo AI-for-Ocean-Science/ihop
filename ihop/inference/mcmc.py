@@ -47,7 +47,7 @@ def log_prob(ab, Rs, model, device, scl_sig, abs_sig, priors,
                 return -np.inf
         elif 'use_log_ab' in priors.keys() and priors['use_log_ab']:
             use_ab = 10**ab
-            if (np.min(ab) < -3) or (np.max(ab) > 2):
+            if (np.min(ab) < -4) or (np.max(ab) > 2):
                 return -np.inf
         #lp = lnprior(ab, priors)
 
