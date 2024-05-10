@@ -132,6 +132,11 @@ def main(flg):
                     nepochs=25000, preproc_Rs='lin-5', 
                     push_to_s3=True)
 
+    # flg=4;  L23 + NMF, m=3,2
+    if flg & (2**7):
+        emulate_l23('nmf', (3,2), hidden_list=[512, 512, 512, 256],
+            nepochs=25000, 
+            push_to_s3=True)
 
 # Command line execution
 if __name__ == '__main__':
@@ -148,6 +153,8 @@ if __name__ == '__main__':
         #flg += 2 ** 5  # 32 -- L23 + INT,NMF 40,2 + norm_Rs=False
 
         #flg += 2 ** 6  # 64 -- L23 + PCA 4,2; linear scale Rs (-5)
+        
+        #flg += 2 ** 7  # 128 -- L23 + NMF 3,2 + norm_Rs=False
 
         
     else:
