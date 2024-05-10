@@ -86,6 +86,10 @@ def main(flg):
         decompose_loisel23_iop('npca', 4, 'a', clobber=False)  # for a
         decompose_loisel23_iop('npca', 2, 'bb', clobber=False)  # for bb
         decompose_loisel23_iop('npca', 3, 'a', clobber=True)  # for a
+
+    # L23 + NMF
+    if flg & (2**3):
+        decompose_loisel23_iop('nmf', 2, 'a', clobber=True)  # for a
     
 if __name__ == '__main__':
     import sys
@@ -97,8 +101,6 @@ if __name__ == '__main__':
         #flg += 2 ** 2  # 4 -- L23 + Normalized PCA
 
         #flg += 2 ** 3  # 8 -- L23 + NMF 4,3
-
-        #flg += 2 ** 4  # 16 -- L23 + PCA 4,2 + norm_Rs=False
 
         
     else:

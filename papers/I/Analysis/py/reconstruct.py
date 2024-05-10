@@ -20,6 +20,40 @@ from ihop.inference import io as fitting_io
 
 from IPython import embed
 
+def reconstruct_bsp(coeffs, d_a, idx):
+    from pypeit.bspline.utilc import bspline_model
+    from pypeit.bspline import bspline
+
+    wv64 = d_a['wave'].astype(np.float64)
+
+    # Build the bspline
+    bspline_dict = {}
+    bspline_dict['xmin'] = 0.
+    bspline_dict['xmax'] = 1.
+    bspline_dict['npoly'] = 1
+    bspline_dict['nord'] = 3
+    bspline_dict['funcname'] = 'legendre'
+    #
+    bspline_dict['coeff'] = coeffs[0]
+    bspline_dict['icoeff'] = np.zeros_like(bspline_dict['coeff'])
+
+    bspline_dict['breakpoints'] = d_a['breakpoints']
+    bspline_dict['mask'] = np.ones_like(bspline_dict['breakpoints'], dtype=bool)
+#
+    #
+    new_bspline = bspline(wv64, from_dict=bspline_dict)
+
+    a1, lower, upper = new_bspline.action(wv64)
+    n = new_bspline.mask.sum() - new_bspline.nord
+
+    yfits = []
+    for goodcoeff in coeffs:
+        yfit = bspline_model(wv64, a1, lower, upper, 
+                          goodcoeff, n, new_bspline.nord, 
+                          new_bspline.npoly)
+        yfits.append(yfit)
+    return None, np.array(yfits)
+
 def one_spectrum(in_idx:int, ab, Chl, d_chains, d_a, d_bb, emulator,
                              decomp:str, Ncomp:tuple,
                              chop_burn:int=-3000, in_log10:bool=False):
@@ -42,6 +76,8 @@ def one_spectrum(in_idx:int, ab, Chl, d_chains, d_a, d_bb, emulator,
         rfunc = reconstruct_pca
     elif decomp == 'nmf':
         rfunc = reconstruct_nmf
+    elif decomp == 'bsp':
+        rfunc = reconstruct_bsp
     
     # a
     Y = chains[chop_burn:, :, 0:Ncomp[0]].reshape(-1,Ncomp[0])

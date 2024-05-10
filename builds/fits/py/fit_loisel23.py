@@ -480,6 +480,25 @@ def main(flg):
             use_log_ab=True, debug=True)
             #use_NMF_pos=True, debug=True)
 
+    # BSpline
+    if flg & (2**32): 
+
+        # Emulator
+        hidden_list=[512, 512, 512, 256]
+        decomps = ('bsp', 'nmf')
+        Ncomps = (10,2)
+        X, Y = 4, 0
+        n_cores = 20
+        dataset = 'L23'
+        abs_sig = None
+        edict = emu_io.set_emulator_dict(
+            dataset, decomps, Ncomps, 'Rrs',
+            'dense', hidden_list=hidden_list, 
+            include_chl=True, X=X, Y=Y)
+
+        fit(edict, n_cores=n_cores, abs_sig=abs_sig, 
+            debug=True)
+
 # Command line execution
 if __name__ == '__main__':
     import sys
@@ -508,7 +527,8 @@ if __name__ == '__main__':
 
         # Tests
         #flg += 2 ** 30  # 16 -- L23 + NMF 4,2
-        flg += 2 ** 31  # 16 -- L23 + NMF 4,2
+        #flg += 2 ** 31  # 16 -- L23 + NMF 4,2
+        flg += 2 ** 32  # 16 -- L23 + NMF 4,2
 
         
     else:

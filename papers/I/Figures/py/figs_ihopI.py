@@ -914,7 +914,7 @@ def fig_mcmc_fit(outroot='fig_mcmc_fit', decomps:str=('nmf','nmf'),
 def fig_corner(decomps:tuple, outroot:str='fig_corner', 
         hidden_list:list=[512, 512, 512, 256], dataset:str='L23', 
         chop_burn:int=-3000, perc:int=None, abs_sig:float=None,
-        in_Ncomps=None,
+        in_Ncomps=None, no_labels:bool=False,
         chain_file:str=None, in_log10:bool=False,
         X:int=4, Y:int=0, in_idx:int=0):
 
@@ -936,7 +936,12 @@ def fig_corner(decomps:tuple, outroot:str='fig_corner',
     d_chains = inf_io.load_chains(chain_file)
 
     chains = d_chains['chains'][in_idx]
-    coeff = chains[chop_burn:, :, :].reshape(-1,Ncomps[0]+Ncomps[1]+1)
+    # Hack for bspline
+    if decomps[0] == 'bsp':
+        buff = 5
+    else:
+        buff = 0
+    coeff = chains[chop_burn:, :, :].reshape(-1,Ncomps[0]+Ncomps[1]+1+buff)
 
     if in_log10:
         coeff = 10**coeff
@@ -951,6 +956,9 @@ def fig_corner(decomps:tuple, outroot:str='fig_corner',
     truths = np.concatenate((ab[idx], Chl[idx].reshape(1,)))
     #if in_log10:
     #    truths = np.log10(truths)
+
+    if no_labels:
+        clbls = None
 
     fig = corner.corner(
         coeff, labels=clbls,
@@ -1175,8 +1183,8 @@ def main(flg):
     # Decomposition
     if flg & (2**0):
         #fig_emulator_rmse('L23_PCA')
-        fig_basis_functions(('nmf', 'nmf'), in_Ncomps=(3,2),
-                            outfile='fig_basis_functions_nmf.png')
+        fig_basis_functions(('nmf', 'nmf'), in_Ncomps=(2,2),
+                            outfile='fig_basis_functions_nmf_22.png')
         #fig_basis_functions(('pca', 'pca'),
         #                    outfile='fig_basis_functions_pca.png')
         #fig_basis_functions(('npca', 'npca'), in_Ncomps=(4,2),
@@ -1194,9 +1202,12 @@ def main(flg):
         #fig_emulator_rmse('L23', (4,2), [512, 512, 512, 256],
         #                  log_rrmse=True)
         #fig_emulator_rmse(['L23_NMF', 'L23_PCA'], [3, 3])
-        fig_emulator_rmse('L23', (3,2), [512, 512, 512, 256],
-                          ('nmf', 'nmf'), log_rrmse=True, 
-                          outfile='fig_emulator_rmse_nmf_32.png')
+        #fig_emulator_rmse('L23', (3,2), [512, 512, 512, 256],
+        #                  ('nmf', 'nmf'), log_rrmse=True, 
+        #                  outfile='fig_emulator_rmse_nmf_32.png')
+        fig_emulator_rmse('L23', (10,2), [512, 512, 512, 256],
+                          ('bsp', 'nmf'), log_rrmse=True, 
+                          outfile='fig_emulator_rmse_bsp_102.png')
         # PCA
         #fig_emulator_rmse('L23', (4,2), [512, 512, 512, 256],
         #                  ('pca', 'pca'), log_rrmse=True, 
@@ -1250,7 +1261,7 @@ def main(flg):
         #fig_corner(('pca', 'pca'), abs_sig=1., in_idx=0) # 
         #fig_corner(('nmf', 'nmf'), abs_sig=None, in_idx=2663) # Minimum
         #fig_corner(('nmf', 'nmf'), abs_sig=None, in_idx=2949) # Maximum
-        fig_corner(('nmf', 'nmf'), abs_sig=2., in_idx=170, in_Ncomps=(4,2)) # Maximum
+        #fig_corner(('nmf', 'nmf'), abs_sig=2., in_idx=170, in_Ncomps=(4,2)) # Maximum
         #fig_corner(('nmf', 'nmf'), abs_sig=5., in_idx=180) #
         #fig_corner(('nmf', 'nmf'), abs_sig=5., in_idx=170) # 
         #
@@ -1262,6 +1273,9 @@ def main(flg):
         #           chain_file='../../../builds/fits/Fits/L23/fit_Rs02_L23_X4_Y0_nmfnmf_32_chl_Rrs_dense_512_512_512_256_logab.npz')
         #fig_corner(('nmf', 'nmf'), abs_sig=1., in_idx=1, in_log10=True,
         #           chain_file='../../../builds/fits/Fits/L23/fit_Rs01_L23_X4_Y0_nmfnmf_42_chl_Rrs_dense_512_512_512_256.npz')
+        fig_corner(('bsp', 'nmf'), abs_sig=None, no_labels=True,
+                   in_idx=0, in_Ncomps=(10,2),
+                   chain_file='../../../builds/fits/Fits/L23/fitN_Rs01_L23_X4_Y0_bspnmf_102_chl_Rrs_dense_512_512_512_256.npz')
 
     # 
     if flg & (2**24):

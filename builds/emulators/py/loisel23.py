@@ -154,6 +154,11 @@ def main(flg):
             nepochs=25000, push_to_s3=True)
 
 
+    # flg=4;  L23 + NMF, m=2,2
+    if flg & (2**10):
+        emulate_l23(('nmf', 'nmf'), (2,2), 
+                    hidden_list=[512, 512, 512, 256],
+            nepochs=25000, push_to_s3=True)
 
 # Command line execution
 if __name__ == '__main__':
@@ -173,7 +178,8 @@ if __name__ == '__main__':
         
         #flg += 2 ** 7  # 128 -- L23 + NMF 3,2 + norm_Rs=False
         #flg += 2 ** 8  # 256 -- L23 + NMF 4,2 + norm_Rs=False, no Chl
-        #flg += 2 ** 9  # 512 -- L23 + NMF 4,2 + norm_Rs=False, no Chl
+        #flg += 2 ** 9  # 512 -- L23 + BSpline
+        #flg += 2 ** 10  # 1024 -- L23 + NMF 2,2 + norm_Rs=False
 
         
     else:
