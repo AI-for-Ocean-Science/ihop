@@ -123,7 +123,8 @@ def fit(edict:dict, Nspec:int=None, abs_sig:float=None,
     ab, Chl, Rs, emulator, d_a = load(edict)
 
     # Output
-    outfile = os.path.basename(fitting_io.l23_chains_filename(edict, abs_sig))
+    outfile = os.path.basename(fitting_io.l23_chains_filename(
+        edict, abs_sig, priors=priors))
     if max_wv is not None:
         embed(header='NEED TO FIX OUTFILE; 115 of fit_loisel23.py')
         outroot += f'_max{int(max_wv)}'

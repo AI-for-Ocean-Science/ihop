@@ -16,7 +16,7 @@ def path_to_emulator(dataset:str):
     return path
 
 def l23_chains_filename(edict:dict, error:int, test:bool=False,
-                        out_path:str=None):
+                        out_path:str=None, priors:dict=None):
     """
     Generates the filename for the L23 chains file.
 
@@ -28,6 +28,7 @@ def l23_chains_filename(edict:dict, error:int, test:bool=False,
             And the filename is prefixed with 'N'.
         test (bool, optional): Flag indicating if it is a test file. Defaults to False.
         out_path (str, optional): The output path. Defaults to None.
+        priors (dict, optional): The priors dictionary. Defaults to None.
 
     Returns:
         str: The generated filename for the L23 chains file.
@@ -45,6 +46,9 @@ def l23_chains_filename(edict:dict, error:int, test:bool=False,
         prefix = ''
     # 
     chain_file = f'fit{prefix}_Rs{int(error):02d}_{root}.npz'
+    if priors is not None:
+        if 'use_log_ab' in priors and priors['use_log_ab']:
+            chain_file = f'{chain_file[:-4]}_logab.npz'
     if test:
         chain_file = 'test_'+chain_file
     # Return
