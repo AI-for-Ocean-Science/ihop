@@ -93,6 +93,7 @@ def load(edict:dict):
 
 def fit(edict:dict, Nspec:int=None, abs_sig:float=None,
                       debug:bool=False, n_cores:int=1,
+                      use_log_ab:bool=False,
                       max_wv:float=None):
     """
     Fits the data with or without considering any errors.
@@ -105,17 +106,18 @@ def fit(edict:dict, Nspec:int=None, abs_sig:float=None,
         debug (bool): Whether to run in debug mode. Default is False.
         n_cores (int): The number of CPU cores to use for parallel processing. Default is 1.
         max_wv (float): The maximum wavelength to consider. Default is None.
+        use_log_ab (bool): Whether to use log(ab) in the priors. Default is False.
 
     """
-    # NEED TO DEAL WITH NMF PRIORS
+    # Priors
+    priors = None
     if 'nmf' in edict['decomps']: 
-        priors = {}
+        if use_log_ab:
+            priors = {}
+            priors['use_log_ab'] = True
         # Positive priors
         #priors['NMFpos'] = True
         # Log priors
-        priors['use_log_ab'] = True
-    else:
-        priors = None
 
     # Load
     ab, Chl, Rs, emulator, d_a = load(edict)
@@ -418,6 +420,26 @@ def main(flg):
 
         fit(edict, n_cores=n_cores, abs_sig=abs_sig, debug=True)
 
+    # NMF, abs_sig=2, log prior
+    if flg & (2**10): # 1024
+
+        # Emulator
+        hidden_list=[512, 512, 512, 256]
+        decomps = ('nmf', 'nmf')
+        Ncomps = (4,2)
+        X, Y = 4, 0
+        n_cores = 20
+        dataset = 'L23'
+        abs_sig = 2.
+        edict = emu_io.set_emulator_dict(
+            dataset, decomps, Ncomps, 'Rrs',
+            'dense', hidden_list=hidden_list, 
+            include_chl=True, X=X, Y=Y)
+
+        fit(edict, n_cores=n_cores, abs_sig=abs_sig, 
+            use_log_ab=True, debug=True)
+
+
     # Testing
     if flg & (2**30):
         hidden_list=[512, 512, 512, 256]
@@ -456,6 +478,9 @@ if __name__ == '__main__':
         #flg += 2 ** 7  # 128 -- NMF, abs_sig=1
         #flg += 2 ** 8  # 256 -- NMF, abs_sig=2
         #flg += 2 ** 9  # 512 -- NMF, abs_sig=5
+
+        # NMF with Noise + log prior
+        #flg += 2 ** 10  # 1024 -- NMF, abs_sig=2, log prior
 
         # Tests
         flg += 2 ** 30  # 16 -- L23 + NMF 4,2
