@@ -160,6 +160,13 @@ def main(flg):
                     hidden_list=[512, 512, 512, 256],
             nepochs=25000, push_to_s3=True)
 
+    # flg=4;  L23 + NMF, m=2,2
+    if flg & (2**11):
+        emulate_l23(('nmf', 'nmf'), (2,2), 
+                    hidden_list=[512, 512, 512, 256],
+                    include_chl=False,
+            nepochs=25000, push_to_s3=True)
+
 # Command line execution
 if __name__ == '__main__':
     import sys
@@ -180,6 +187,8 @@ if __name__ == '__main__':
         #flg += 2 ** 8  # 256 -- L23 + NMF 4,2 + norm_Rs=False, no Chl
         #flg += 2 ** 9  # 512 -- L23 + BSpline
         #flg += 2 ** 10  # 1024 -- L23 + NMF 2,2 + norm_Rs=False
+
+        #flg += 2 ** 11  # 2048 -- L23 + NMF 2,2 + norm_Rs=False, no Chl
 
         
     else:
