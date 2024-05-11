@@ -1,0 +1,88 @@
+# Script to fit L23 with NMF decomposition and abs_sig=1,2,5; m=22
+# kubectl exec -it test-pod -- /bin/bash
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: xavier-ihop-fit-l23-nmf-m22-01-05
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: feature.node.kubernetes.io/pci-10de.present
+                operator: NotIn
+                values:
+                - "true"    
+      containers:
+      - name: container
+        image: profxj/ihop_nvidia:latest  # On docker hub
+        imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: "20"   #  2.5 hours
+            memory: "50Gi"  #  Maxed at 15Gb RAM
+            ephemeral-storage: 40Gi
+          limits:
+            cpu: "28"
+            memory: "70Gi"
+            ephemeral-storage: 80Gi
+            #nvidia.com/gpu:  "1"  # See docs to exlude certain types
+        command: ["/bin/bash", "-c"]
+            #command: ["sh", "-c", "sleep infinity"]
+        args:
+          - cd ocean-color; 
+            git fetch;
+            git checkout support_ihop; 
+            git pull; 
+            pip install -e ".[dev]";
+            cd ../cnmf;
+            git fetch;
+            git checkout paper; 
+            git pull; 
+            pip install -e ".[dev]";
+            cd ../ulmo;
+            git fetch;
+            git pull; 
+            pip install -e ".[dev]";
+            cd ..;
+            cd /home/jovyan/ihop;
+            git fetch;
+            git checkout phase0; 
+            git pull; 
+            pip install -e ".[dev]";
+            cd builds/fits;
+            aws --endpoint https://s3-west.nrp-nautilus.io s3 cp s3://ihop/OS_COLOR/data/Loisel2023/Hydrolight400.nc .;
+            python -u py/fit_loisel23.py 9;
+            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp Fits s3://ihop/Fits --recursive --force;
+        env:
+          - name: "ENDPOINT_URL"
+            value: "http://rook-ceph-rgw-nautiluss3.rook"
+          - name: "S3_ENDPOINT"
+            value: "rook-ceph-rgw-nautiluss3.rook"
+        volumeMounts:
+          - name: prp-s3-credentials
+            mountPath: "/home/jovyan/.aws/credentials"
+            subPath: "credentials"
+          - name: ephemeral
+            mountPath: "/tmp"
+          - name: "dshm"
+            mountPath: "/dev/shm"
+      nodeSelector:
+        nautilus.io/disktype: nvme
+      restartPolicy: Never
+      volumes:
+        # Secrets file for nautilus s3 credentials .aws/credentials and .s3cfg
+        - name: prp-s3-credentials
+          secret:
+            secretName: prp-s3-credentials
+        # Shared memory (necessary for Python's multiprocessing.shared_memory module to work)
+        - name: dshm
+          emptyDir:
+            medium: Memory
+        # Ephemeral storage
+        - name: ephemeral
+          emptyDir: {}
