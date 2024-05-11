@@ -248,7 +248,8 @@ def main(flg):
                 include_chl=True, X=X, Y=Y)
 
         fit(edict, n_cores=n_cores, abs_sig=abs_sig, 
-                use_log_ab=False, use_NMF_pos=True)
+                use_log_ab=True, use_NMF_pos=False,
+                debug=True)
 
 
 # Command line execution

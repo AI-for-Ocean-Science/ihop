@@ -1248,9 +1248,9 @@ def main(flg):
         #fig_mcmc_fit(abs_sig=2., in_idx=1, use_reconstruct=True, in_log10=False, 
         #             in_Ncomps=(3,2), 
         #           chain_file='../../../builds/fits/Fits/L23/fit_Rs02_L23_X4_Y0_nmfnmf_32_chl_Rrs_dense_512_512_512_256.npz')
-        fig_mcmc_fit(abs_sig=None, in_idx=1, use_reconstruct=True, 
-                     in_log10=False, in_Ncomps=(2,2), 
-                   chain_file='../../../builds/fits/Fits/L23/fitN_Rs01_L23_X4_Y0_nmfnmf_22_chl_Rrs_dense_512_512_512_256.npz')
+        fig_mcmc_fit(abs_sig=5., in_idx=0, use_reconstruct=True, 
+                     in_log10=True, in_Ncomps=(2,2), 
+                   chain_file='../../../builds/fits/Fits/L23/fit_Rs05_L23_X4_Y0_nmfnmf_22_chl_Rrs_dense_512_512_512_256_logab.npz')
         #fig_mcmc_fit(abs_sig=2., in_idx=1, use_reconstruct=True, in_log10=True, in_Ncomps=(3,2), 
         #           chain_file='../../../builds/fits/Fits/L23/fit_Rs02_L23_X4_Y0_nmfnmf_32_chl_Rrs_dense_512_512_512_256_logab.npz')
         #fig_mcmc_fit(abs_sig=1., in_idx=1, use_reconstruct=True, in_log10=True, # Median
@@ -1288,8 +1288,9 @@ def main(flg):
         #fig_corner(('bsp', 'nmf'), abs_sig=None, no_labels=True,
         #           in_idx=0, in_Ncomps=(10,2),
         #           chain_file='../../../builds/fits/Fits/L23/fitN_Rs01_L23_X4_Y0_bspnmf_102_chl_Rrs_dense_512_512_512_256.npz')
-        fig_corner(('nmf', 'nmf'), abs_sig=None, in_idx=1, in_Ncomps=(2,2), 
-                   chain_file='../../../builds/fits/Fits/L23/fitN_Rs01_L23_X4_Y0_nmfnmf_22_chl_Rrs_dense_512_512_512_256.npz')
+        fig_corner(('nmf', 'nmf'), abs_sig=5., in_idx=1, 
+                   in_Ncomps=(2,2), in_log10=True,
+                   chain_file='../../../builds/fits/Fits/L23/fit_Rs05_L23_X4_Y0_nmfnmf_22_chl_Rrs_dense_512_512_512_256_logab.npz')
 
     # 
     if flg & (2**24):
@@ -1356,14 +1357,14 @@ if __name__ == '__main__':
         #flg += 2 ** 2  # Single MCMC fit (example)
 
         #flg += 2 ** 22  # RMSE of L23 fits
-        #flg += 2 ** 23  # Fit corner
+        flg += 2 ** 23  # Fit corner
         #flg += 2 ** 24  # NMF corner plots (decomposition only)
 
         #flg += 2 ** 26  # Decompose error
 
         #flg += 2 ** 27  # RMSE on Rrs and a
         #flg += 2 ** 28  # RMSE on a vs. abs_sig
-        flg += 2 ** 29  # Examples
+        #flg += 2 ** 29  # Examples
 
         #flg += 2 ** 2  # 4 -- Indiv
         #flg += 2 ** 3  # 8 -- Coeff
