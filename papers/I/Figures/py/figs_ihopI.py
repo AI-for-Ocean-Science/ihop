@@ -758,9 +758,11 @@ def fig_mcmc_fit(outroot='fig_mcmc_fit', decomps:str=('nmf','nmf'),
 
     if use_reconstruct:
         # Reconstruct
+        if decomps[0] == 'bsp': # HACK
+            Ncomps = (Ncomps[0]+5, Ncomps[1])
         items = reconstruct.one_spectrum(in_idx, ab, Chl, d_chains, 
                                      d_a, d_bb, 
-                                     emulator, decomps[0], Ncomps,
+                                     emulator, decomps, Ncomps,
                                      in_log10=in_log10)
         idx, orig, a_mean, a_std, a_iop, obs_Rs,\
             pred_Rs, std_pred, NN_Rs, allY, wave,\
@@ -957,8 +959,8 @@ def fig_corner(decomps:tuple, outroot:str='fig_corner',
     #if in_log10:
     #    truths = np.log10(truths)
 
-    if no_labels:
-        clbls = None
+    #if no_labels:
+    #    clbls = None
 
     fig = corner.corner(
         coeff, labels=clbls,
@@ -1205,9 +1207,13 @@ def main(flg):
         #fig_emulator_rmse('L23', (3,2), [512, 512, 512, 256],
         #                  ('nmf', 'nmf'), log_rrmse=True, 
         #                  outfile='fig_emulator_rmse_nmf_32.png')
-        fig_emulator_rmse('L23', (10,2), [512, 512, 512, 256],
-                          ('bsp', 'nmf'), log_rrmse=True, 
-                          outfile='fig_emulator_rmse_bsp_102.png')
+        fig_emulator_rmse('L23', (2,2), [512, 512, 512, 256],
+                          ('nmf', 'nmf'), log_rrmse=True, 
+                          outfile='fig_emulator_rmse_nmf_22.png')
+        # BSP
+        #fig_emulator_rmse('L23', (10,2), [512, 512, 512, 256],
+        #                  ('bsp', 'nmf'), log_rrmse=True, 
+        #                  outfile='fig_emulator_rmse_bsp_102.png')
         # PCA
         #fig_emulator_rmse('L23', (4,2), [512, 512, 512, 256],
         #                  ('pca', 'pca'), log_rrmse=True, 
@@ -1242,10 +1248,16 @@ def main(flg):
         #fig_mcmc_fit(abs_sig=2., in_idx=1, use_reconstruct=True, in_log10=False, 
         #             in_Ncomps=(3,2), 
         #           chain_file='../../../builds/fits/Fits/L23/fit_Rs02_L23_X4_Y0_nmfnmf_32_chl_Rrs_dense_512_512_512_256.npz')
-        fig_mcmc_fit(abs_sig=2., in_idx=1, use_reconstruct=True, in_log10=True, in_Ncomps=(3,2), 
-                   chain_file='../../../builds/fits/Fits/L23/fit_Rs02_L23_X4_Y0_nmfnmf_32_chl_Rrs_dense_512_512_512_256_logab.npz')
+        fig_mcmc_fit(abs_sig=None, in_idx=1, use_reconstruct=True, 
+                     in_log10=False, in_Ncomps=(2,2), 
+                   chain_file='../../../builds/fits/Fits/L23/fitN_Rs01_L23_X4_Y0_nmfnmf_22_chl_Rrs_dense_512_512_512_256.npz')
+        #fig_mcmc_fit(abs_sig=2., in_idx=1, use_reconstruct=True, in_log10=True, in_Ncomps=(3,2), 
+        #           chain_file='../../../builds/fits/Fits/L23/fit_Rs02_L23_X4_Y0_nmfnmf_32_chl_Rrs_dense_512_512_512_256_logab.npz')
         #fig_mcmc_fit(abs_sig=1., in_idx=1, use_reconstruct=True, in_log10=True, # Median
         #           chain_file='../../../builds/fits/Fits/L23/fit_Rs01_L23_X4_Y0_nmfnmf_42_chl_Rrs_dense_512_512_512_256.npz')
+        #fig_mcmc_fit(abs_sig=None, in_idx=1, decomps=('bsp', 'nmf'), 
+        #             use_reconstruct=True, in_Ncomps=(10,2), 
+        #           chain_file='../../../builds/fits/Fits/L23/fitN_Rs01_L23_X4_Y0_bspnmf_102_chl_Rrs_dense_512_512_512_256.npz')
 
     # L23 IHOP performance vs. perc error
     if flg & (2**22):
@@ -1273,9 +1285,11 @@ def main(flg):
         #           chain_file='../../../builds/fits/Fits/L23/fit_Rs02_L23_X4_Y0_nmfnmf_32_chl_Rrs_dense_512_512_512_256_logab.npz')
         #fig_corner(('nmf', 'nmf'), abs_sig=1., in_idx=1, in_log10=True,
         #           chain_file='../../../builds/fits/Fits/L23/fit_Rs01_L23_X4_Y0_nmfnmf_42_chl_Rrs_dense_512_512_512_256.npz')
-        fig_corner(('bsp', 'nmf'), abs_sig=None, no_labels=True,
-                   in_idx=0, in_Ncomps=(10,2),
-                   chain_file='../../../builds/fits/Fits/L23/fitN_Rs01_L23_X4_Y0_bspnmf_102_chl_Rrs_dense_512_512_512_256.npz')
+        #fig_corner(('bsp', 'nmf'), abs_sig=None, no_labels=True,
+        #           in_idx=0, in_Ncomps=(10,2),
+        #           chain_file='../../../builds/fits/Fits/L23/fitN_Rs01_L23_X4_Y0_bspnmf_102_chl_Rrs_dense_512_512_512_256.npz')
+        fig_corner(('nmf', 'nmf'), abs_sig=None, in_idx=1, in_Ncomps=(2,2), 
+                   chain_file='../../../builds/fits/Fits/L23/fitN_Rs01_L23_X4_Y0_nmfnmf_22_chl_Rrs_dense_512_512_512_256.npz')
 
     # 
     if flg & (2**24):

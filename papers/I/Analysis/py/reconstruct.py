@@ -47,15 +47,17 @@ def reconstruct_bsp(coeffs, d_a, idx):
     n = new_bspline.mask.sum() - new_bspline.nord
 
     yfits = []
-    for goodcoeff in coeffs:
+    for goodcoeff in coeffs.astype(np.float64):
         yfit = bspline_model(wv64, a1, lower, upper, 
                           goodcoeff, n, new_bspline.nord, 
                           new_bspline.npoly)
         yfits.append(yfit)
-    return None, np.array(yfits)
+    # Orig
+    orig = d_a['data'][idx]
+    return orig, np.array(yfits)
 
 def one_spectrum(in_idx:int, ab, Chl, d_chains, d_a, d_bb, emulator,
-                             decomp:str, Ncomp:tuple,
+                             decomps:tuple, Ncomp:tuple,
                              chop_burn:int=-3000, in_log10:bool=False):
     chains = d_chains['chains'][in_idx]
     if in_log10:
@@ -72,12 +74,9 @@ def one_spectrum(in_idx:int, ab, Chl, d_chains, d_a, d_bb, emulator,
     wave = d_a['wave']
 
     # Prep
-    if decomp == 'pca':
-        rfunc = reconstruct_pca
-    elif decomp == 'nmf':
-        rfunc = reconstruct_nmf
-    elif decomp == 'bsp':
-        rfunc = reconstruct_bsp
+    decompd = dict(pca=reconstruct_pca, nmf=reconstruct_nmf, int=reconstruct_int,
+                   bsp=reconstruct_bsp)
+    rfunc = decompd[decomps[0]]
     
     # a
     Y = chains[chop_burn:, :, 0:Ncomp[0]].reshape(-1,Ncomp[0])
@@ -86,7 +85,9 @@ def one_spectrum(in_idx:int, ab, Chl, d_chains, d_a, d_bb, emulator,
     a_mean = np.median(a_recon, axis=0)
     a_std = np.std(a_recon, axis=0)
     _, a_pca = rfunc(ab[idx][:Ncomp[0]], d_a, idx)
+    print("Done with a")
 
+    rfunc = decompd[decomps[1]]
     # bb
     Y = chains[chop_burn:, :, Ncomp[0]:-1].reshape(-1,Ncomp[1])
     orig_bb, bb_recon = rfunc(Y, d_bb, idx)
@@ -94,6 +95,7 @@ def one_spectrum(in_idx:int, ab, Chl, d_chains, d_a, d_bb, emulator,
     bb_mean = np.median(bb_recon, axis=0)
     bb_std = np.std(bb_recon, axis=0)
     #_, a_pca = rfunc(ab[idx][:ncomp], d_a, idx)
+    print("Done with bb")
 
     # Rs
     allY = chains[chop_burn:, :, :].reshape(-1,Ncomp[0]+Ncomp[1]+1) # Chl
