@@ -1185,8 +1185,10 @@ def main(flg):
     # Decomposition
     if flg & (2**0):
         #fig_emulator_rmse('L23_PCA')
-        fig_basis_functions(('nmf', 'nmf'), in_Ncomps=(2,2),
-                            outfile='fig_basis_functions_nmf_22.png')
+        #fig_basis_functions(('nmf', 'nmf'), in_Ncomps=(2,2),
+        #                    outfile='fig_basis_functions_nmf_22.png')
+        fig_basis_functions(('nmf', 'nmf'), in_Ncomps=(3,2),
+                            outfile='fig_basis_functions_nmf_32.png')
         #fig_basis_functions(('pca', 'pca'),
         #                    outfile='fig_basis_functions_pca.png')
         #fig_basis_functions(('npca', 'npca'), in_Ncomps=(4,2),
@@ -1317,8 +1319,11 @@ def main(flg):
 
     # RMSE of Rrs and a
     if flg & (2**28):
-        fig_rmse_a_error(('nmf', 'nmf'), (4,2), 
-                         'fig_rmse_a_error_nmfnmf.png', [1, 2., 5.],
+        #fig_rmse_a_error(('nmf', 'nmf'), (4,2), 
+        #                 'fig_rmse_a_error_nmfnmf.png', [1, 2., 5.],
+        #                 show_bias=True)
+        fig_rmse_a_error(('nmf', 'nmf'), (2,2), 
+                         'fig_rmse_a_error_nmfnmf.png', [2.],
                          show_bias=True)
         #fig_rmse_a_error(('pca', 'pca'), (4,2), 
         #                 'fig_rmse_a_error_pcapca.png', [1., 2., 5.])
@@ -1330,7 +1335,7 @@ def main(flg):
         #                 show_noiseless_error=True,
         #                 show_LS2=True)
         fig_a_examples(('nmf', 'nmf'), (2,2), 
-                         'fig_a_examples_nmf.png', [],
+                         'fig_a_examples_nmf.png', [2.],
                          show_noiseless_error=True,
                          show_LS2=False)
         #fig_a_examples(('pca', 'pca'), (4,2), 
@@ -1357,13 +1362,13 @@ if __name__ == '__main__':
         #flg += 2 ** 2  # Single MCMC fit (example)
 
         #flg += 2 ** 22  # RMSE of L23 fits
-        flg += 2 ** 23  # Fit corner
+        #flg += 2 ** 23  # Fit corner
         #flg += 2 ** 24  # NMF corner plots (decomposition only)
 
         #flg += 2 ** 26  # Decompose error
 
         #flg += 2 ** 27  # RMSE on Rrs and a
-        #flg += 2 ** 28  # RMSE on a vs. abs_sig
+        flg += 2 ** 28  # RMSE on a vs. abs_sig
         #flg += 2 ** 29  # Examples
 
         #flg += 2 ** 2  # 4 -- Indiv
