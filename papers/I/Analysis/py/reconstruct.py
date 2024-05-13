@@ -118,8 +118,14 @@ def one_spectrum(in_idx:int, ab, Chl, d_chains, d_a, d_bb, emulator,
 def all_spectra(decomps:tuple, Ncomps:tuple, 
                 hidden_list:list=[512, 512, 512, 256], 
                 dataset:str='L23', perc:int=None, 
+                use_log_ab:bool=False,
                 abs_sig:float=None, nchains:int=None,
                 X:int=4, Y:int=0, quick_and_dirty:bool=False):
+
+    priors = None
+    if use_log_ab:
+        priors = {}
+        priors['use_log_ab'] = True
 
     d_keys = dict(pca='Y', nmf='coeff', int='new_spec')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -137,12 +143,12 @@ def all_spectra(decomps:tuple, Ncomps:tuple,
 
     emulator, e_file = emu_io.load_emulator_from_dict(edict)
 
-    outfile = os.path.basename(fitting_io.l23_chains_filename(
-        edict, abs_sig).replace('fit', 'recon'))
+    chain_file = inf_io.l23_chains_filename(
+        edict, perc if perc is not None else abs_sig,
+        priors=priors) 
+    outfile = os.path.basename(chain_file).replace('fit', 'recon')
 
     # Chains
-    chain_file = inf_io.l23_chains_filename(
-        edict, perc if perc is not None else abs_sig) 
     d_chains = inf_io.load_chains(chain_file)
 
     if nchains is not None:
@@ -239,6 +245,9 @@ if __name__ == '__main__':
     #all_spectra(('int', 'nmf'), (40,2), abs_sig=None)#, nchains=100)
     #all_spectra(('nmf', 'nmf'), (2,2), abs_sig=None, quick_and_dirty=True)#, nchains=300)
 
+    #all_spectra(('nmf', 'nmf'), (2,2), abs_sig=None, quick_and_dirty=True,
+    #            use_log_ab=True)#, nchains=300)
+
     # PCA with noise
     #all_spectra(('pca', 'pca'), (4,2), abs_sig=1., quick_and_dirty=True)#, nchains=500)
     #all_spectra(('pca', 'pca'), (4,2), abs_sig=2., quick_and_dirty=True)#, nchains=500)
@@ -250,4 +259,9 @@ if __name__ == '__main__':
     #all_spectra(('nmf', 'nmf'), (4,2), abs_sig=5., quick_and_dirty=True)#, nchains=500)
 
     #all_spectra(('nmf', 'nmf'), (2,2), abs_sig=2., quick_and_dirty=True)#, nchains=500)
-    all_spectra(('nmf', 'nmf'), (2,2), abs_sig=5., quick_and_dirty=True)#, nchains=500)
+    #all_spectra(('nmf', 'nmf'), (2,2), abs_sig=5., quick_and_dirty=True)#, nchains=500)
+
+    all_spectra(('nmf', 'nmf'), (2,2), abs_sig=2., quick_and_dirty=True,
+                use_log_ab=True)#, nchains=500)
+    all_spectra(('nmf', 'nmf'), (2,2), abs_sig=5., quick_and_dirty=True,
+                use_log_ab=True)#, nchains=500)
