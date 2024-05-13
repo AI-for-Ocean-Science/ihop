@@ -88,6 +88,8 @@ def calc_iop(iop_chains:np.ndarray, decomp:str, d_iop:dict):
 
     Parameters:
         iop_chains (np.ndarray): Array of IOP chains.
+            These must be in the same order as the decomposition.
+            And linear (e.g. not log10)
         decomp (str): Decomposition method ('pca' or 'nmf').
         d_iop (dict): Dictionary of IOP values.
 
@@ -112,6 +114,7 @@ def calc_iop(iop_chains:np.ndarray, decomp:str, d_iop:dict):
     all_std = []
     for idx in range(iop_chains.shape[0]):
         _, iop_recon = rfunc(iop_chains[idx], d_iop, idx)
+
         iop_mean = np.median(iop_recon, axis=0)
         iop_std = np.std(iop_recon, axis=0)
         # Save

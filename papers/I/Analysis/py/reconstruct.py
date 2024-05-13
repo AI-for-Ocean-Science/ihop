@@ -162,6 +162,9 @@ def all_spectra(decomps:tuple, Ncomps:tuple,
     # Chop off the burn
     chains = inf_analysis.chop_chains(chains)
 
+    if use_log_ab:
+        chains = 10**chains
+
     # ##############
     # Rrs
     print("Starting Rrs")
@@ -245,8 +248,8 @@ if __name__ == '__main__':
     #all_spectra(('int', 'nmf'), (40,2), abs_sig=None)#, nchains=100)
     #all_spectra(('nmf', 'nmf'), (2,2), abs_sig=None, quick_and_dirty=True)#, nchains=300)
 
-    #all_spectra(('nmf', 'nmf'), (2,2), abs_sig=None, quick_and_dirty=True,
-    #            use_log_ab=True)#, nchains=300)
+    all_spectra(('nmf', 'nmf'), (2,2), abs_sig=None, quick_and_dirty=True,
+                use_log_ab=True)#, nchains=300)
 
     # PCA with noise
     #all_spectra(('pca', 'pca'), (4,2), abs_sig=1., quick_and_dirty=True)#, nchains=500)

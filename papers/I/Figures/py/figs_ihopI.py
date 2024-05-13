@@ -445,7 +445,8 @@ def fig_rmse_Rrs_a(decomps:tuple, Ncomps:tuple, outfile:str,
 # ############################################################
 def fig_rmse_a_error(decomps:tuple, Ncomps:tuple, outfile:str, 
                      abs_sigs:list, hidden_list:list=[512, 512, 512, 256], 
-                     dataset:str='L23', X:int=4, Y:int=0, show_bias:bool=False):
+                     dataset:str='L23', X:int=4, Y:int=0, show_bias:bool=False,
+                     use_log_ab:bool=False):
 
     # ######################
     # Load
@@ -457,11 +458,16 @@ def fig_rmse_a_error(decomps:tuple, Ncomps:tuple, outfile:str,
         'dense', hidden_list=hidden_list, 
         include_chl=True, X=X, Y=Y)
 
+    priors = None
+    if use_log_ab:
+        priors = {}
+        priors['use_log_ab'] = True
+
     # Noiseless
     recon_file = os.path.join(
         '../Analysis/',
         os.path.basename(fitting_io.l23_chains_filename(
-        edict, None).replace('fit', 'recon')))
+        edict, None, priors=priors).replace('fit', 'recon')))
     d_nless = np.load(recon_file)
     a_nless = calc_rmses(d_a, d_nless, decomps[0])
 
@@ -476,7 +482,7 @@ def fig_rmse_a_error(decomps:tuple, Ncomps:tuple, outfile:str,
         recon_file = os.path.join(
             '../Analysis/',
             os.path.basename(fitting_io.l23_chains_filename(
-            edict, abs_sig).replace('fit', 'recon')))
+            edict, abs_sig, priors=priors).replace('fit', 'recon')))
         d_recon = np.load(recon_file)
         chain_idx = d_recon['idx']
 
@@ -534,6 +540,7 @@ def fig_rmse_a_error(decomps:tuple, Ncomps:tuple, outfile:str,
 def fig_a_examples(decomps:tuple, Ncomps:tuple, outfile:str, 
                      abs_sigs:list, hidden_list:list=[512, 512, 512, 256], 
                      dataset:str='L23', X:int=4, Y:int=0,
+                     use_log_ab:bool=False,
                      skip_fits:bool=False, show_LS2:bool=False,
                      show_noiseless_error:bool=False):
 
@@ -546,6 +553,12 @@ def fig_a_examples(decomps:tuple, Ncomps:tuple, outfile:str,
         dataset, decomps, Ncomps, 'Rrs',
         'dense', hidden_list=hidden_list, 
         include_chl=True, X=X, Y=Y)
+
+    priors = None
+    if use_log_ab:
+        priors = {}
+        priors['use_log_ab'] = True
+
 
     tkey = 'spec' if decomps[0] == 'nmf' else 'data'
 
@@ -587,7 +600,7 @@ def fig_a_examples(decomps:tuple, Ncomps:tuple, outfile:str,
         recon_file = os.path.join(
             '../Analysis/',
             os.path.basename(fitting_io.l23_chains_filename(
-            edict, None).replace('fit', 'recon')))
+            edict, None, priors=priors).replace('fit', 'recon')))
         d_nless = np.load(recon_file)
         a_recons = d_nless['decomp_a']
 
@@ -597,7 +610,7 @@ def fig_a_examples(decomps:tuple, Ncomps:tuple, outfile:str,
             recon_file = os.path.join(
                 '../Analysis/',
                 os.path.basename(fitting_io.l23_chains_filename(
-                edict, abs_sig).replace('fit', 'recon')))
+                edict, abs_sig, priors=priors).replace('fit', 'recon')))
             print(f'Loading: {recon_file}')
             d_recon = np.load(recon_file)
             # Append
@@ -1323,8 +1336,9 @@ def main(flg):
         #                 'fig_rmse_a_error_nmfnmf.png', [1, 2., 5.],
         #                 show_bias=True)
         fig_rmse_a_error(('nmf', 'nmf'), (2,2), 
-                         'fig_rmse_a_error_nmfnmf.png', [2.,5],
-                         show_bias=True)
+                         'fig_rmse_a_error_nmfnmf.png', [2.],
+                         use_log_ab=True,
+                         show_bias=False)
         #fig_rmse_a_error(('pca', 'pca'), (4,2), 
         #                 'fig_rmse_a_error_pcapca.png', [1., 2., 5.])
 
@@ -1335,7 +1349,8 @@ def main(flg):
         #                 show_noiseless_error=True,
         #                 show_LS2=True)
         fig_a_examples(('nmf', 'nmf'), (2,2), 
-                         'fig_a_examples_nmf.png', [2.,5],
+                         'fig_a_examples_nmf.png', [2.],
+                         use_log_ab=True,
                          show_noiseless_error=True,
                          show_LS2=False)
         #fig_a_examples(('pca', 'pca'), (4,2), 
