@@ -542,7 +542,8 @@ def fig_a_examples(decomps:tuple, Ncomps:tuple, outfile:str,
                      dataset:str='L23', X:int=4, Y:int=0,
                      use_log_ab:bool=False,
                      skip_fits:bool=False, show_LS2:bool=False,
-                     show_noiseless_error:bool=False):
+                     show_noiseless_error:bool=False,
+                     show_absig_error:list=None):
 
     # ######################
     # Load
@@ -653,6 +654,7 @@ def fig_a_examples(decomps:tuple, Ncomps:tuple, outfile:str,
             # Noiseless
             ax.plot(wave, d_nless['fit_a_mean'][ii], 'k-', label='Noiseless')
 
+
             if show_noiseless_error:
                 # Noiseless
                 ax.fill_between(wave, 
@@ -664,6 +666,11 @@ def fig_a_examples(decomps:tuple, Ncomps:tuple, outfile:str,
             for jj, abs_sig in enumerate(abs_sigs):
                 ax.plot(wave, d_recons[jj]['fit_a_mean'][ii], '-', 
                         label=f'abs_sig={abs_sig}')
+                if show_absig_error is not None and abs_sig in show_absig_error:
+                    ax.fill_between(wave, 
+                        d_recons[jj]['fit_a_mean'][ii] - d_recons[jj]['fit_a_std'][ii],
+                        d_recons[jj]['fit_a_mean'][ii] + d_recons[jj]['fit_a_std'][ii],
+                        alpha=0.5)
 
         ax.set_ylabel(ylbl)
         #embed(header='fig_a_examples 592')
@@ -782,10 +789,15 @@ def fig_mcmc_fit(outroot='fig_mcmc_fit', decomps:str=('nmf','nmf'),
             orig_bb, bb_mean, bb_std, a_nmf, bb_nmf = items
         print(f"L23 index = {idx}")
     else:
+        priors = None
+        if in_log10:
+            priors = {}
+            priors['use_log_ab'] = True
+
         recon_file = os.path.join(
             '../Analysis/',
             os.path.basename(fitting_io.l23_chains_filename(
-            edict, abs_sig).replace('fit', 'recon')))
+            edict, abs_sig, priors=priors).replace('fit', 'recon')))
         d_recon = np.load(recon_file)
         idx = np.where(d_recon['idx'] == in_idx)[0][0]
 
@@ -944,9 +956,14 @@ def fig_corner(decomps:tuple, outroot:str='fig_corner',
 
     emulator, e_file = emu_io.load_emulator_from_dict(edict)
 
+    priors = None
+    if in_log10:
+        priors = {}
+        priors['use_log_ab'] = True
+
     if chain_file is None:
         chain_file = inf_io.l23_chains_filename(
-            edict, abs_sig)
+            edict, abs_sig, priors=priors)
         #perc if perc is not None else int(abs_sig), test=test)
     d_chains = inf_io.load_chains(chain_file)
 
@@ -1246,7 +1263,8 @@ def main(flg):
         #fig_mcmc_fit(test=True, abs_sig=2., water=True)
         #fig_mcmc_fit(test=True, abs_sig=2., water=True)
         #fig_mcmc_fit(abs_sig=5., in_idx=275) # Turbid
-        #fig_mcmc_fit(abs_sig=5., in_idx=2663) # Minimum
+        fig_mcmc_fit(abs_sig=5., in_idx=2663,
+         in_Ncomps=(2,2), in_log10=True) # Minimum
         #fig_mcmc_fit(abs_sig=5., in_idx=170) # Median
         #fig_mcmc_fit(abs_sig=5., in_idx=180) # Median
         #fig_mcmc_fit(abs_sig=2., in_idx=2949) # Maximum absorption
@@ -1263,9 +1281,9 @@ def main(flg):
         #fig_mcmc_fit(abs_sig=2., in_idx=1, use_reconstruct=True, in_log10=False, 
         #             in_Ncomps=(3,2), 
         #           chain_file='../../../builds/fits/Fits/L23/fit_Rs02_L23_X4_Y0_nmfnmf_32_chl_Rrs_dense_512_512_512_256.npz')
-        fig_mcmc_fit(abs_sig=5., in_idx=0, use_reconstruct=True, 
-                     in_log10=True, in_Ncomps=(2,2), 
-                   chain_file='../../../builds/fits/Fits/L23/fit_Rs05_L23_X4_Y0_nmfnmf_22_chl_Rrs_dense_512_512_512_256_logab.npz')
+        #fig_mcmc_fit(abs_sig=5., in_idx=0, use_reconstruct=True, 
+        #             in_log10=True, in_Ncomps=(2,2), 
+        #           chain_file='../../../builds/fits/Fits/L23/fit_Rs05_L23_X4_Y0_nmfnmf_22_chl_Rrs_dense_512_512_512_256_logab.npz')
         #fig_mcmc_fit(abs_sig=2., in_idx=1, use_reconstruct=True, in_log10=True, in_Ncomps=(3,2), 
         #           chain_file='../../../builds/fits/Fits/L23/fit_Rs02_L23_X4_Y0_nmfnmf_32_chl_Rrs_dense_512_512_512_256_logab.npz')
         #fig_mcmc_fit(abs_sig=1., in_idx=1, use_reconstruct=True, in_log10=True, # Median
@@ -1303,9 +1321,8 @@ def main(flg):
         #fig_corner(('bsp', 'nmf'), abs_sig=None, no_labels=True,
         #           in_idx=0, in_Ncomps=(10,2),
         #           chain_file='../../../builds/fits/Fits/L23/fitN_Rs01_L23_X4_Y0_bspnmf_102_chl_Rrs_dense_512_512_512_256.npz')
-        fig_corner(('nmf', 'nmf'), abs_sig=5., in_idx=1, 
-                   in_Ncomps=(2,2), in_log10=True,
-                   chain_file='../../../builds/fits/Fits/L23/fit_Rs05_L23_X4_Y0_nmfnmf_22_chl_Rrs_dense_512_512_512_256_logab.npz')
+        fig_corner(('nmf', 'nmf'), abs_sig=5., in_idx=2663, 
+                   in_Ncomps=(2,2), in_log10=True)
 
     # 
     if flg & (2**24):
@@ -1336,7 +1353,8 @@ def main(flg):
         #                 'fig_rmse_a_error_nmfnmf.png', [1, 2., 5.],
         #                 show_bias=True)
         fig_rmse_a_error(('nmf', 'nmf'), (2,2), 
-                         'fig_rmse_a_error_nmfnmf.png', [2.],
+                         'fig_rmse_a_error_nmfnmf.png', 
+                         [2., 5.],
                          use_log_ab=True,
                          show_bias=False)
         #fig_rmse_a_error(('pca', 'pca'), (4,2), 
@@ -1349,9 +1367,10 @@ def main(flg):
         #                 show_noiseless_error=True,
         #                 show_LS2=True)
         fig_a_examples(('nmf', 'nmf'), (2,2), 
-                         'fig_a_examples_nmf.png', [2.],
+                         'fig_a_examples_nmf.png', [2.,5.],
                          use_log_ab=True,
                          show_noiseless_error=True,
+                         show_absig_error=[2.],
                          show_LS2=False)
         #fig_a_examples(('pca', 'pca'), (4,2), 
         #                 'fig_a_examples.png', [1., 5.], skip_fits=True)
@@ -1383,7 +1402,7 @@ if __name__ == '__main__':
         #flg += 2 ** 26  # Decompose error
 
         #flg += 2 ** 27  # RMSE on Rrs and a
-        flg += 2 ** 28  # RMSE on a vs. abs_sig
+        #flg += 2 ** 28  # RMSE on a vs. abs_sig
         flg += 2 ** 29  # Examples
 
         #flg += 2 ** 2  # 4 -- Indiv
