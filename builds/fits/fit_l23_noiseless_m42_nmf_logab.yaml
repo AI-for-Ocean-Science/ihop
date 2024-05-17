@@ -1,9 +1,9 @@
-# Script to Fit L23 with noiseless NMF decomposition; m=32, logab
+# Script to Fit L23 with noiseless NMF decomposition; m=42, logab
 # kubectl exec -it test-pod -- /bin/bash
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-ihop-fit-l23-nmf-m22-noiseless-lab
+  name: xavier-ihop-fit-l23-nmf-m42-noiseless-lab
 spec:
   backoffLimit: 0
   template:
@@ -56,7 +56,7 @@ spec:
             pip install -e ".[dev]";
             cd builds/fits;
             aws --endpoint https://s3-west.nrp-nautilus.io s3 cp s3://ihop/OS_COLOR/data/Loisel2023/Hydrolight400.nc .;
-            python -u py/nmf_fits.py 15;
+            python -u py/nmf_fits.py 16;
             aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp Fits s3://ihop/Fits --recursive --force;
         env:
           - name: "ENDPOINT_URL"

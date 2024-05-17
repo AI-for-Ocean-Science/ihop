@@ -3,7 +3,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: xavier-ihop-fit-l23-nmf-m22-noiseless-lab
+  name: xavier-ihop-fit-l23-nmf-m32-noiseless-lab
 spec:
   backoffLimit: 0
   template:
