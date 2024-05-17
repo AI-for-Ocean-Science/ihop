@@ -41,6 +41,7 @@ mpl.rcParams['font.family'] = 'stixgeneral'
 sys.path.append(os.path.abspath("../Analysis/py"))
 import reconstruct
 import ls2 as anly_ls2
+import calc_stats
 
 from IPython import embed
 
@@ -53,34 +54,7 @@ clbls = [r'$H_'+f'{ii+2}'+r'^{a}$' for ii in range(Ncomps[0])]
 clbls += [r'$H_'+f'{ii+2}'+r'^{bb}$' for ii in range(Ncomps[1])]
 clbls += ['Chl']
 
-def calc_rmses(d_a, d_recon, a_decomp):
-    
-    a_items = {}
-    # #############################
-    # a
-    tkey = 'spec' if a_decomp == 'nmf' else 'data'
-    chain_idx = d_recon['idx']
-    a_true = d_a[tkey][chain_idx]
 
-    fit_diff = d_recon['fit_a_mean'] - a_true
-    a_fit_RMSE = np.sqrt(np.mean((fit_diff)**2, axis=0))
-    a_fit_MAD = np.median(np.abs(fit_diff), axis=0)
-    a_fit_bias = np.median(fit_diff, axis=0)
-
-    # Set min
-    a_true_min = np.maximum(a_true, 1e-4)
-    a_fit_rMAD = np.median(np.abs(fit_diff/a_true_min), axis=0)
-    a_fit_rBIAS = np.median(fit_diff/a_true_min, axis=0)
-    a_fit_rRMSE = np.sqrt(np.mean((fit_diff/a_true_min)**2, axis=0))
-
-    a_items['a_fit_RMSE'] = a_fit_RMSE
-    a_items['a_fit_MAD'] = a_fit_MAD
-    a_items['a_fit_BIAS'] = a_fit_bias
-    a_items['a_fit_rMAD'] = a_fit_rMAD
-    a_items['a_fit_rBIAS'] = a_fit_rBIAS
-    a_items['a_fit_rRMSE'] = a_fit_rRMSE
-
-    return a_items
 
 
 def fig_basis_functions(decomps:tuple,
@@ -516,6 +490,79 @@ def fig_rmse_a_error(decomps:tuple, Ncomps:tuple, outfile:str,
         ax.plot(wave, a_nless[akey], 'kx', label='Noiseless')
         for ss, abs_sig in enumerate(abs_sigs):
             ax.plot(wave, a_rmses[ss][akey], 'o', label=f'abs_sig={abs_sig}')
+
+        ax.set_ylabel(ylbl)
+
+    # All
+    for ii, ax in enumerate(aaxes):
+        plotting.set_fontsize(ax, 18)
+        ax.grid()
+        # 
+        if ii == 2:
+            ax.legend(fontsize=17.)
+        if ii > 1:
+            ax.set_xlabel('Wavelength (nm)')
+            ax.set_ylim(0., 0.3)
+        else:
+            ax.tick_params(labelbottom=False)  # Hide x-axis labels
+
+    plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
+    plt.savefig(outfile, dpi=300)
+    print(f"Saved: {outfile}")
+
+
+# ############################################################
+def fig_summary_a(items:list, outfile:str, 
+                    b_dN=('nmf', 2),
+                    hidden_list:list=[512, 512, 512, 256], 
+                    dataset:str='L23', X:int=4, Y:int=0, 
+                    show_bias:bool=False):
+                    
+    # Load wavelength
+    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_full(
+        ('nmf', 'nmf'), (2,2))
+    wave = d_a['wave']
+
+    # Work on the RMSEs
+    a_rmses = []
+    for item in items:
+        # Unpack
+        abs_sig, decomp0, N0, priors, clr, ls = item
+        # Calculate
+        a_rmses.append(
+            calc_stats.calc_a_stats(
+                abs_sig, (decomp0, b_dN[0]), (N0, b_dN[1]), 
+                priors))
+
+    # ######################################################
+    # ######################################################
+    fig = plt.figure(figsize=(12,8))
+    plt.clf()
+    gs = gridspec.GridSpec(2,2)
+
+    aaxes = [] 
+    akeys = ['a_fit_MAD', 'a_fit_RMSE',
+             'a_fit_rMAD', 'a_fit_rRMSE']
+    ylbls = [r'Absolute $a_{\rm nw}(\lambda)$ MAD', 
+             r'Absolute $a_{\rm nw}(\lambda)$ RMSE',
+                r'Relative $a_{\rm nw}(\lambda)$ MAD',
+                r'Relative $a_{\rm nw}(\lambda)$ RMSE']
+
+    n_clrs = {2:'k', 3:'b', 4:'g'}
+
+    for tt, akey, ylbl in zip(range(len(akeys)), akeys, ylbls):
+        ax= plt.subplot(gs[tt])
+        aaxes.append(ax)
+
+        #ax.plot(wave, a_nless[akey], 'kx', label='Noiseless')
+        for ss, a_rmse in enumerate(a_rmses):
+            abs_sig, decomp0, N0, priors, clr, ls = items[ss]
+            # Parse clr
+            if clr == 'use_n':
+                clr = n_clrs[N0]
+            label=f'N0={N0}, abs_sig={abs_sig}'
+            ax.plot(wave, a_rmse[akey], color=clr, ls=ls,
+                    label=label)
 
         ax.set_ylabel(ylbl)
 
@@ -1360,7 +1407,7 @@ def main(flg):
         #fig_rmse_a_error(('pca', 'pca'), (4,2), 
         #                 'fig_rmse_a_error_pcapca.png', [1., 2., 5.])
 
-    # RMSE of Rrs and a
+    # MAD, RMSE of a
     if flg & (2**29):
         #fig_a_examples(('nmf', 'nmf'), (4,2), 
         #                 'fig_a_examples_nmf.png', [1.0, 2., 5.],
@@ -1384,6 +1431,17 @@ def main(flg):
         #                 'fig_a_examples_npca.png', [1., 5.],
         #                 skip_fits=True)
 
+    # RMSE of a
+    if flg & (2**30):
+        #fig_rmse_a_error(('nmf', 'nmf'), (4,2), 
+        #                 'fig_rmse_a_error_nmfnmf.png', [1, 2., 5.],
+        #                 show_bias=True)
+        fig_summary_a(
+            [
+                (-1, 'nmf', 2, 'logab', 'use_n', '-'),
+                (-1, 'nmf', 3, 'logab', 'use_n', '-'),
+            ], 'fig_summary_decompose.png') 
+
 # Command line execution
 if __name__ == '__main__':
     import sys
@@ -1403,12 +1461,15 @@ if __name__ == '__main__':
 
         #flg += 2 ** 27  # RMSE on Rrs and a
         #flg += 2 ** 28  # RMSE on a vs. abs_sig
-        flg += 2 ** 29  # Examples
+        #flg += 2 ** 29  # Examples
 
         #flg += 2 ** 2  # 4 -- Indiv
         #flg += 2 ** 3  # 8 -- Coeff
         #flg += 2 ** 4  # 16 -- Fit CDOM
         #flg += 2 ** 5  # 32 -- Explained variance
+
+         
+        flg += 2 ** 30  # Summary
         
     else:
         flg = sys.argv[1]
