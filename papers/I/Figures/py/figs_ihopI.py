@@ -1442,12 +1442,22 @@ def main(flg):
         #    ], 'fig_summary_decompose.png') 
 
         # Noiseless only
+        #fig_summary_a(
+        #    [
+        #        (-1, 'nmf', 2, 'logab', 'use_n', ':'),
+        #        (-1, 'nmf', 4, None, 'use_n', ':'),   # FIX THIS!
+        #        (None, 'nmf', 2, 'logab', 'use_n', '-'),
+        #        (None, 'nmf', 4, None, 'use_n', '-'), # FIX THIS!!!!
+        #    ], 'fig_summary_noiseless.png') 
+
+        # abs_sig=2.
         fig_summary_a(
             [
+                (-1, 'nmf', 2, 'logab', 'use_n', ':'),
                 (-1, 'nmf', 4, None, 'use_n', ':'),   # FIX THIS!
-                (None, 'nmf', 2, 'logab', 'use_n', '-'),
-                (None, 'nmf', 4, None, 'use_n', '-'), # FIX THIS!!!!
-            ], 'fig_summary_noiseless.png') 
+                (2., 'nmf', 2, 'logab', 'use_n', '-'),
+                (2., 'nmf', 4, 'logab', 'use_n', '-'), # FIX THIS!!!!
+            ], 'fig_summary_abssig2.png') 
 
 # Command line execution
 if __name__ == '__main__':
