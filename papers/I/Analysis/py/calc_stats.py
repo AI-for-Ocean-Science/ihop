@@ -6,6 +6,8 @@ from ihop.emulators import io as emu_io
 from ihop.inference import io as fitting_io
 from ihop import io as ihop_io
 
+from IPython import embed
+
 def calc_rmses(d_a, d_recon, a_decomp,
                a_decomposed=None):
     
@@ -45,7 +47,7 @@ def calc_rmses(d_a, d_recon, a_decomp,
 def calc_a_stats(abs_sig:float, 
                  decomps:tuple,
                  Ncomps:tuple,
-                 priors:str, 
+                 in_priors:str, 
                  hidden_list:list=[512, 512, 512, 256], 
                  dataset:str='L23', X:int=4, Y:int=0):
 
@@ -59,10 +61,12 @@ def calc_a_stats(abs_sig:float,
         'dense', hidden_list=hidden_list, 
         include_chl=True, X=X, Y=Y)
 
-    if priors is not None:
+    if in_priors is not None:
         priors = {}
-        if priors == 'logab':
+        if in_priors == 'logab':
             priors['use_log_ab'] = True
+    else:
+        priors = None
 
     if abs_sig == -1.:
         # Noiseless
@@ -70,7 +74,16 @@ def calc_a_stats(abs_sig:float,
             '../Analysis/',
             os.path.basename(fitting_io.l23_chains_filename(
             edict, None, priors=priors).replace('fit', 'recon')))
+        print(f'Loading: {recon_file}')
         d_nless = np.load(recon_file)
         a_recons = d_nless['decomp_a']
         return calc_rmses(d_a, None, decomps[0],
                           a_decomposed=a_recons)
+    else:
+        recon_file = os.path.join(
+            '../Analysis/',
+            os.path.basename(fitting_io.l23_chains_filename(
+            edict, abs_sig, priors=priors).replace('fit', 'recon')))
+        d_recon = np.load(recon_file)
+        print(f'Loading: {recon_file}')
+        return calc_rmses(d_a, d_recon, decomps[0])

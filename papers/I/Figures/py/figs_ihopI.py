@@ -560,7 +560,8 @@ def fig_summary_a(items:list, outfile:str,
             # Parse clr
             if clr == 'use_n':
                 clr = n_clrs[N0]
-            label=f'N0={N0}, abs_sig={abs_sig}'
+            lasig = int(abs_sig) if abs_sig is not None else 0
+            label=f'N0={N0}, abs_sig={lasig}'
             ax.plot(wave, a_rmse[akey], color=clr, ls=ls,
                     label=label)
 
@@ -1433,14 +1434,20 @@ def main(flg):
 
     # RMSE of a
     if flg & (2**30):
-        #fig_rmse_a_error(('nmf', 'nmf'), (4,2), 
-        #                 'fig_rmse_a_error_nmfnmf.png', [1, 2., 5.],
-        #                 show_bias=True)
+        # Decomposed only
+        #fig_summary_a(
+        #    [
+        #        (-1, 'nmf', 2, 'logab', 'use_n', '-'),
+        #        (-1, 'nmf', 4, 'logab', 'use_n', '-'),
+        #    ], 'fig_summary_decompose.png') 
+
+        # Noiseless only
         fig_summary_a(
             [
-                (-1, 'nmf', 2, 'logab', 'use_n', '-'),
-                (-1, 'nmf', 3, 'logab', 'use_n', '-'),
-            ], 'fig_summary_decompose.png') 
+                (-1, 'nmf', 4, None, 'use_n', ':'),   # FIX THIS!
+                (None, 'nmf', 2, 'logab', 'use_n', '-'),
+                (None, 'nmf', 4, None, 'use_n', '-'), # FIX THIS!!!!
+            ], 'fig_summary_noiseless.png') 
 
 # Command line execution
 if __name__ == '__main__':

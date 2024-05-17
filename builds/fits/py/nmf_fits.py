@@ -130,7 +130,7 @@ def main(flg):
 
         fit(edict, n_cores=n_cores, abs_sig=abs_sig, debug=True)
 
-    # NMF, abs_sig=2, log prior
+    # NMF, 4,2: abs_sig=2, log prior
     if flg == 6:
 
         # Emulator
@@ -320,6 +320,44 @@ def main(flg):
         n_cores = 20
         dataset = 'L23'
         abs_sig = None
+        edict = emu_io.set_emulator_dict(
+            dataset, decomps, Ncomps, 'Rrs',
+            'dense', hidden_list=hidden_list, 
+            include_chl=True, X=X, Y=Y)
+
+        fit(edict, n_cores=n_cores, abs_sig=abs_sig, 
+            use_log_ab=True, use_NMF_pos=False)
+
+    # NMF, 4,2 Noiseless, use_log_ab
+    if flg == 16:
+
+        # Emulator
+        hidden_list=[512, 512, 512, 256]
+        decomps = ('nmf', 'nmf')
+        Ncomps = (4,2)
+        X, Y = 4, 0
+        n_cores = 20
+        dataset = 'L23'
+        abs_sig = None
+        edict = emu_io.set_emulator_dict(
+            dataset, decomps, Ncomps, 'Rrs',
+            'dense', hidden_list=hidden_list, 
+            include_chl=True, X=X, Y=Y)
+
+        fit(edict, n_cores=n_cores, abs_sig=abs_sig, 
+            use_log_ab=True, use_NMF_pos=False)
+
+    # NMF, 3,2 abs_sig=2., use_log_ab
+    if flg == 17:
+
+        # Emulator
+        hidden_list=[512, 512, 512, 256]
+        decomps = ('nmf', 'nmf')
+        Ncomps = (3,2)
+        X, Y = 4, 0
+        n_cores = 20
+        dataset = 'L23'
+        abs_sig = 2.
         edict = emu_io.set_emulator_dict(
             dataset, decomps, Ncomps, 'Rrs',
             'dense', hidden_list=hidden_list, 
