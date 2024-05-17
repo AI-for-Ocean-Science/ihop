@@ -58,7 +58,7 @@ spec:
             cd builds/fits;
             aws --endpoint https://s3-west.nrp-nautilus.io s3 cp s3://ihop/OS_COLOR/data/Loisel2023/Hydrolight400.nc .;
             python -u py/nmf_fits.py 17;
-            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp Fits s3://ihop/Fits --recursive --force;
+            aws --endpoint http://rook-ceph-rgw-nautiluss3.rook s3 cp Fits s3://ihop/Fits --recursive;
         env:
           - name: "ENDPOINT_URL"
             value: "http://rook-ceph-rgw-nautiluss3.rook"
