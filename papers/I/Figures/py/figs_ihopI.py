@@ -1456,6 +1456,7 @@ def main(flg):
                 (-1, 'nmf', 2, 'logab', 'use_n', ':'),
                 (-1, 'nmf', 4, None, 'use_n', ':'),   # FIX THIS!
                 (2., 'nmf', 2, 'logab', 'use_n', '-'),
+                (2., 'nmf', 3, 'logab', 'use_n', '-'),
                 (2., 'nmf', 4, 'logab', 'use_n', '-'), # FIX THIS!!!!
             ], 'fig_summary_abssig2.png') 
 
