@@ -273,7 +273,7 @@ if __name__ == '__main__':
     #all_spectra(('nmf', 'nmf'), (2,2), abs_sig=5., quick_and_dirty=True,
     #            use_log_ab=True)#, nchains=500)
 
-    #all_spectra(('nmf', 'nmf'), (3,2), abs_sig=2., quick_and_dirty=True,
-    #            use_log_ab=True)#, nchains=500)
-    all_spectra(('nmf', 'nmf'), (4,2), abs_sig=2., quick_and_dirty=True,
+    all_spectra(('nmf', 'nmf'), (3,2), abs_sig=2., quick_and_dirty=True,
                 use_log_ab=True)#, nchains=500)
+    #all_spectra(('nmf', 'nmf'), (4,2), abs_sig=2., quick_and_dirty=True,
+    #            use_log_ab=True)#, nchains=500)
