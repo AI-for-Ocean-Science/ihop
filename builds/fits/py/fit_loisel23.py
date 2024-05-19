@@ -10,6 +10,7 @@ from ihop.emulators import io as emu_io
 from ihop import io as ihop_io
 from ihop.inference import fitting 
 from ihop.inference import io as fitting_io
+from ihop.inference import noise
 
 from IPython import embed
 
@@ -46,47 +47,9 @@ def select_spectra(Nspec:int, ntot:int, seed:int=71234):
 
     return idx
 
-def calc_pace_sig(wave, Rrs_scale=1e4):
-    # Load PACE
-    pace = np.load('PACE_error.npz')
-    # Reduce by sqrt(pixels)
-    scl = np.sqrt(wave.size/pace['wave'].size)
-    # Interpolate
-    pace_sig = Rrs_scale * scl * np.interp(
-            wave, pace['wave'], pace['Rrs_u'])
-    return pace_sig
 
-def add_noise(Rs, perc:int=None, abs_sig:float=None,
-              wave:np.ndarray=None):
-    """
-    Add random noise to the input array Rs.
 
-    Parameters:
-        Rs (np.ndarray): Input array.
-        perc (int, optional): Percentage of noise to be added as a fraction of Rs. Default is None.
-        abs_sig (float, str, optional): Absolute value of noise to be added. Default is None.
 
-    Returns:
-        ndarray: Array with noise added.
-    """
-    use_Rs = Rs.copy()
-    # Random draws
-    r_sig = np.random.normal(size=Rs.shape)
-    r_sig = np.minimum(r_sig, 3.)
-    r_sig = np.maximum(r_sig, -3.)
-
-    if perc is not None:
-        use_Rs += (perc/100.) * use_Rs * r_sig
-    elif abs_sig == 'PACE':
-        if wave is None:
-            raise ValueError("Need wavelength array for PACE noise.")
-        # Add it in
-        pace_sig = calc_pace_sig(wave)
-        use_Rs += r_sig * pace_sig
-    else:
-        use_Rs += r_sig * abs_sig
-    # Return
-    return use_Rs
 
 def load(edict:dict):
     """
@@ -151,8 +114,8 @@ def fit(edict:dict, Nspec:int=None, abs_sig:float=None,
         outroot += f'_max{int(max_wv)}'
 
     # Init MCMC
-    if abs_sig == 'PACE':
-        pace_sig = calc_pace_sig(d_a['wave'])
+    if abs_sig in ['PACE', 'PACE_CORR']:
+        pace_sig = noise.calc_pace_sig(d_a['wave'])
         pdict = init_mcmc(emulator, ab.shape[1]+1, 
                       abs_sig=pace_sig, priors=priors)
     else:
@@ -172,7 +135,10 @@ def fit(edict:dict, Nspec:int=None, abs_sig:float=None,
     if abs_sig is None:
         use_Rs = Rs.copy()
     else:
-        use_Rs = add_noise(Rs, abs_sig=abs_sig, wave=d_a['wave'])
+        correlate = abs_sig=='PACE_CORR'
+        use_Rs = noise.add_noise(
+            Rs, abs_sig=abs_sig, wave=d_a['wave'],
+            correlate=correlate)
 
     # Prep
     if Nspec is None:

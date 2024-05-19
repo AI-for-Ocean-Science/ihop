@@ -1339,9 +1339,12 @@ def main(flg):
         #fig_mcmc_fit(abs_sig=None, in_idx=1, decomps=('bsp', 'nmf'), 
         #             use_reconstruct=True, in_Ncomps=(10,2), 
         #           chain_file='../../../builds/fits/Fits/L23/fitN_Rs01_L23_X4_Y0_bspnmf_102_chl_Rrs_dense_512_512_512_256.npz')
-        fig_mcmc_fit(abs_sig='PACE', in_idx=0, decomps=('nmf', 'nmf'), 
+        #fig_mcmc_fit(abs_sig='PACE', in_idx=0, decomps=('nmf', 'nmf'), 
+        #             use_reconstruct=True, in_Ncomps=(2,2), in_log10=True,
+        #           chain_file='../../../builds/fits/Fits/L23/fit_Rs99_L23_X4_Y0_nmfnmf_22_chl_Rrs_dense_512_512_512_256_logab.npz')
+        fig_mcmc_fit(abs_sig='PACE', in_idx=1, decomps=('nmf', 'nmf'), 
                      use_reconstruct=True, in_Ncomps=(2,2), in_log10=True,
-                   chain_file='../../../builds/fits/Fits/L23/fit_Rs99_L23_X4_Y0_nmfnmf_22_chl_Rrs_dense_512_512_512_256_logab.npz')
+                   chain_file='../../../builds/fits/Fits/L23/fit_Rs98_L23_X4_Y0_nmfnmf_22_chl_Rrs_dense_512_512_512_256_logab.npz')
 
     # L23 IHOP performance vs. perc error
     if flg & (2**22):

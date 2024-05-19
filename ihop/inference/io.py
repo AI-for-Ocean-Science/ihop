@@ -27,6 +27,7 @@ def l23_chains_filename(edict:dict, error:int, test:bool=False,
                 And the error value is set to 1.
                 And the filename is prefixed with 'N'.
             If PACE, we set the error value to 99.
+            If PACE_CORR, we set the error value to 98.
         test (bool, optional): Flag indicating if it is a test file. Defaults to False.
         out_path (str, optional): The output path. Defaults to None.
         priors (dict, optional): The priors dictionary. Defaults to None.
@@ -46,6 +47,8 @@ def l23_chains_filename(edict:dict, error:int, test:bool=False,
         error = 1
     elif error == 'PACE':
         error = 99
+    elif error == 'PACE_CORR':
+        error = 98
     else: # abs_sig = float
         pass
     # 
