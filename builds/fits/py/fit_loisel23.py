@@ -189,7 +189,7 @@ def save_fits(all_samples, all_idx, Rs, use_Rs, outroot):
         Rs (numpy.ndarray): Array of Rs values.
         use_Rs (numpy.ndarray): Array of observed Rs values.
         outroot (str): Root name for the output file.
-    """
+    ""    new_xds.to_netcdf(outfile)"
     # Save
     outdir = 'Fits/L23'
     if not os.path.isdir(outdir):
