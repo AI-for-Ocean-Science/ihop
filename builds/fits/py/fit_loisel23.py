@@ -15,6 +15,7 @@ from ihop.inference import mcmc
 
 from IPython import embed
 
+import fits
 
 
 def select_spectra(Nspec:int, ntot:int, seed:int=71234):
@@ -66,27 +67,27 @@ def fit(edict:dict, Nspec:int=None, abs_sig:float=None,
         use_NMF_pos (bool): Whether to use positive priors for NMF. Default is False.
 
     """
-    # Priors
-    priors = None
-    if 'nmf' in edict['decomps']: 
-        if use_log_ab:
-            priors = {}
-            priors['use_log_ab'] = True
-        # Positive priors
-        if use_NMF_pos:
-            priors = {}
-            priors['NMFpos'] = True
-
-    # Load
-    ab, Chl, Rs, emulator, d_a = load(edict)
-
-    # Output
-    outfile = os.path.basename(fitting_io.l23_chains_filename(
-        edict, abs_sig, priors=priors))
     if max_wv is not None:
         embed(header='NEED TO FIX OUTFILE; 115 of fit_loisel23.py')
         outroot += f'_max{int(max_wv)}'
 
+    # Priors
+    priors = fits.set_priors(edict, use_log_ab=use_log_ab, use_NMF_pos=use_NMF_pos)
+    
+    # Load
+    ab, Chl, Rs, emulator, d_a = load(edict)
+
+    # Generate the params by concatenating ab, Chl
+    params = np.concatenate((ab, Chl[:,None]), axis=1)
+
+    # Output file
+    outfile = os.path.basename(fitting_io.l23_chains_filename(
+        edict, abs_sig, priors=priors))
+
+    fits.fit(edict, params, d_a['wave'], priors, Rs, outfile, abs_sig,
+                Nspec=Nspec, debug=debug, n_cores=n_cores, max_wv=max_wv)
+
+    '''
     # Init MCMC
     if abs_sig in ['PACE', 'PACE_CORR']:
         pace_sig = noise.calc_pace_sig(d_a['wave'])
@@ -134,7 +135,8 @@ def fit(edict:dict, Nspec:int=None, abs_sig:float=None,
     all_samples, all_idx = fitting.fit_batch(pdict, items,
                                              n_cores=n_cores)
     # Save
-    save_fits(all_samples, all_idx, Rs, use_Rs, outfile)
+    fits.save_fits(all_samples, all_idx, Rs, use_Rs, outfile)
+    '''
 
 def test_fit(edict:dict, Nspec:int=100, abs_sig:float=None,
              debug:bool=False, n_cores:int=1): 
@@ -175,29 +177,10 @@ def test_fit(edict:dict, Nspec:int=100, abs_sig:float=None,
     all_samples, all_idx = fitting.fit_batch(pdict, items,
                                              n_cores=n_cores)
     # Save
-    save_fits(all_samples, all_idx, Rs, use_Rs, outfile)
+    fits.save_fits(all_samples, all_idx, Rs, use_Rs, outfile)
 
 
 
-def save_fits(all_samples, all_idx, Rs, use_Rs, outroot):
-    """
-    Save the fitting results to a file.
-
-    Parameters:
-        all_samples (numpy.ndarray): Array of fitting chains.
-        all_idx (numpy.ndarray): Array of indices.
-        Rs (numpy.ndarray): Array of Rs values.
-        use_Rs (numpy.ndarray): Array of observed Rs values.
-        outroot (str): Root name for the output file.
-    ""    new_xds.to_netcdf(outfile)"
-    # Save
-    outdir = 'Fits/L23'
-    if not os.path.isdir(outdir):
-        os.makedirs(outdir)
-    outfile = os.path.join(outdir, outroot)
-    np.savez(outfile, chains=all_samples, idx=all_idx,
-             obs_Rs=use_Rs[all_idx], Rs=Rs[all_idx])
-    print(f"Saved: {outfile}")
 
 
 def main(flg):

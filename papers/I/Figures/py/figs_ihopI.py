@@ -1311,8 +1311,8 @@ def main(flg):
         #fig_mcmc_fit(test=True, abs_sig=2., water=True)
         #fig_mcmc_fit(test=True, abs_sig=2., water=True)
         #fig_mcmc_fit(abs_sig=5., in_idx=275) # Turbid
-        fig_mcmc_fit(abs_sig=5., in_idx=2663,
-         in_Ncomps=(2,2), in_log10=True) # Minimum
+        #fig_mcmc_fit(abs_sig=5., in_idx=2663,
+        # in_Ncomps=(2,2), in_log10=True) # Minimum
         #fig_mcmc_fit(abs_sig=5., in_idx=170) # Median
         #fig_mcmc_fit(abs_sig=5., in_idx=180) # Median
         #fig_mcmc_fit(abs_sig=2., in_idx=2949) # Maximum absorption
@@ -1342,7 +1342,7 @@ def main(flg):
         #fig_mcmc_fit(abs_sig='PACE', in_idx=0, decomps=('nmf', 'nmf'), 
         #             use_reconstruct=True, in_Ncomps=(2,2), in_log10=True,
         #           chain_file='../../../builds/fits/Fits/L23/fit_Rs99_L23_X4_Y0_nmfnmf_22_chl_Rrs_dense_512_512_512_256_logab.npz')
-        fig_mcmc_fit(abs_sig='PACE', in_idx=1, decomps=('nmf', 'nmf'), 
+        fig_mcmc_fit(abs_sig='PACE_CORR', in_idx=1, decomps=('nmf', 'nmf'), 
                      use_reconstruct=True, in_Ncomps=(2,2), in_log10=True,
                    chain_file='../../../builds/fits/Fits/L23/fit_Rs98_L23_X4_Y0_nmfnmf_22_chl_Rrs_dense_512_512_512_256_logab.npz')
 
