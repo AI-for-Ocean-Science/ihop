@@ -7,20 +7,18 @@ import xarray
 from oceancolor.pace import io as pace_io
 
 from ihop import io as ihop_io
+from ihop.pace import prep 
+
+def prep_one():
+    basename = 'PACE_OCI.20240413T175656.L2.OC_AOP.V1_0_0.NRT.nc'
+    outfile = basename.replace('.nc', '_IHOP.npz')
+    pfile = os.path.join(os.getenv('OS_COLOR'), 'data', 
+                         'PACE', 'early', basename)
+    prep.process_l2_for_l23(pfile, outfile, minval=-10., maxval=100.)
+
 
 def load_one_example(lon:float=-75.5, # W
                     lat:float=34.5): # N
-    pfile = os.path.join(os.getenv('OS_COLOR'), 'data', 'PACE', 'early',
-                     'PACE_OCI.20240413T175656.L2.OC_AOP.V1_0_0.NRT.nc')
-    xds, flags = pace_io.load_oci_l2(pfile)                    
-
-    # Polish
-    xds['Rrs'] = xarray.where(xds['Rrs']>-10, xds['Rrs'], np.nan)
-    xds['Rrs'] = xarray.where(xds['Rrs']<100, xds['Rrs'], np.nan)
-    # Error too
-    xds['Rrs_unc'] = xarray.where(xds['Rrs']>-10, xds['Rrs_unc'], np.nan)
-    xds['Rrs_unc'] = xarray.where(xds['Rrs']<100, xds['Rrs_unc'], np.nan)
-
     #
     idx = np.argmin( (xds.longitude.data-lon)**2 + (xds.latitude.data-lat)**2)
     x,y = np.unravel_index(idx, xds.longitude.shape)
