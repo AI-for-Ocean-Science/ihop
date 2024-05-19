@@ -58,7 +58,6 @@ def load_loisel23_iop(iop:str, X:int=4, Y:int=0,
     Returns:
         tuple: A tuple containing the loaded IOP data, the corresponding wavelengths, the remote sensing reflectances, and the original dataset.
     """
-
     # Load
     ds = loisel23.load_ds(X, Y)
 

@@ -11,34 +11,11 @@ from ihop import io as ihop_io
 from ihop.inference import fitting 
 from ihop.inference import io as fitting_io
 from ihop.inference import noise
+from ihop.inference import mcmc
 
 from IPython import embed
 
-def init_mcmc(emulator, ndim, perc:int=None, 
-              abs_sig:float=None, priors:dict=None):
-    """
-    Initializes the MCMC parameters.
 
-    Args:
-        emulator: The emulator model.
-        ndim (int): The number of dimensions.
-        perc (int): The scaling factor for the sigma parameter (optional).
-        abs_sig (float): The absolute sigma parameter (optional).
-        priors (dict): The prior information (optional).
-
-    Returns:
-        dict: A dictionary containing the MCMC parameters.
-    """
-    pdict = dict(model=emulator)
-    pdict['nwalkers'] = max(16,ndim*2)
-    pdict['nsteps'] = 10000
-    pdict['save_file'] = None
-    pdict['scl_sig'] = perc
-    pdict['abs_sig'] = abs_sig
-    pdict['priors'] = priors
-    pdict['cut'] = None
-    #
-    return pdict
 
 def select_spectra(Nspec:int, ntot:int, seed:int=71234):
     # Select a random sample
@@ -46,9 +23,6 @@ def select_spectra(Nspec:int, ntot:int, seed:int=71234):
     idx = np.random.choice(np.arange(ntot), Nspec, replace=False)
 
     return idx
-
-
-
 
 
 def load(edict:dict):
@@ -116,10 +90,10 @@ def fit(edict:dict, Nspec:int=None, abs_sig:float=None,
     # Init MCMC
     if abs_sig in ['PACE', 'PACE_CORR']:
         pace_sig = noise.calc_pace_sig(d_a['wave'])
-        pdict = init_mcmc(emulator, ab.shape[1]+1, 
+        pdict = mcmc.init_mcmc(emulator, ab.shape[1]+1, 
                       abs_sig=pace_sig, priors=priors)
     else:
-        pdict = init_mcmc(emulator, ab.shape[1]+1, 
+        pdict = mcmc.init_mcmc(emulator, ab.shape[1]+1, 
                       abs_sig=abs_sig, priors=priors)
 
     # Include a non-zero error to avoid bad chi^2 behavior
@@ -185,7 +159,7 @@ def test_fit(edict:dict, Nspec:int=100, abs_sig:float=None,
     outfile = os.path.basename(outfile)
 
     # Init MCMC
-    pdict = init_mcmc(emulator, ab.shape[1]+1)
+    pdict = mcmc.init_mcmc(emulator, ab.shape[1]+1)
     # Include a non-zero error to avoid bad chi^2 behavior
     pdict['abs_sig'] = abs_sig
 

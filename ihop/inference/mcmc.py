@@ -13,11 +13,31 @@ from ihop.emulators import io
 from IPython import embed
 
 
-#def lnprior(ab):
-#    m, b, lnf = theta
-#    if -5.0 < m < 0.5 and 0.0 < b < 10.0 and -10.0 < lnf < 1.0:
-#        return 0.0
-#    return -np.inf
+def init_mcmc(emulator, ndim, perc:int=None, 
+              abs_sig:float=None, priors:dict=None):
+    """
+    Initializes the MCMC parameters.
+
+    Args:
+        emulator: The emulator model.
+        ndim (int): The number of dimensions.
+        perc (int): The scaling factor for the sigma parameter (optional).
+        abs_sig (float): The absolute sigma parameter (optional).
+        priors (dict): The prior information (optional).
+
+    Returns:
+        dict: A dictionary containing the MCMC parameters.
+    """
+    pdict = dict(model=emulator)
+    pdict['nwalkers'] = max(16,ndim*2)
+    pdict['nsteps'] = 10000
+    pdict['save_file'] = None
+    pdict['scl_sig'] = perc
+    pdict['abs_sig'] = abs_sig
+    pdict['priors'] = priors
+    pdict['cut'] = None
+    #
+    return pdict
 
 def log_prob(ab, Rs, model, device, scl_sig, abs_sig, priors,
              cut):
