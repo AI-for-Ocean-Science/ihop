@@ -22,10 +22,11 @@ def l23_chains_filename(edict:dict, error:int, test:bool=False,
 
     Args:
         edict (dict): The input dictionary containing dataset information.
-        error (int): The error value.
+        error (int, str, None): The error value.
             If None, the file is assumed to be noiseless.
-            And the error value is set to 1.
-            And the filename is prefixed with 'N'.
+                And the error value is set to 1.
+                And the filename is prefixed with 'N'.
+            If PACE, we set the error value to 99.
         test (bool, optional): Flag indicating if it is a test file. Defaults to False.
         out_path (str, optional): The output path. Defaults to None.
         priors (dict, optional): The priors dictionary. Defaults to None.
@@ -38,12 +39,15 @@ def l23_chains_filename(edict:dict, error:int, test:bool=False,
     # Root
     root = emu_io.set_l23_emulator_root(edict)
     # Build it
+    prefix = ''
     if error is None:
         # Noiseless!
         prefix = 'N'
-        error = 1.
-    else:
-        prefix = ''
+        error = 1
+    elif error == 'PACE':
+        error = 99
+    else: # abs_sig = float
+        pass
     # 
     chain_file = f'fit{prefix}_Rs{int(error):02d}_{root}.npz'
     if priors is not None:

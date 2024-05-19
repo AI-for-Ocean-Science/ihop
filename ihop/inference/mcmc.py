@@ -30,7 +30,7 @@ def log_prob(ab, Rs, model, device, scl_sig, abs_sig, priors,
         model (object): The model object with a `prediction` method.
         device (str): The device to be used for the model prediction.
         scl_sig (float or None): The scaling factor for the error. If None, absolute error is used.
-        abs_sig (float): The absolute error.
+        abs_sig (float or np.ndarray): The absolute error.
         prior (tuple): The prior information.
         cut (array-like): Limit the likelihood calculation
             to a subset of the values

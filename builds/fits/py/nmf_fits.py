@@ -366,6 +366,25 @@ def main(flg):
         fit(edict, n_cores=n_cores, abs_sig=abs_sig, 
             use_log_ab=True, use_NMF_pos=False)
 
+    # NMF, 2,2 PACE noise, uncorrelated, use_log_ab
+    if flg == 18:
+
+        # Emulator
+        hidden_list=[512, 512, 512, 256]
+        decomps = ('nmf', 'nmf')
+        Ncomps = (2,2)
+        X, Y = 4, 0
+        n_cores = 20
+        dataset = 'L23'
+        abs_sig = 'PACE'
+        edict = emu_io.set_emulator_dict(
+            dataset, decomps, Ncomps, 'Rrs',
+            'dense', hidden_list=hidden_list, 
+            include_chl=True, X=X, Y=Y)
+
+        fit(edict, n_cores=n_cores, abs_sig=abs_sig, 
+            use_log_ab=True, use_NMF_pos=False, debug=True)
+
 # Command line execution
 if __name__ == '__main__':
     import sys
