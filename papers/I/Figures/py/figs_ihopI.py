@@ -560,7 +560,7 @@ def fig_summary_a(items:list, outfile:str,
             # Parse clr
             if clr == 'use_n':
                 clr = n_clrs[N0]
-            lasig = int(abs_sig) if abs_sig is not None else 0
+            lasig = abs_sig if abs_sig is not None else 0
             label=f'N0={N0}, abs_sig={lasig}'
             ax.plot(wave, a_rmse[akey], color=clr, ls=ls,
                     label=label)
@@ -1460,11 +1460,21 @@ def main(flg):
         fig_summary_a(
             [
                 (-1, 'nmf', 2, 'logab', 'use_n', ':'),
-                (-1, 'nmf', 4, None, 'use_n', ':'),   # FIX THIS!
+                (-1, 'nmf', 3, 'logab', 'use_n', ':'),   
+                (-1, 'nmf', 4, 'logab', 'use_n', ':'),   
                 (2., 'nmf', 2, 'logab', 'use_n', '-'),
                 (2., 'nmf', 3, 'logab', 'use_n', '-'),
-                (2., 'nmf', 4, 'logab', 'use_n', '-'), # FIX THIS!!!!
+                (2., 'nmf', 4, 'logab', 'use_n', '-'), 
             ], 'fig_summary_abssig2.png') 
+
+        # 2,2 with PACE
+        #fig_summary_a(
+        #    [
+        #        (-1, 'nmf', 2, 'logab', 'use_n', ':'),
+        #        (2., 'nmf', 2, 'logab', 'use_n', '-'),
+        #        ('PACE', 'nmf', 2, 'logab', 'blue', '-'),
+        #        ('PACE_CORR', 'nmf', 2, 'logab', 'red', '-'),
+        #    ], 'fig_summary_PACE22.png') 
 
 # Command line execution
 if __name__ == '__main__':
