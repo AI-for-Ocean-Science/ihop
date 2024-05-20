@@ -1175,7 +1175,7 @@ def fig_mcmc_pace(pace_file:str=None, outroot='fig_mcmc_pace',
     # #########################################################
     # Rs
     ax_R = plt.subplot(gs[0:2])
-    ax_R.plot(wave, pace_Rrs, 'kx', label='True')
+    #ax_R.plot(wave, pace_Rrs, 'kx', label='True')
     if true_only:
         pass
     elif use_quick:
@@ -1200,6 +1200,12 @@ def fig_mcmc_pace(pace_file:str=None, outroot='fig_mcmc_pace',
 
     #ax_R.set_yscale('log')
     ax_R.legend(fontsize=lgsz)
+
+    # Gray out unanalyzed region
+    ymin, ymax = ax_R.get_ylim()
+    ax_R.fill_between([350, 380], ymin, ymax, color='black', alpha=0.7)
+    ax_R.fill_between([700, 750], ymin, ymax, color='black', alpha=0.7)
+
     
     # axes
     for ss, ax in enumerate([ax_a, ax_R, ax_bb]):
