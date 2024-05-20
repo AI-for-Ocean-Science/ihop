@@ -9,6 +9,7 @@ import numpy as np
 
 import torch
 import corner
+import xarray
 
 from matplotlib import pyplot as plt
 import matplotlib as mpl
@@ -42,6 +43,10 @@ sys.path.append(os.path.abspath("../Analysis/py"))
 import reconstruct
 import ls2 as anly_ls2
 import calc_stats
+
+# Fits
+sys.path.append(os.path.abspath("../../../builds/fits/py"))
+import fits
 
 from IPython import embed
 
@@ -986,6 +991,208 @@ def fig_mcmc_fit(outroot='fig_mcmc_fit', decomps:str=('nmf','nmf'),
     plt.savefig(outfile, dpi=300)
     print(f"Saved: {outfile}")
 
+# ############################################################
+def fig_mcmc_pace(pace_file:str=None, outroot='fig_mcmc_pace', 
+                  decomps:str=('nmf','nmf'),
+        hidden_list:list=[512, 512, 512, 256], dataset:str='L23', 
+        use_quick:bool=False,
+        X:int=4, Y:int=0, show_zoom:bool=False, 
+        in_Ncomps=None,
+        perc:int=None, abs_sig:float=None,
+        wvmnx:tuple=None, show_NMF:bool=False,
+        water:bool=False, in_idx:int=0, use_reconstruct:bool=False,
+        chain_file:str=None, in_log10:bool=False,
+        test:bool=False, true_obs_only:bool=False,
+        true_only:bool=False):
+
+    if in_Ncomps is not None:
+        Ncomps = in_Ncomps
+
+    # Load chains
+    if chain_file is None:
+        chain_file = inf_io.l23_chains_filename(edict, 
+                                            perc if perc is not None else int(abs_sig), 
+                                            test=test)
+    d_chains = inf_io.load_chains(chain_file)
+
+    # Load data
+    ihop_file = os.path.join(os.getenv('OS_COLOR'), 'data', 
+                         'PACE', 'early', pace_file)
+    xds = xarray.open_dataset(ihop_file)
+    x,y = d_chains['pace_idx'][in_idx]
+    pace_Rrs = xds.Rrs.data[x,y,:]
+    #spec_err = xds.Rrs_unc.data[x,y,:]
+
+    # Emulator
+    edict = emu_io.set_emulator_dict(dataset, decomps, Ncomps, 'Rrs',
+        'dense', hidden_list=hidden_list, include_chl=True, X=X, Y=Y)
+    emulator, e_file = emu_io.load_emulator_from_dict(edict)
+
+    # NMF
+    ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_full(decomps, Ncomps)
+
+    if use_reconstruct:
+        # Reconstruct
+        items = reconstruct.one_spectrum(in_idx, ab, Chl, d_chains, 
+                                     d_a, d_bb, 
+                                     emulator, decomps, Ncomps,
+                                     in_log10=in_log10)
+        idx, orig, a_mean, a_std, a_iop, obs_Rs,\
+            pred_Rs, std_pred, NN_Rs, allY, wave,\
+            orig_bb, bb_mean, bb_std, a_nmf, bb_nmf = items
+        print(f"L23 index = {idx}")
+    else:
+        priors = None
+        if in_log10:
+            priors = {}
+            priors['use_log_ab'] = True
+
+        recon_file = os.path.join(
+            '../Analysis/',
+            os.path.basename(fitting_io.l23_chains_filename(
+            edict, abs_sig, priors=priors).replace('fit', 'recon')))
+        d_recon = np.load(recon_file)
+        idx = np.where(d_recon['idx'] == in_idx)[0][0]
+
+        # Unpack here
+        wave = d_a['wave']
+        orig = d_a['spec'][in_idx]
+        a_mean = d_recon['fit_a_mean'][idx]
+        a_std = d_recon['fit_a_std'][idx]
+        orig_bb = d_bb['spec'][in_idx]
+        bb_mean = d_recon['fit_bb_mean'][idx]
+        bb_std = d_recon['fit_bb_std'][idx]
+
+        obs_Rs = d_chains['obs_Rs']
+        pred_Rs = d_recon['fit_Rrs'][idx]
+        std_pred = 0.01
+
+    # Outfile
+    outfile = outroot + f'_{idx}.png'
+    if water:
+        outfile = outfile.replace('.png', '_water.png')
+        # Load training data
+        d_train = load_rs.loisel23_rs(X=X, Y=Y)
+
+
+    # #########################################################
+    # Plot the solution
+    lgsz = 14.
+
+    fig = plt.figure(figsize=(12,6))
+    plt.clf()
+    gs = gridspec.GridSpec(2,2)
+    
+    xpos, ypos, ypos2 = 0.05, 0.10, 0.10
+
+    # #########################################################
+    # a
+    if water:
+        a_w = absorption.a_water(wave, data='IOCCG')
+    else:
+        a_w = 0
+    ax_a = plt.subplot(gs[2])
+    def plot_spec(ax):
+        #ax.plot(wave, orig+a_w, 'ko', label='True', zorder=1)
+        ax.plot(wave, a_mean+a_w, 'r-', label='Retrieval')
+        if show_NMF:
+            ax.plot(wave, a_nmf+a_w, 'r:', label='Real Recon')
+        ax.fill_between(wave, a_w+a_mean-a_std, a_w+a_mean+a_std, 
+            color='r', alpha=0.5, label='Uncertainty') 
+    plot_spec(ax_a)
+    #ax_a.set_xlabel('Wavelength (nm)')
+    if water:
+        ax_a.set_ylabel(r'$a(\lambda) \; [{\rm m}^{-1}]$')
+    else:
+        ax_a.set_ylabel(r'$a_{\rm nw}(\lambda) \; [{\rm m}^{-1}]$')
+
+    ax_a.text(xpos, ypos2,  '(b)', color='k',
+            transform=ax_a.transAxes,
+              fontsize=18, ha='left')
+
+    ax_a.legend(fontsize=lgsz)
+    #ax_a.tick_params(labelbottom=False)  # Hide x-axis labels
+
+    if wvmnx is not None:
+        ax_a.set_xlim(wvmnx[0], wvmnx[1])
+
+    # Zoom in
+    # inset axes....
+    if show_zoom:
+        asz = 0.4
+        ax_zoom = ax_a.inset_axes(
+            [0.15, 0.5, asz, asz])
+        plot_spec(ax_zoom)
+        ax_zoom.set_xlim(340.,550)
+        ax_zoom.set_ylim(0., 0.25)
+        #ax_zoom.set_ylim(340.,550)
+        ax_zoom.set_xlabel('Wavelength (nm)')
+        ax_zoom.set_ylabel(r'$a(\lambda)$')
+
+    # #########################################################
+    # b
+    if water:
+        bb_w = d_train['bb_w']
+    else:
+        bb_w = 0
+    ax_bb = plt.subplot(gs[3])
+    #ax_bb.plot(wave, bb_w+orig_bb, 'ko', label='True')
+    ax_bb.plot(wave, bb_w+bb_mean, 'g-', label='Retrieval')
+    if show_NMF:
+        ax_bb.plot(wave, bb_w+bb_nmf, 'g:', label='True NMF')
+    ax_bb.fill_between(wave, bb_w+bb_mean-bb_std, bb_w+bb_mean+bb_std, 
+            color='g', alpha=0.5, label='Uncertainty') 
+
+    #ax_bb.set_xlabel('Wavelength (nm)')
+    ax_bb.set_ylabel(r'$b_b(\lambda) \; [{\rm m}^{-1}]$')
+
+    ax_bb.text(xpos, ypos2,  '(c)', color='k',
+            transform=ax_bb.transAxes,
+              fontsize=18, ha='left')
+    ax_bb.legend(fontsize=lgsz)
+    ax_bb.set_ylim(bottom=0., top=None)
+
+    # #########################################################
+    # Rs
+    ax_R = plt.subplot(gs[0:2])
+    ax_R.plot(wave, pace_Rrs, 'kx', label='True')
+    if true_only:
+        pass
+    elif use_quick:
+        ax_R.plot(wave, obs_Rs[0], 'bs', label='"Observed"')
+    else:
+        ax_R.plot(wave, obs_Rs[in_idx], 'bs', label='"Observed"')
+    if (not true_only) and (not true_obs_only):
+        ax_R.plot(wave, pred_Rs, 'r-', label='Fit', zorder=10)
+        ax_R.fill_between(wave, pred_Rs-std_pred, pred_Rs+std_pred, 
+            color='r', alpha=0.5, zorder=10) 
+        ax_R.fill_between(wave,
+            pred_Rs-std_pred, pred_Rs+std_pred,
+            color='r', alpha=0.5) 
+
+    #ax_R.set_xlabel('Wavelength (nm)')
+    ax_R.set_ylabel(r'$R_{rs}(\lambda) \; [10^{-4} \, {\rm sr}^{-1}$]')
+    #ax_R.tick_params(labelbottom=False)  # Hide x-axis labels
+
+    ax_R.text(xpos, ypos, '(a)', color='k',
+            transform=ax_R.transAxes,
+              fontsize=18, ha='right')
+
+    #ax_R.set_yscale('log')
+    ax_R.legend(fontsize=lgsz)
+    
+    # axes
+    for ss, ax in enumerate([ax_a, ax_R, ax_bb]):
+        plotting.set_fontsize(ax, 14)
+        if ss != 1:
+            ax.set_xlabel('Wavelength (nm)')
+
+    #plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
+    plt.savefig(outfile, dpi=300)
+    print(f"Saved: {outfile}")
+
+
+
 def fig_corner(decomps:tuple, outroot:str='fig_corner', 
         hidden_list:list=[512, 512, 512, 256], dataset:str='L23', 
         chop_burn:int=-3000, perc:int=None, abs_sig:float=None,
@@ -1304,7 +1511,7 @@ def main(flg):
         #                  ('int', 'nmf'), log_rrmse=True,
         #                  outfile='fig_emulator_rmse_intnmf.png') 
 
-    # L23 IHOP performance vs. perc error
+    # MCMC evaluation
     if flg & (2**2):
         #fig_mcmc_fit(test=True, perc=10)
         #fig_mcmc_fit(test=True, abs_sig=2.)
@@ -1476,6 +1683,13 @@ def main(flg):
         #        ('PACE_CORR', 'nmf', 2, 'logab', 'red', '-'),
         #    ], 'fig_summary_PACE22.png') 
 
+    # MCMC evaluation
+    if flg & (2**31):
+        fig_mcmc_pace('PACE_OCI.20240413T175656.L2.OC_AOP.V1_0_0.NRT_IHOP.nc',
+            abs_sig='PACE_TRUNC', in_idx=0, decomps=('nmf', 'nmf'), 
+            use_reconstruct=True, in_Ncomps=(2,2), in_log10=True,
+            chain_file='../../../builds/fits/Fits/L23/fit_Rs97_PACE_OCI.20240413T175656.L2_NN_22_chl_logab.npz')
+
 # Command line execution
 if __name__ == '__main__':
     import sys
@@ -1503,7 +1717,8 @@ if __name__ == '__main__':
         #flg += 2 ** 5  # 32 -- Explained variance
 
          
-        flg += 2 ** 30  # Summary
+        #flg += 2 ** 30  # Summary
+        flg += 2 ** 31  # PACE MCMC
         
     else:
         flg = sys.argv[1]

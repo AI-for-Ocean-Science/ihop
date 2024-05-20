@@ -57,8 +57,8 @@ def reconstruct_bsp(coeffs, d_a, idx):
     return orig, np.array(yfits)
 
 def one_spectrum(in_idx:int, ab, Chl, d_chains, d_a, d_bb, emulator,
-                             decomps:tuple, Ncomp:tuple,
-                             chop_burn:int=-3000, in_log10:bool=False):
+                 decomps:tuple, Ncomp:tuple,
+                 chop_burn:int=-3000, in_log10:bool=False):
     chains = d_chains['chains'][in_idx]
     if in_log10:
         chains = 10**chains

@@ -37,15 +37,21 @@ def load_one_example(lon:float=-75.5, # W
     idx = np.argmin( (xds.longitude.data-lon)**2 + (xds.latitude.data-lat)**2)
     x,y = np.unravel_index(idx, xds.longitude.shape)
 
+    # Indices
+    pace_idx = np.zeros((1,2), dtype=int)
+    pace_idx[0,0] = x
+    pace_idx[0,1] = y
+
     spec = xds.Rrs.data[x,y,:]
     spec_err = xds.Rrs_unc.data[x,y,:]
+
     #
-    return basename, xds.wavelength.data, spec, spec_err
+    return basename, xds.wavelength.data, spec, spec_err, pace_idx
 
 
 def load(edict:dict):
     # Load data
-    pace_file, pace_wave, pace_Rrs, pace_err = load_one_example()
+    pace_file, pace_wave, pace_Rrs, pace_err, pace_idx = load_one_example()
 
     # Reshape
     pace_Rrs = pace_Rrs.reshape(1, pace_Rrs.size)
@@ -56,7 +62,7 @@ def load(edict:dict):
         edict, use_s3=True)
 
     # Return
-    return pace_file, pace_wave, pace_Rrs, pace_err, emulator
+    return pace_file, pace_wave, pace_Rrs, pace_err, pace_idx, emulator
 
 def find_closest(edict:dict, pace_wave:np.ndarray, 
                  pace_Rrs:np.ndarray, pace_err:np.ndarray, 
@@ -142,7 +148,7 @@ def fit(edict:dict, Nspec:int=None, abs_sig:float=None,
     priors = fits.set_priors(edict, use_log_ab=use_log_ab, use_NMF_pos=use_NMF_pos)
     
     # Load data
-    pace_file, pace_wave, pace_Rrs, pace_err, emulator = load(edict)
+    pace_file, pace_wave, pace_Rrs, pace_err, pace_idx, emulator = load(edict)
 
     # Find the closest L23 solution
     params = find_closest(edict, pace_wave, pace_Rrs, pace_err)#, debug=True)
@@ -154,9 +160,14 @@ def fit(edict:dict, Nspec:int=None, abs_sig:float=None,
     # Scale Rrs
     pace_Rrs *= 1e4
 
+    # Indices
+    extras = {}
+    extras['pace_idx'] = pace_idx
+
     # Fit
     fits.fit(edict, params, pace_wave, priors, pace_Rrs, outfile, abs_sig,
-                Nspec=Nspec, debug=debug, n_cores=n_cores, max_wv=max_wv)
+                Nspec=Nspec, debug=debug, n_cores=n_cores, max_wv=max_wv,
+                extras=extras)
 
 def main(flg):
     if flg== 'all':

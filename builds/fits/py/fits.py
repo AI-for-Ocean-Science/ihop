@@ -26,7 +26,7 @@ def set_priors(edict, use_log_ab=False, use_NMF_pos=False):
 def fit(edict:dict, params:np.ndarray, wave:np.ndarray,
         priors:dict, Rrs:np.ndarray, outfile:str, abs_sig:float,
         Nspec:int=None, debug:bool=False, n_cores:int=1,
-        max_wv:float=None):
+        max_wv:float=None, extras:dict=None):
     """
     Fits the data with or without considering any errors.
 
@@ -63,7 +63,7 @@ def fit(edict:dict, params:np.ndarray, wave:np.ndarray,
         pdict['cut'] = cut
 
     # No noise
-    if abs_sig is None:
+    if abs_sig is None or abs_sig=='PACE_TRUNC':
         use_Rrs = Rrs.copy()
     else:
         correlate = abs_sig=='PACE_CORR'
@@ -91,10 +91,11 @@ def fit(edict:dict, params:np.ndarray, wave:np.ndarray,
     all_samples, all_idx = fitting.fit_batch(pdict, items,
                                              n_cores=n_cores)
     # Save
-    save_fits(all_samples, all_idx, Rrs, use_Rrs, outfile)
+    save_fits(all_samples, all_idx, Rrs, use_Rrs, outfile,
+              extras=extras)
 
 
-def save_fits(all_samples, all_idx, Rs, use_Rs, outroot):
+def save_fits(all_samples, all_idx, Rs, use_Rs, outroot, extras:dict=None):
     """
     Save the fitting results to a file.
 
@@ -110,6 +111,16 @@ def save_fits(all_samples, all_idx, Rs, use_Rs, outroot):
     if not os.path.isdir(outdir):
         os.makedirs(outdir)
     outfile = os.path.join(outdir, outroot)
-    np.savez(outfile, chains=all_samples, idx=all_idx,
-             obs_Rs=use_Rs[all_idx], Rs=Rs[all_idx])
+    # Outdict
+    outdict = dict()
+    outdict['chains'] = all_samples
+    outdict['idx'] = all_idx
+    outdict['obs_Rs'] = use_Rs[all_idx]
+    outdict['Rs'] = Rs[all_idx]
+    
+    # Extras
+    if extras is not None:
+        for key in extras.keys():
+            outdict[key] = extras[key]
+    np.savez(outfile, **outdict)
     print(f"Saved: {outfile}")
