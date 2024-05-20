@@ -84,7 +84,19 @@ def add_noise(Rs, perc:int=None, abs_sig:float=None,
         # Add it in
         pace_sig = calc_pace_sig(wave)
         use_Rs += r_sig * pace_sig
-    else:
+    elif abs_sig  == 'PACE_TRUNC':
+        if wave is None:
+            raise ValueError("Need wavelength array for PACE noise.")
+        pace_sig = calc_pace_sig(wave)
+        # Boost the noise at the edges
+        ok_wv = (wave > 380.) & (wave < 700.)
+        pace_sig[~ok_wv] *= 100.   
+        # Add it in
+        use_Rs += r_sig * pace_sig
+    elif isinstance(abs_sig, (float,int,np.ndarray)):
         use_Rs += r_sig * abs_sig
+    else:
+        raise ValueError("Bad abs_sig")
+    
     # Return
     return use_Rs

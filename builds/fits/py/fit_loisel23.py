@@ -87,56 +87,6 @@ def fit(edict:dict, Nspec:int=None, abs_sig:float=None,
     fits.fit(edict, params, d_a['wave'], priors, Rs, outfile, abs_sig,
                 Nspec=Nspec, debug=debug, n_cores=n_cores, max_wv=max_wv)
 
-    '''
-    # Init MCMC
-    if abs_sig in ['PACE', 'PACE_CORR']:
-        pace_sig = noise.calc_pace_sig(d_a['wave'])
-        pdict = mcmc.init_mcmc(emulator, ab.shape[1]+1, 
-                      abs_sig=pace_sig, priors=priors)
-    else:
-        pdict = mcmc.init_mcmc(emulator, ab.shape[1]+1, 
-                      abs_sig=abs_sig, priors=priors)
-
-    # Include a non-zero error to avoid bad chi^2 behavior
-    if abs_sig is None:
-        pdict['abs_sig'] = 1.
-
-    # Max wave?
-    if max_wv is not None:
-        cut = d_a['wave'] < max_wv
-        pdict['cut'] = cut
-
-    # No noise
-    if abs_sig is None:
-        use_Rs = Rs.copy()
-    else:
-        correlate = abs_sig=='PACE_CORR'
-        use_Rs = noise.add_noise(
-            Rs, abs_sig=abs_sig, wave=d_a['wave'],
-            correlate=correlate)
-
-    # Prep
-    if Nspec is None:
-        idx = np.arange(len(Chl))
-    else:
-        idx = np.arange(Nspec)
-    if debug:
-        #idx = idx[0:2]
-        idx = [170, 180]
-    if priors is not None and 'use_log_ab' in priors and priors['use_log_ab']:
-        items = [(use_Rs[i], np.log10(ab[i]).tolist()+[np.log10(Chl[i])], i) for i in idx]
-    else:
-        items = [(use_Rs[i], ab[i].tolist()+[Chl[i]], i) for i in idx]
-
-    #if debug:
-    #    embed(header='fit 145')
-
-    # Fit
-    all_samples, all_idx = fitting.fit_batch(pdict, items,
-                                             n_cores=n_cores)
-    # Save
-    fits.save_fits(all_samples, all_idx, Rs, use_Rs, outfile)
-    '''
 
 def test_fit(edict:dict, Nspec:int=100, abs_sig:float=None,
              debug:bool=False, n_cores:int=1): 

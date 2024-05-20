@@ -45,7 +45,7 @@ def fit(edict:dict, params:np.ndarray, wave:np.ndarray,
     emulator, _ = emu_io.load_emulator_from_dict(edict)
 
     # Init MCMC
-    if abs_sig in ['PACE', 'PACE_CORR']:
+    if abs_sig in ['PACE', 'PACE_CORR', 'PACE_TRUNC']:
         pace_sig = noise.calc_pace_sig(wave)
         pdict = mcmc.init_mcmc(emulator, params.shape[1], 
                       abs_sig=pace_sig, priors=priors)
@@ -85,7 +85,7 @@ def fit(edict:dict, params:np.ndarray, wave:np.ndarray,
         items = [(use_Rrs[i], params[i,:].tolist(), i) for i in idx]
 
     #if debug:
-    #    embed(header='fit 145')
+    #    embed(header='fit 88')
 
     # Fit
     all_samples, all_idx = fitting.fit_batch(pdict, items,
