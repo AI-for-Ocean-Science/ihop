@@ -383,7 +383,7 @@ def main(flg):
             include_chl=True, X=X, Y=Y)
 
         fit(edict, n_cores=n_cores, abs_sig=abs_sig, 
-            use_log_ab=True, use_NMF_pos=False, debug=True)
+            use_log_ab=True, use_NMF_pos=False)#, debug=True)
 
     # NMF, 2,2 PACE noise, correlated, use_log_ab
     if flg == 19:
@@ -402,7 +402,7 @@ def main(flg):
             include_chl=True, X=X, Y=Y)
 
         fit(edict, n_cores=n_cores, abs_sig=abs_sig, 
-            use_log_ab=True, use_NMF_pos=False, debug=True)
+            use_log_ab=True, use_NMF_pos=False)#, debug=True)
 
 # Command line execution
 if __name__ == '__main__':

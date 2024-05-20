@@ -252,8 +252,8 @@ if __name__ == '__main__':
     #            use_log_ab=True)#, nchains=300)
     #all_spectra(('nmf', 'nmf'), (3,2), abs_sig=None, quick_and_dirty=True,
     #            use_log_ab=True)#, nchains=300)
-    #all_spectra(('nmf', 'nmf'), (4,2), abs_sig=None, quick_and_dirty=True,
-    #            use_log_ab=True)#, nchains=300)
+    all_spectra(('nmf', 'nmf'), (4,2), abs_sig=None, quick_and_dirty=True,
+                use_log_ab=True)#, nchains=300)
 
     # PCA with noise
     #all_spectra(('pca', 'pca'), (4,2), abs_sig=1., quick_and_dirty=True)#, nchains=500)
@@ -273,7 +273,11 @@ if __name__ == '__main__':
     #all_spectra(('nmf', 'nmf'), (2,2), abs_sig=5., quick_and_dirty=True,
     #            use_log_ab=True)#, nchains=500)
 
-    all_spectra(('nmf', 'nmf'), (3,2), abs_sig=2., quick_and_dirty=True,
-                use_log_ab=True)#, nchains=500)
+    #all_spectra(('nmf', 'nmf'), (3,2), abs_sig=2., quick_and_dirty=True,
+    #            use_log_ab=True)#, nchains=500)
     #all_spectra(('nmf', 'nmf'), (4,2), abs_sig=2., quick_and_dirty=True,
     #            use_log_ab=True)#, nchains=500)
+
+    # PACE
+    all_spectra(('nmf', 'nmf'), (2,2), abs_sig='PACE', quick_and_dirty=True, use_log_ab=True)#, nchains=500)
+    all_spectra(('nmf', 'nmf'), (2,2), abs_sig='PACE_CORR', quick_and_dirty=True, use_log_ab=True)#, nchains=500)
