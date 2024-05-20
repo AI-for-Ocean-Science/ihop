@@ -20,6 +20,8 @@ import seaborn as sns
 from oceancolor.hydrolight import loisel23
 from oceancolor.utils import plotting 
 from oceancolor.water import absorption
+from oceancolor.water import scattering
+from oceancolor.pace import io as pace_io
 
 from ihop.iops.decompose import reconstruct_nmf
 from ihop.iops.decompose import reconstruct_pca
@@ -999,6 +1001,7 @@ def fig_mcmc_pace(pace_file:str=None, outroot='fig_mcmc_pace',
         X:int=4, Y:int=0, show_zoom:bool=False, 
         in_Ncomps=None,
         perc:int=None, abs_sig:float=None,
+        show_giop:bool=False,
         wvmnx:tuple=None, show_NMF:bool=False,
         water:bool=False, in_idx:int=0, use_reconstruct:bool=False,
         chain_file:str=None, in_log10:bool=False,
@@ -1022,6 +1025,15 @@ def fig_mcmc_pace(pace_file:str=None, outroot='fig_mcmc_pace',
     x,y = d_chains['pace_idx'][in_idx]
     pace_Rrs = xds.Rrs.data[x,y,:]
     #spec_err = xds.Rrs_unc.data[x,y,:]
+
+    # GIOP?
+    if show_giop:
+        giop_file = os.path.join(os.getenv('OS_COLOR'), 'data', 
+                         'PACE', 'early', pace_file.replace('AOP', 'IOP').replace('_IHOP', ''))
+        xds_giop, _ = pace_io.load_iop_l2(giop_file)
+        pace_a = xds_giop.a.data[x,y,:]
+        pace_bb = xds_giop.bb.data[x,y,:]
+        pace_iop_wl = xds_giop.wavelength.data
 
     # Emulator
     edict = emu_io.set_emulator_dict(dataset, decomps, Ncomps, 'Rrs',
@@ -1093,7 +1105,9 @@ def fig_mcmc_pace(pace_file:str=None, outroot='fig_mcmc_pace',
         a_w = 0
     ax_a = plt.subplot(gs[2])
     def plot_spec(ax):
-        #ax.plot(wave, orig+a_w, 'ko', label='True', zorder=1)
+        if show_giop:
+            pace_aw = absorption.a_water(pace_iop_wl, data='IOCCG')
+            ax.plot(pace_iop_wl, pace_a-pace_aw, 'ko', label='GIOP', zorder=1)
         ax.plot(wave, a_mean+a_w, 'r-', label='Retrieval')
         if show_NMF:
             ax.plot(wave, a_nmf+a_w, 'r:', label='Real Recon')
@@ -1136,7 +1150,13 @@ def fig_mcmc_pace(pace_file:str=None, outroot='fig_mcmc_pace',
     else:
         bb_w = 0
     ax_bb = plt.subplot(gs[3])
-    #ax_bb.plot(wave, bb_w+orig_bb, 'ko', label='True')
+    if show_giop:
+        _, _, pace_b_w = scattering.betasw_ZHH2009(pace_iop_wl, 24., 
+                                              np.atleast_1d(0.), 35.)
+        pace_bb_w = pace_b_w / 2.
+        #ax_bb.plot(pace_iop_wl, pace_bb-pace_bb_w, 'ko', label='True')
+        ax_bb.plot(pace_iop_wl, pace_bb, 'ko', label='GIOP')
+        #embed(header='fig_mcmc_pace 1158')
     ax_bb.plot(wave, bb_w+bb_mean, 'g-', label='Retrieval')
     if show_NMF:
         ax_bb.plot(wave, bb_w+bb_nmf, 'g:', label='True NMF')
@@ -1688,6 +1708,7 @@ def main(flg):
         fig_mcmc_pace('PACE_OCI.20240413T175656.L2.OC_AOP.V1_0_0.NRT_IHOP.nc',
             abs_sig='PACE_TRUNC', in_idx=0, decomps=('nmf', 'nmf'), 
             use_reconstruct=True, in_Ncomps=(2,2), in_log10=True,
+            show_giop=True,
             chain_file='../../../builds/fits/Fits/L23/fit_Rs97_PACE_OCI.20240413T175656.L2_NN_22_chl_logab.npz')
 
 # Command line execution
