@@ -1031,8 +1031,12 @@ def fig_mcmc_pace(pace_file:str=None, outroot='fig_mcmc_pace',
         giop_file = os.path.join(os.getenv('OS_COLOR'), 'data', 
                          'PACE', 'early', pace_file.replace('AOP', 'IOP').replace('_IHOP', ''))
         xds_giop, _ = pace_io.load_iop_l2(giop_file)
+        # Unpack
         pace_a = xds_giop.a.data[x,y,:]
         pace_bb = xds_giop.bb.data[x,y,:]
+        pace_aph = np.maximum(xds_giop.aph.data[x,y,:], 0.)
+        pace_adgN = np.maximum(xds_giop.adg_442.data[x,y], 0.)
+        pace_adgS = np.maximum(xds_giop.adg_s.data[x,y], 0.)
         pace_iop_wl = xds_giop.wavelength.data
 
     # Emulator
@@ -1091,7 +1095,7 @@ def fig_mcmc_pace(pace_file:str=None, outroot='fig_mcmc_pace',
     # Plot the solution
     lgsz = 14.
 
-    fig = plt.figure(figsize=(12,6))
+    fig = plt.figure(figsize=(10,6))
     plt.clf()
     gs = gridspec.GridSpec(2,2)
     
@@ -1104,21 +1108,40 @@ def fig_mcmc_pace(pace_file:str=None, outroot='fig_mcmc_pace',
     else:
         a_w = 0
     ax_a = plt.subplot(gs[2])
-    def plot_spec(ax):
-        if show_giop:
-            pace_aw = absorption.a_water(pace_iop_wl, data='IOCCG')
-            ax.plot(pace_iop_wl, pace_a-pace_aw, 'ko', label='GIOP', zorder=1)
-        ax.plot(wave, a_mean+a_w, 'r-', label='Retrieval')
-        if show_NMF:
-            ax.plot(wave, a_nmf+a_w, 'r:', label='Real Recon')
-        ax.fill_between(wave, a_w+a_mean-a_std, a_w+a_mean+a_std, 
+    if show_giop:
+        pace_aw = absorption.a_water(pace_iop_wl, data='IOCCG')
+        ax_a.plot(pace_iop_wl, pace_a-pace_aw, 'ko', label='GIOP', zorder=1)
+        # aph
+        ax_a.plot(pace_iop_wl, pace_aph, '*', color='green',
+                label='GIOP, aph', zorder=2, ms=3)
+        # adg
+        pace_adg = pace_adgN * np.exp(-1*pace_adgS*(pace_iop_wl-442.))
+        ax_a.plot(pace_iop_wl, pace_adg, '*', color='cyan',
+                label='GIOP, adg', zorder=2, ms=3)
+        # NMF
+        if Ncomps[0] == 2:
+            chains = d_chains['chains'][in_idx]
+            med_dg = np.median(chains[...,0])
+            med_ph = np.median(chains[...,1])
+            if in_log10:
+                med_dg = 10**med_dg
+                med_ph = 10**med_ph
+            #
+            ax_a.plot(wave, d_a['M'][0]*med_dg, ':', color='cyan')#, label='IHOP adg')
+            ax_a.plot(wave, d_a['M'][1]*med_ph, ':', color='green')#, label='IHOP aph')
+    ax_a.plot(wave, a_mean+a_w, 'r-', label='Retrieval')
+    if show_NMF:
+        ax_a.plot(wave, a_nmf+a_w, 'r:', label='Real Recon')
+    ax_a.fill_between(wave, a_w+a_mean-a_std, a_w+a_mean+a_std, 
             color='r', alpha=0.5, label='Uncertainty') 
-    plot_spec(ax_a)
     #ax_a.set_xlabel('Wavelength (nm)')
     if water:
         ax_a.set_ylabel(r'$a(\lambda) \; [{\rm m}^{-1}]$')
     else:
         ax_a.set_ylabel(r'$a_{\rm nw}(\lambda) \; [{\rm m}^{-1}]$')
+
+    # Horizontal line at 0
+    ax_a.axhline(0., color='gray', ls='--')
 
     ax_a.text(xpos, ypos2,  '(b)', color='k',
             transform=ax_a.transAxes,
