@@ -11,6 +11,7 @@ from ihop.training_sets import load_rs
 from ihop.iops.decompose import generate_pca
 from ihop.iops.decompose import generate_nmf
 from ihop.iops.decompose import generate_int
+from ihop.iops.decompose import generate_hybrid
 from ihop.iops import io as iops_io
 
 from IPython import embed
@@ -51,6 +52,12 @@ def decompose_loisel23_iop(decomp:str, Ncomp:int, iop:str,
                     normalize=True,
                     wave=wave,
                     Rs=Rs)
+    elif decomp == 'hyb':  # Hybrid -- for a only
+        if iop != 'a':
+            raise ValueError("Bad decomp")
+        generate_hybrid(spec, outfile, Ncomp, wave,
+                    extras={'Rs':Rs, 'wave':wave},
+                    clobber=clobber)
     elif decomp == 'pca':
         generate_pca(spec, outfile, Ncomp,
                     extras={'Rs':Rs, 'wave':wave},
@@ -92,6 +99,10 @@ def main(flg):
     if flg & (2**3):
         #decompose_loisel23_iop('nmf', 2, 'a', clobber=True)  # for a
         decompose_loisel23_iop('nmf', 2, 'aph', clobber=True)  # for aph
+
+    # L23 + Hybrid
+    if flg & (2**4): # 16
+        decompose_loisel23_iop('hyb', 4, 'a', clobber=True)  # for aph
     
 if __name__ == '__main__':
     import sys

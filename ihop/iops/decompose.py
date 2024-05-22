@@ -5,9 +5,11 @@ import numpy as np
 
 from importlib import resources
 
-from scipy.interpolate import interp1d
-
 from functools import partial
+
+from scipy.interpolate import interp1d
+from scipy.optimize import curve_fit
+
 from concurrent.futures import ProcessPoolExecutor
 from tqdm import tqdm
 
@@ -16,6 +18,9 @@ from oceancolor.utils import pca
 from cnmf.oceanography.iops import tara_matched_to_l23
 from cnmf import nmf_imaging
 from cnmf import io as cnmf_io
+
+from ihop.iops import io as iops_io
+from ihop.iops import hybrid
 
 from IPython import embed
 
@@ -101,6 +106,41 @@ def generate_pca(iop_data:np.ndarray,
                        extra_arrays=extras)
     else:
         print("File exists.  Use clobber=True to overwrite")
+
+def generate_hybrid(iop_data:np.ndarray,
+                 outfile:str, Ncomp:int, wave:np.ndarray,
+                 clobber:bool=False, 
+                 extras:dict=None):
+
+    if not os.path.exists(outfile) or clobber:
+        # Load the decomposition of aph
+        aph_file = iops_io.loisel23_filename('nmf', 'aph', 2, 4, 0)
+        d_aph = np.load(aph_file)
+
+        if Ncomp != 4:
+            raise ValueError("Ncomp must be 4 for hybrid decomposition")
+
+        # Prep
+        partial_func = partial(hybrid.a_func, W1=d_aph['M'][0], W2=d_aph['M'][1])
+
+        # Do it
+        params = []
+        for idx in range(iop_data.shape[0]):
+            ans, cov = curve_fit(partial_func, wave, 
+                                iop_data[idx],
+                        p0=[0.01, 0.01, 0.05, 0.05])
+            # Save
+            params.append(ans)
+        params = np.array(params)
+        # Prep
+        outputs = dict(data=iop_data, 
+                       coeff=params)
+        if extras:
+            outputs.update(extras)
+        # Save
+        np.savez(outfile, **outputs)
+        print(f'Wrote: {outfile}')
+
 
 def generate_int(iop_data:np.ndarray,
                  outfile:str, Ncomp:int, wave:np.ndarray,
