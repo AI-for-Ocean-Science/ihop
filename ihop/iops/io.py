@@ -115,7 +115,7 @@ def load_loisel2023_decomp(decomps:tuple,
 
     # Prep
     keys = dict(pca='Y', nmf='coeff', int='new_spec', 
-                npca='Y', bsp='coeffs')
+                npca='Y', bsp='coeffs', hyb='coeff')
     keya = keys[decomps[0]]
     keyb = keys[decomps[1]]
 

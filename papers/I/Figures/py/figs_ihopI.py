@@ -1726,6 +1726,7 @@ def main(flg):
                 (-1, 'nmf', 2, 'logab', 'use_n', ':'),
                 (-1, 'nmf', 3, 'logab', 'use_n', ':'),   
                 (-1, 'nmf', 4, 'logab', 'use_n', ':'),   
+                (-1, 'hyb', 4, 'logab', 'use_n', ':'),   
                 (2., 'nmf', 2, 'logab', 'use_n', '-'),
                 (2., 'nmf', 3, 'logab', 'use_n', '-'),
                 (2., 'nmf', 4, 'logab', 'use_n', '-'), 
@@ -1767,7 +1768,7 @@ if __name__ == '__main__':
 
         #flg += 2 ** 27  # RMSE on Rrs and a
         #flg += 2 ** 28  # RMSE on a vs. abs_sig
-        flg += 2 ** 29  # Examples
+        #flg += 2 ** 29  # Examples
 
         #flg += 2 ** 2  # 4 -- Indiv
         #flg += 2 ** 3  # 8 -- Coeff
@@ -1775,7 +1776,7 @@ if __name__ == '__main__':
         #flg += 2 ** 5  # 32 -- Explained variance
 
          
-        #flg += 2 ** 30  # Summary
+        flg += 2 ** 30  # Summary
         #flg += 2 ** 31  # PACE MCMC
         
     else:
