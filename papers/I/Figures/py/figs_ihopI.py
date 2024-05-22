@@ -702,7 +702,7 @@ def fig_a_examples(decomps:tuple, Ncomps:tuple, outfile:str,
         # LS2?
         if show_LS2:
             waves, all_a, all_anw, all_bb, all_bbp = anly_ls2.calc_ls2(idx)
-            ax.plot(waves, all_anw, 'o', color='cyan',ms=0.5, label='LS2')
+            ax.plot(waves, all_anw, 'o', color='red',ms=2., label='LS2')
 
         if not skip_fits:
             ii = np.where(d_nless['idx'] == idx)[0][0]
@@ -735,7 +735,7 @@ def fig_a_examples(decomps:tuple, Ncomps:tuple, outfile:str,
         plotting.set_fontsize(ax, 18)
         ax.grid()
         # 
-        if ii == 2:
+        if ii == 0:
             ax.legend(fontsize=17.)
         if ii > 1:
             ax.set_xlabel('Wavelength (nm)')
@@ -1002,6 +1002,7 @@ def fig_mcmc_pace(pace_file:str=None, outroot='fig_mcmc_pace',
         in_Ncomps=None,
         perc:int=None, abs_sig:float=None,
         show_giop:bool=False,
+        show_detailed_giop:bool=False,
         wvmnx:tuple=None, show_NMF:bool=False,
         water:bool=False, in_idx:int=0, use_reconstruct:bool=False,
         chain_file:str=None, in_log10:bool=False,
@@ -1108,32 +1109,37 @@ def fig_mcmc_pace(pace_file:str=None, outroot='fig_mcmc_pace',
     else:
         a_w = 0
     ax_a = plt.subplot(gs[2])
-    if show_giop:
-        pace_aw = absorption.a_water(pace_iop_wl, data='IOCCG')
-        ax_a.plot(pace_iop_wl, pace_a-pace_aw, 'ko', label='GIOP', zorder=1)
-        # aph
-        ax_a.plot(pace_iop_wl, pace_aph, '*', color='green',
-                label='GIOP, aph', zorder=2, ms=3)
-        # adg
-        pace_adg = pace_adgN * np.exp(-1*pace_adgS*(pace_iop_wl-442.))
-        ax_a.plot(pace_iop_wl, pace_adg, '*', color='cyan',
-                label='GIOP, adg', zorder=2, ms=3)
-        # NMF
-        if Ncomps[0] == 2:
-            chains = d_chains['chains'][in_idx]
-            med_dg = np.median(chains[...,0])
-            med_ph = np.median(chains[...,1])
-            if in_log10:
-                med_dg = 10**med_dg
-                med_ph = 10**med_ph
-            #
-            ax_a.plot(wave, d_a['M'][0]*med_dg, ':', color='cyan')#, label='IHOP adg')
-            ax_a.plot(wave, d_a['M'][1]*med_ph, ':', color='green')#, label='IHOP aph')
+
+    # NMF
     ax_a.plot(wave, a_mean+a_w, 'r-', label='Retrieval')
     if show_NMF:
         ax_a.plot(wave, a_nmf+a_w, 'r:', label='Real Recon')
     ax_a.fill_between(wave, a_w+a_mean-a_std, a_w+a_mean+a_std, 
             color='r', alpha=0.5, label='Uncertainty') 
+
+    #GIOP
+    if show_giop:
+        pace_aw = absorption.a_water(pace_iop_wl, data='IOCCG')
+        ax_a.plot(pace_iop_wl, pace_a-pace_aw, 'ko', label='GIOP', zorder=1)
+        if show_detailed_giop:
+            # aph
+            ax_a.plot(pace_iop_wl, pace_aph, '*', color='green',
+                    label='GIOP, aph', zorder=2, ms=3)
+            # adg
+            pace_adg = pace_adgN * np.exp(-1*pace_adgS*(pace_iop_wl-442.))
+            ax_a.plot(pace_iop_wl, pace_adg, '*', color='cyan',
+                    label='GIOP, adg', zorder=2, ms=3)
+            # NMF
+            if Ncomps[0] == 2:
+                chains = d_chains['chains'][in_idx]
+                med_dg = np.median(chains[...,0])
+                med_ph = np.median(chains[...,1])
+                if in_log10:
+                    med_dg = 10**med_dg
+                    med_ph = 10**med_ph
+                #
+                ax_a.plot(wave, d_a['M'][0]*med_dg, ':', color='cyan')#, label='IHOP adg')
+                ax_a.plot(wave, d_a['M'][1]*med_ph, ':', color='green')#, label='IHOP aph')
     #ax_a.set_xlabel('Wavelength (nm)')
     if water:
         ax_a.set_ylabel(r'$a(\lambda) \; [{\rm m}^{-1}]$')
@@ -1173,6 +1179,13 @@ def fig_mcmc_pace(pace_file:str=None, outroot='fig_mcmc_pace',
     else:
         bb_w = 0
     ax_bb = plt.subplot(gs[3])
+    # NMF
+    ax_bb.plot(wave, bb_w+bb_mean, 'g-', label='Retrieval')
+    if show_NMF:
+        ax_bb.plot(wave, bb_w+bb_nmf, 'g:', label='True NMF')
+    ax_bb.fill_between(wave, bb_w+bb_mean-bb_std, bb_w+bb_mean+bb_std, 
+            color='g', alpha=0.5, label='Uncertainty') 
+    # GIOP
     if show_giop:
         _, _, pace_b_w = scattering.betasw_ZHH2009(pace_iop_wl, 24., 
                                               np.atleast_1d(0.), 35.)
@@ -1180,11 +1193,6 @@ def fig_mcmc_pace(pace_file:str=None, outroot='fig_mcmc_pace',
         #ax_bb.plot(pace_iop_wl, pace_bb-pace_bb_w, 'ko', label='True')
         ax_bb.plot(pace_iop_wl, pace_bb, 'ko', label='GIOP')
         #embed(header='fig_mcmc_pace 1158')
-    ax_bb.plot(wave, bb_w+bb_mean, 'g-', label='Retrieval')
-    if show_NMF:
-        ax_bb.plot(wave, bb_w+bb_nmf, 'g:', label='True NMF')
-    ax_bb.fill_between(wave, bb_w+bb_mean-bb_std, bb_w+bb_mean+bb_std, 
-            color='g', alpha=0.5, label='Uncertainty') 
 
     #ax_bb.set_xlabel('Wavelength (nm)')
     ax_bb.set_ylabel(r'$b_b(\lambda) \; [{\rm m}^{-1}]$')
@@ -1202,9 +1210,9 @@ def fig_mcmc_pace(pace_file:str=None, outroot='fig_mcmc_pace',
     if true_only:
         pass
     elif use_quick:
-        ax_R.plot(wave, obs_Rs[0], 'bs', label='"Observed"')
+        ax_R.plot(wave, obs_Rs[0], 'bs', label='Observed')
     else:
-        ax_R.plot(wave, obs_Rs[in_idx], 'bs', label='"Observed"')
+        ax_R.plot(wave, obs_Rs[in_idx], 'bs', label='Observed')
     if (not true_only) and (not true_obs_only):
         ax_R.plot(wave, pred_Rs, 'r-', label='Fit', zorder=10)
         ax_R.fill_between(wave, pred_Rs-std_pred, pred_Rs+std_pred, 
@@ -1571,7 +1579,7 @@ def main(flg):
         # in_Ncomps=(2,2), in_log10=True) # Minimum
         #fig_mcmc_fit(abs_sig=5., in_idx=170) # Median
         #fig_mcmc_fit(abs_sig=5., in_idx=180) # Median
-        #fig_mcmc_fit(abs_sig=2., in_idx=2949) # Maximum absorption
+        fig_mcmc_fit(abs_sig=2., in_idx=2949, in_log10=True, in_Ncomps=(4,2)) # Maximum absorption
         #fig_mcmc_fit(abs_sig=1., in_idx=0)#, wvmnx=[500, 600.]) # Clear
         #fig_mcmc_fit(abs_sig=1., in_idx=99) # Clear
 
@@ -1598,9 +1606,9 @@ def main(flg):
         #fig_mcmc_fit(abs_sig='PACE', in_idx=0, decomps=('nmf', 'nmf'), 
         #             use_reconstruct=True, in_Ncomps=(2,2), in_log10=True,
         #           chain_file='../../../builds/fits/Fits/L23/fit_Rs99_L23_X4_Y0_nmfnmf_22_chl_Rrs_dense_512_512_512_256_logab.npz')
-        fig_mcmc_fit(abs_sig='PACE_CORR', in_idx=1, decomps=('nmf', 'nmf'), 
-                     use_reconstruct=True, in_Ncomps=(2,2), in_log10=True,
-                   chain_file='../../../builds/fits/Fits/L23/fit_Rs98_L23_X4_Y0_nmfnmf_22_chl_Rrs_dense_512_512_512_256_logab.npz')
+        #fig_mcmc_fit(abs_sig='PACE_CORR', in_idx=1, decomps=('nmf', 'nmf'), 
+        #             use_reconstruct=True, in_Ncomps=(2,2), in_log10=True,
+        #           chain_file='../../../builds/fits/Fits/L23/fit_Rs98_L23_X4_Y0_nmfnmf_22_chl_Rrs_dense_512_512_512_256_logab.npz')
 
     # L23 IHOP performance vs. perc error
     if flg & (2**22):
@@ -1676,12 +1684,12 @@ def main(flg):
         #                 'fig_a_examples_nmf.png', [1.0, 2., 5.],
         #                 show_noiseless_error=True,
         #                 show_LS2=True)
-        fig_a_examples(('nmf', 'nmf'), (2,2), 
-                         'fig_a_examples_nmf.png', [2.,5.],
+        fig_a_examples(('nmf', 'nmf'), (4,2), 
+                         'fig_a_examples_nmf.png', [2.],
                          use_log_ab=True,
                          show_noiseless_error=True,
                          show_absig_error=[2.],
-                         show_LS2=False)
+                         show_LS2=True)
         #fig_a_examples(('pca', 'pca'), (4,2), 
         #                 'fig_a_examples.png', [1., 5.], skip_fits=True)
         #fig_a_examples(('npca', 'pca'), (4,2), 
@@ -1759,7 +1767,7 @@ if __name__ == '__main__':
 
         #flg += 2 ** 27  # RMSE on Rrs and a
         #flg += 2 ** 28  # RMSE on a vs. abs_sig
-        #flg += 2 ** 29  # Examples
+        flg += 2 ** 29  # Examples
 
         #flg += 2 ** 2  # 4 -- Indiv
         #flg += 2 ** 3  # 8 -- Coeff
@@ -1768,7 +1776,7 @@ if __name__ == '__main__':
 
          
         #flg += 2 ** 30  # Summary
-        flg += 2 ** 31  # PACE MCMC
+        #flg += 2 ** 31  # PACE MCMC
         
     else:
         flg = sys.argv[1]
