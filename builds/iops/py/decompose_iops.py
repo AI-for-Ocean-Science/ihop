@@ -35,8 +35,9 @@ def decompose_loisel23_iop(decomp:str, Ncomp:int, iop:str,
     outfile = iops_io.loisel23_filename(decomp, iop, Ncomp, X, Y)
 
     # Load training data
+    remove_water = False if iop == 'aph' else True
     spec, wave, Rs, d = iops_io.load_loisel23_iop(
-        iop, X=X, Y=Y, remove_water=True)
+        iop, X=X, Y=Y, remove_water=remove_water)
 
     # Go
     if decomp == 'nmf':
@@ -89,7 +90,8 @@ def main(flg):
 
     # L23 + NMF
     if flg & (2**3):
-        decompose_loisel23_iop('nmf', 2, 'a', clobber=True)  # for a
+        #decompose_loisel23_iop('nmf', 2, 'a', clobber=True)  # for a
+        decompose_loisel23_iop('nmf', 2, 'aph', clobber=True)  # for aph
     
 if __name__ == '__main__':
     import sys
