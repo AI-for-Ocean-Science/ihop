@@ -1,4 +1,4 @@
-# Script to build an emulator for L23 + HYB/NMF decomposition; m=4,2
+# Script to build an emulator for L23 + HYB/NMF decomposition; m=4,2; without Chl
 #  No normalization either
 # kubectl exec -it test-pod -- /bin/bash
 apiVersion: batch/v1
