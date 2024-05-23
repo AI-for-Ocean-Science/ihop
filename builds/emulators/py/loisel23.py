@@ -167,12 +167,13 @@ def main(flg):
                     include_chl=False,
             nepochs=25000, push_to_s3=True)
 
-    # L23 + HYB, m=4,2
+    # L23 + HYB, m=4,2; no Chl
     if flg & (2**12):
         emulate_l23(('hyb', 'nmf'), (4,2), 
                     hidden_list=[512, 512, 512, 256],
                     include_chl=False,
             nepochs=25000, push_to_s3=True)
+
 
 # Command line execution
 if __name__ == '__main__':
