@@ -11,6 +11,7 @@ import datetime
 from ihop.iops.decompose import reconstruct_nmf
 from ihop.iops.decompose import reconstruct_pca
 from ihop.iops.decompose import reconstruct_int
+from ihop.iops.decompose import reconstruct_hyb
 
 from ihop.emulators import io as emu_io
 from ihop import io as ihop_io
@@ -127,7 +128,7 @@ def all_spectra(decomps:tuple, Ncomps:tuple,
         priors = {}
         priors['use_log_ab'] = True
 
-    d_keys = dict(pca='Y', nmf='coeff', int='new_spec')
+    d_keys = dict(pca='Y', nmf='coeff', int='new_spec', hyb='coeff')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     outputs = {}
 
@@ -199,6 +200,8 @@ def all_spectra(decomps:tuple, Ncomps:tuple,
         rfunc = reconstruct_nmf
     elif decomps[0] == 'int':
         rfunc = reconstruct_int
+    elif decomps[0] == 'hyb':
+        rfunc = reconstruct_hyb
     else:
         raise ValueError(f"Your decomps={decomps[0]} is not supported.")
 

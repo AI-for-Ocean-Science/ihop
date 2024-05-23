@@ -13,15 +13,12 @@ from IPython import embed
 def set_priors(edict, use_log_ab=False, use_NMF_pos=False):
     # Priors
     priors = None
-    if 'nmf' in edict['decomps']: 
-        if use_log_ab:
-            priors = {}
-            priors['use_log_ab'] = True
-        # Positive priors
-        if use_NMF_pos:
-            priors = {}
-            priors['NMFpos'] = True
-    return priors
+    if use_log_ab:
+        priors = {}
+        priors['use_log_ab'] = True
+    elif use_NMF_pos:
+        priors = {}
+        priors['NMFpos'] = True
 
 def fit(edict:dict, params:np.ndarray, wave:np.ndarray,
         priors:dict, Rrs:np.ndarray, outfile:str, abs_sig:float,

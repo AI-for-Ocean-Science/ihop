@@ -202,6 +202,7 @@ def fig_emulator_rmse(dataset:str, Ncomps:tuple, hidden_list:list,
                       decomps:tuple,
                       outfile:str='fig_emulator_rmse.png',
                       log_rrmse:bool=False,
+                      include_chl:bool=True,
                       preproc_Rs:str=None,
                       X:int=4, Y:int=0):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -210,7 +211,7 @@ def fig_emulator_rmse(dataset:str, Ncomps:tuple, hidden_list:list,
         dataset, decomps, Ncomps, 'Rrs',
         'dense', hidden_list=hidden_list, 
         preproc_Rs=preproc_Rs,
-        include_chl=True, X=X, Y=Y)
+        include_chl=include_chl, X=X, Y=Y)
 
     # Init the Plot
     figsize=(8,6)
@@ -234,7 +235,10 @@ def fig_emulator_rmse(dataset:str, Ncomps:tuple, hidden_list:list,
         clr = clrs[ss]
 
         # Concatenate
-        inputs = np.concatenate((ab, Chl.reshape(Chl.size,1)), axis=1)
+        if include_chl:
+            inputs = np.concatenate((ab, Chl.reshape(Chl.size,1)), axis=1)
+        else:
+            inputs = ab
         targets = Rs
 
         # Predict and compare
@@ -1551,9 +1555,9 @@ def main(flg):
         #fig_emulator_rmse('L23', (3,2), [512, 512, 512, 256],
         #                  ('nmf', 'nmf'), log_rrmse=True, 
         #                  outfile='fig_emulator_rmse_nmf_32.png')
-        fig_emulator_rmse('L23', (2,2), [512, 512, 512, 256],
-                          ('nmf', 'nmf'), log_rrmse=True, 
-                          outfile='fig_emulator_rmse_nmf_22.png')
+        #fig_emulator_rmse('L23', (2,2), [512, 512, 512, 256],
+        #                  ('nmf', 'nmf'), log_rrmse=True, 
+        #                  outfile='fig_emulator_rmse_nmf_22.png')
         # BSP
         #fig_emulator_rmse('L23', (10,2), [512, 512, 512, 256],
         #                  ('bsp', 'nmf'), log_rrmse=True, 
@@ -1567,6 +1571,11 @@ def main(flg):
         #fig_emulator_rmse('L23', (40,2), [512, 512, 512, 256],
         #                  ('int', 'nmf'), log_rrmse=True,
         #                  outfile='fig_emulator_rmse_intnmf.png') 
+        # HYB
+        fig_emulator_rmse('L23', (4,2), [512, 512, 512, 256],
+                          ('hyb', 'nmf'), log_rrmse=True, 
+                          include_chl=False,
+                          outfile='fig_emulator_rmse_hyb_42.png')
 
     # MCMC evaluation
     if flg & (2**2):
@@ -1579,7 +1588,7 @@ def main(flg):
         # in_Ncomps=(2,2), in_log10=True) # Minimum
         #fig_mcmc_fit(abs_sig=5., in_idx=170) # Median
         #fig_mcmc_fit(abs_sig=5., in_idx=180) # Median
-        fig_mcmc_fit(abs_sig=2., in_idx=2949, in_log10=True, in_Ncomps=(4,2)) # Maximum absorption
+        #fig_mcmc_fit(abs_sig=2., in_idx=2949, in_log10=True, in_Ncomps=(4,2)) # Maximum absorption
         #fig_mcmc_fit(abs_sig=1., in_idx=0)#, wvmnx=[500, 600.]) # Clear
         #fig_mcmc_fit(abs_sig=1., in_idx=99) # Clear
 
@@ -1609,6 +1618,9 @@ def main(flg):
         #fig_mcmc_fit(abs_sig='PACE_CORR', in_idx=1, decomps=('nmf', 'nmf'), 
         #             use_reconstruct=True, in_Ncomps=(2,2), in_log10=True,
         #           chain_file='../../../builds/fits/Fits/L23/fit_Rs98_L23_X4_Y0_nmfnmf_22_chl_Rrs_dense_512_512_512_256_logab.npz')
+        fig_mcmc_fit(abs_sig=None, in_idx=0, decomps=('hyb', 'nmf'), 
+                     use_reconstruct=True, in_Ncomps=(4,2), in_log10=True,
+                   chain_file='../../../builds/fits/Fits/L23/fit_Rs98_L23_X4_Y0_nmfnmf_22_chl_Rrs_dense_512_512_512_256_logab.npz')
 
     # L23 IHOP performance vs. perc error
     if flg & (2**22):

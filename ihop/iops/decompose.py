@@ -132,9 +132,12 @@ def generate_hybrid(iop_data:np.ndarray,
             # Save
             params.append(ans)
         params = np.array(params)
+
         # Prep
         outputs = dict(data=iop_data, 
-                       coeff=params)
+                       coeff=params,
+                       W1=d_aph['M'][0], 
+                       W2=d_aph['M'][1])
         if extras:
             outputs.update(extras)
         # Save
@@ -269,8 +272,7 @@ def reconstruct_int(Y:np.ndarray, int_dict:dict, idx:int,
     # Grab the original
     orig = int_dict['data'][idx]
 
-    # Do it (slowly!)
-    # TODO -- Parallelize this
+    # Do it in parallel
     map_fn = partial(partial_int)
 
     if single:
@@ -291,6 +293,35 @@ def reconstruct_int(Y:np.ndarray, int_dict:dict, idx:int,
 
     return orig, recon
 
+def reconstruct_hyb(Y:np.ndarray, hyb_dict:dict, idx:int):
+    """
+    Reconstructs the original data point from the Hybrid decomposition.
+
+    Args:
+        Y (np.ndarray): The hybrid-encoded representation of the data point.
+        pca_dict (dict): A dictionary containing the NMF transformation parameters.
+        idx (int): The index of the data point to reconstruct.
+
+    Returns:
+        tuple: A tuple containing the original data and its reconstructed version.
+    """
+    # Grab the original
+    orig = hyb_dict['spec'][idx]
+
+    # Prep
+    partial_func = partial(hybrid.a_func, 
+                           W1=hyb_dict['W1'], 
+                           W2=hyb_dict['W2'])
+
+    # Reconstruct
+    # TODO -- consider parallelizing
+    recons = []
+    for idx in range(Y.shape[0]):
+        recon = partial_func(hyb_dict['wave'], *Y[idx])
+        # Save
+        recons.append(recon)
+
+    return orig, np.array(recons)
 
 def partial_int(items:list):
     # Unpack
