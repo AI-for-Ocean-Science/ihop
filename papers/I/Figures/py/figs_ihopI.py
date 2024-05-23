@@ -1625,7 +1625,7 @@ def main(flg):
         #fig_mcmc_fit(abs_sig='PACE_CORR', in_idx=1, decomps=('nmf', 'nmf'), 
         #             use_reconstruct=True, in_Ncomps=(2,2), in_log10=True,
         #           chain_file='../../../builds/fits/Fits/L23/fit_Rs98_L23_X4_Y0_nmfnmf_22_chl_Rrs_dense_512_512_512_256_logab.npz')
-        fig_mcmc_fit(abs_sig=None, in_idx=0, decomps=('hyb', 'nmf'), 
+        fig_mcmc_fit(abs_sig=None, in_idx=1, decomps=('hyb', 'nmf'), 
                      use_reconstruct=True, in_Ncomps=(4,2), in_log10=True,
                      use_Chl=False,
                    chain_file='../../../builds/fits/Fits/L23/fitN_Rs01_L23_X4_Y0_hybnmf_42_Rrs_dense_512_512_512_256_logab.npz')
