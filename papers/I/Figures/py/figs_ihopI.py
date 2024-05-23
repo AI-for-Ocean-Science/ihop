@@ -815,6 +815,7 @@ def fig_mcmc_fit(outroot='fig_mcmc_fit', decomps:str=('nmf','nmf'),
         perc:int=None, abs_sig:float=None,
         wvmnx:tuple=None, show_NMF:bool=False,
         water:bool=False, in_idx:int=0, use_reconstruct:bool=False,
+        use_Chl:bool=True,
         chain_file:str=None, in_log10:bool=False,
         test:bool=False, true_obs_only:bool=False,
         true_only:bool=False):
@@ -823,7 +824,8 @@ def fig_mcmc_fit(outroot='fig_mcmc_fit', decomps:str=('nmf','nmf'),
         Ncomps = in_Ncomps
     # Load
     edict = emu_io.set_emulator_dict(dataset, decomps, Ncomps, 'Rrs',
-        'dense', hidden_list=hidden_list, include_chl=True, X=X, Y=Y)
+        'dense', hidden_list=hidden_list, 
+        include_chl=use_Chl, X=X, Y=Y)
 
     ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_full(decomps, Ncomps)
 
@@ -839,10 +841,10 @@ def fig_mcmc_fit(outroot='fig_mcmc_fit', decomps:str=('nmf','nmf'),
         # Reconstruct
         if decomps[0] == 'bsp': # HACK
             Ncomps = (Ncomps[0]+5, Ncomps[1])
-        items = reconstruct.one_spectrum(in_idx, ab, Chl, d_chains, 
-                                     d_a, d_bb, 
-                                     emulator, decomps, Ncomps,
-                                     in_log10=in_log10)
+        items = reconstruct.one_spectrum(
+            in_idx, ab, Chl, d_chains, 
+            d_a, d_bb, emulator, decomps, Ncomps,
+            in_log10=in_log10, use_Chl=use_Chl)
         idx, orig, a_mean, a_std, a_iop, obs_Rs,\
             pred_Rs, std_pred, NN_Rs, allY, wave,\
             orig_bb, bb_mean, bb_std, a_nmf, bb_nmf = items
@@ -1258,6 +1260,7 @@ def fig_corner(decomps:tuple, outroot:str='fig_corner',
         hidden_list:list=[512, 512, 512, 256], dataset:str='L23', 
         chop_burn:int=-3000, perc:int=None, abs_sig:float=None,
         in_Ncomps=None, no_labels:bool=False,
+        include_chl:bool=True,
         chain_file:str=None, in_log10:bool=False,
         X:int=4, Y:int=0, in_idx:int=0):
 
@@ -1266,7 +1269,7 @@ def fig_corner(decomps:tuple, outroot:str='fig_corner',
 
     # Load
     edict = emu_io.set_emulator_dict(dataset, decomps, Ncomps, 'Rrs',
-        'dense', hidden_list=hidden_list, include_chl=True, X=X, Y=Y)
+        'dense', hidden_list=hidden_list, include_chl=include_chl, X=X, Y=Y)
 
     ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_full(decomps, Ncomps)
 
@@ -1289,11 +1292,12 @@ def fig_corner(decomps:tuple, outroot:str='fig_corner',
         buff = 5
     else:
         buff = 0
-    coeff = chains[chop_burn:, :, :].reshape(-1,Ncomps[0]+Ncomps[1]+1+buff)
+    add_Chl = 1 if edict['include_chl'] else 0
+    coeff = chains[chop_burn:, :, :].reshape(
+        -1,Ncomps[0]+Ncomps[1]+add_Chl+buff)
 
     if in_log10:
         coeff = 10**coeff
-
 
     #embed(header='919 of figs')
 
@@ -1301,7 +1305,10 @@ def fig_corner(decomps:tuple, outroot:str='fig_corner',
     # Outfile
     outfile = outroot + f'_{idx}.png'
 
-    truths = np.concatenate((ab[idx], Chl[idx].reshape(1,)))
+    if edict['include_chl']:
+        truths = np.concatenate((ab[idx], Chl[idx].reshape(1,)))
+    else:
+        truths = ab[idx]
     #if in_log10:
     #    truths = np.log10(truths)
 
@@ -1620,7 +1627,8 @@ def main(flg):
         #           chain_file='../../../builds/fits/Fits/L23/fit_Rs98_L23_X4_Y0_nmfnmf_22_chl_Rrs_dense_512_512_512_256_logab.npz')
         fig_mcmc_fit(abs_sig=None, in_idx=0, decomps=('hyb', 'nmf'), 
                      use_reconstruct=True, in_Ncomps=(4,2), in_log10=True,
-                   chain_file='../../../builds/fits/Fits/L23/fit_Rs98_L23_X4_Y0_nmfnmf_22_chl_Rrs_dense_512_512_512_256_logab.npz')
+                     use_Chl=False,
+                   chain_file='../../../builds/fits/Fits/L23/fitN_Rs01_L23_X4_Y0_hybnmf_42_Rrs_dense_512_512_512_256_logab.npz')
 
     # L23 IHOP performance vs. perc error
     if flg & (2**22):
@@ -1651,8 +1659,12 @@ def main(flg):
         #fig_corner(('bsp', 'nmf'), abs_sig=None, no_labels=True,
         #           in_idx=0, in_Ncomps=(10,2),
         #           chain_file='../../../builds/fits/Fits/L23/fitN_Rs01_L23_X4_Y0_bspnmf_102_chl_Rrs_dense_512_512_512_256.npz')
-        fig_corner(('nmf', 'nmf'), abs_sig=5., in_idx=2663, 
-                   in_Ncomps=(2,2), in_log10=True)
+        #fig_corner(('nmf', 'nmf'), abs_sig=5., in_idx=2663, 
+        #           in_Ncomps=(2,2), in_log10=True)
+        fig_corner(('hyb', 'nmf'), abs_sig=None, no_labels=True,
+                   in_log10=True,
+                   in_idx=0, in_Ncomps=(4,2), include_chl=False,
+                   chain_file='../../../builds/fits/Fits/L23/fitN_Rs01_L23_X4_Y0_hybnmf_42_Rrs_dense_512_512_512_256_logab.npz')
 
     # 
     if flg & (2**24):
@@ -1773,7 +1785,7 @@ if __name__ == '__main__':
         #flg += 2 ** 2  # Single MCMC fit (example)
 
         #flg += 2 ** 22  # RMSE of L23 fits
-        #flg += 2 ** 23  # Fit corner
+        flg += 2 ** 23  # Fit corner
         #flg += 2 ** 24  # NMF corner plots (decomposition only)
 
         #flg += 2 ** 26  # Decompose error
@@ -1788,7 +1800,7 @@ if __name__ == '__main__':
         #flg += 2 ** 5  # 32 -- Explained variance
 
          
-        flg += 2 ** 30  # Summary
+        #flg += 2 ** 30  # Summary
         #flg += 2 ** 31  # PACE MCMC
         
     else:

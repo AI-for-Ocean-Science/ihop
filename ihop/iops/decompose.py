@@ -306,7 +306,7 @@ def reconstruct_hyb(Y:np.ndarray, hyb_dict:dict, idx:int):
         tuple: A tuple containing the original data and its reconstructed version.
     """
     # Grab the original
-    orig = hyb_dict['spec'][idx]
+    orig = hyb_dict['data'][idx]
 
     # Prep
     partial_func = partial(hybrid.a_func, 

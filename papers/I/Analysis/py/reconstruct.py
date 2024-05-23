@@ -58,7 +58,7 @@ def reconstruct_bsp(coeffs, d_a, idx):
     return orig, np.array(yfits)
 
 def one_spectrum(in_idx:int, ab, Chl, d_chains, d_a, d_bb, emulator,
-                 decomps:tuple, Ncomp:tuple,
+                 decomps:tuple, Ncomp:tuple, use_Chl:bool=False,
                  chop_burn:int=-3000, in_log10:bool=False):
     chains = d_chains['chains'][in_idx]
     if in_log10:
@@ -76,7 +76,7 @@ def one_spectrum(in_idx:int, ab, Chl, d_chains, d_a, d_bb, emulator,
 
     # Prep
     decompd = dict(pca=reconstruct_pca, nmf=reconstruct_nmf, int=reconstruct_int,
-                   bsp=reconstruct_bsp)
+                   bsp=reconstruct_bsp, hyb=reconstruct_hyb)
     rfunc = decompd[decomps[0]]
     
     # a
@@ -85,7 +85,8 @@ def one_spectrum(in_idx:int, ab, Chl, d_chains, d_a, d_bb, emulator,
     #_, a_nmf = rfunc(d_a['coeff'][idx], d_a, idx)
     a_mean = np.median(a_recon, axis=0)
     a_std = np.std(a_recon, axis=0)
-    _, a_pca = rfunc(ab[idx][:Ncomp[0]], d_a, idx)
+    _, tmp = rfunc(np.atleast_2d(ab[idx][:Ncomp[0]]), d_a, idx)
+    a_pca = tmp[0]
     print("Done with a")
 
     rfunc = decompd[decomps[1]]
@@ -99,7 +100,8 @@ def one_spectrum(in_idx:int, ab, Chl, d_chains, d_a, d_bb, emulator,
     print("Done with bb")
 
     # Rs
-    allY = chains[chop_burn:, :, :].reshape(-1,Ncomp[0]+Ncomp[1]+1) # Chl
+    add_Chl = 1 if use_Chl else 0
+    allY = chains[chop_burn:, :, :].reshape(-1,Ncomp[0]+Ncomp[1]+add_Chl) # Chl
     all_pred = np.zeros((allY.shape[0], nwave))
     for kk in range(allY.shape[0]):
         Ys = allY[kk]
@@ -108,7 +110,10 @@ def one_spectrum(in_idx:int, ab, Chl, d_chains, d_a, d_bb, emulator,
 
     pred_Rs = np.median(all_pred, axis=0)
     std_pred = np.std(all_pred, axis=0)
-    NN_Rs = emulator.prediction(ab[idx].tolist() + [Chl[idx]], device)
+    if use_Chl:
+        NN_Rs = emulator.prediction(ab[idx].tolist() + [Chl[idx]], device)
+    else:
+        NN_Rs = emulator.prediction(ab[idx].tolist(), device)
 
     a_nmf, bb_nmf = None, None
     return idx, orig, a_mean, a_std, a_pca, obs_Rs,\

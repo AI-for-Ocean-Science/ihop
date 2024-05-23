@@ -404,7 +404,7 @@ def main(flg):
         fit(edict, n_cores=n_cores, abs_sig=abs_sig, 
             use_log_ab=True, use_NMF_pos=False)#, debug=True)
 
-    # HYB, 2,2 noiseless, use_log_ab
+    # HYB, 4,2 noiseless, use_log_ab
     if flg == 20:
 
         # Emulator
@@ -418,10 +418,10 @@ def main(flg):
         edict = emu_io.set_emulator_dict(
             dataset, decomps, Ncomps, 'Rrs',
             'dense', hidden_list=hidden_list, 
-            include_chl=True, X=X, Y=Y)
+            include_chl=False, X=X, Y=Y)
 
         fit(edict, n_cores=n_cores, abs_sig=abs_sig, 
-            use_log_ab=True, use_NMF_pos=False)#, debug=True)
+            use_log_ab=True, use_NMF_pos=False, debug=True)
 
 
 # Command line execution

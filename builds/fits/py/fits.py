@@ -19,6 +19,7 @@ def set_priors(edict, use_log_ab=False, use_NMF_pos=False):
     elif use_NMF_pos:
         priors = {}
         priors['NMFpos'] = True
+    return priors
 
 def fit(edict:dict, params:np.ndarray, wave:np.ndarray,
         priors:dict, Rrs:np.ndarray, outfile:str, abs_sig:float,

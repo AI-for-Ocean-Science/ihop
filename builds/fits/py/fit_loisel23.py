@@ -78,7 +78,10 @@ def fit(edict:dict, Nspec:int=None, abs_sig:float=None,
     ab, Chl, Rs, emulator, d_a = load(edict)
 
     # Generate the params by concatenating ab, Chl
-    params = np.concatenate((ab, Chl[:,None]), axis=1)
+    if edict['include_chl']:
+        params = np.concatenate((ab, Chl[:,None]), axis=1)
+    else:
+        params = ab
 
     # Output file
     outfile = os.path.basename(fitting_io.l23_chains_filename(
