@@ -28,6 +28,7 @@ def fit_one(items:list, pdict:dict=None, chains_only:bool=False):
     ndim = pdict['model'].ninput
 
     # Run
+    print(f"idx={idx}")
     sampler = mcmc.run_emcee_nn(
         pdict['model'], Rs,
         nwalkers=pdict['nwalkers'],
