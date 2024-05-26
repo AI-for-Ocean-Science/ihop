@@ -77,6 +77,7 @@ def fit(edict:dict, params:np.ndarray, wave:np.ndarray,
     if debug:
         #idx = idx[0:2]
         idx = [170, 180]
+        #idx = [2706]
     if priors is not None and 'use_log_ab' in priors and priors['use_log_ab']:
         items = [(use_Rrs[i], np.log10(params[i,:]).tolist(), i) for i in idx]
     else:

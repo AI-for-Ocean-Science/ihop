@@ -119,6 +119,7 @@ def generate_hybrid(iop_data:np.ndarray,
 
         if Ncomp != 4:
             raise ValueError("Ncomp must be 4 for hybrid decomposition")
+            # Will need to fuss with bounds below
 
         # Prep
         partial_func = partial(hybrid.a_func, W1=d_aph['M'][0], W2=d_aph['M'][1])
@@ -128,7 +129,8 @@ def generate_hybrid(iop_data:np.ndarray,
         for idx in range(iop_data.shape[0]):
             ans, cov = curve_fit(partial_func, wave, 
                                 iop_data[idx],
-                        p0=[0.01, 0.01, 0.05, 0.05])
+                        p0=[0.01, 0.01, 0.05, 0.05],
+                        bounds=(1e-3, np.inf))
             # Save
             params.append(ans)
         params = np.array(params)
