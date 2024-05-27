@@ -10,7 +10,7 @@ from oceancolor.hydrolight import loisel23
 from IPython import embed
 
 # Conversion from rrs to Rrs
-A_Rrs, B_Rrs = 0.52, 1.17
+A_Rrs, B_Rrs = 0.52, 1.7
 
 # Gordon factors
 G1, G2 = 0.0949, 0.0794  # Gordon
@@ -36,20 +36,20 @@ def calc_ab(model:str, params:np.ndarray):
     """
     if model == 'Indiv':
         a = 10**params[:41]
-        b = 10**params[41:]
+        bb = 10**params[41:]
     elif model == 'bbwater':
         a = 10**params[:41]
-        b = 10**params[41:] + bbw
+        bb = 10**params[41:] + bbw
     else:
         raise ValueError(f"Bad model: {model}")
     # Return
-    return a, b
+    return a, bb
 
 def grab_priors(model:str):
     if model in ['Indiv', 'bbwater']:
         ndim = 82
         priors = np.zeros((ndim, 2))
-        priors[:,0] = -5
+        priors[:,0] = -6
         priors[:,1] = 5
     else:
         raise ValueError(f"Bad model: {model}")

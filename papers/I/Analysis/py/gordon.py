@@ -10,7 +10,7 @@ from ihop.inference import fitting
 
 from IPython import embed
 
-def prep_data(idx:int, scl_noise:float=0.01):
+def prep_data(idx:int, scl_noise:float=0.02):
     """ Prepare the data for the Gordon analysis """
 
     # Load
@@ -49,6 +49,7 @@ def fit_model(model:str, n_cores=20, idx:int=170):
     a = odict['a']
     bb = odict['bb']
     bbw = odict['bbw']
+    aw = odict['aw']
     
     # Grab the priors (as a test and for ndim)
     priors = fgordon.grab_priors(model)
@@ -62,7 +63,10 @@ def fit_model(model:str, n_cores=20, idx:int=170):
         p0_b = bb[::2]
     elif model == 'bbwater':
         p0_a = a[::2]
-        p0_b = np.maximum(bb[::2] - bbw[::2], 1e-4)
+        p0_b = 2*np.maximum(bb[::2] - bbw[::2], 1e-5)
+        # Hack
+        p0_a *= 2
+        p0_b *= 2
     elif model == 'water':
         p0_a = a[::2] - aw[::2]
         p0_b = bb[::2] - bbw[::2]
@@ -71,7 +75,16 @@ def fit_model(model:str, n_cores=20, idx:int=170):
 
     p0 = np.concatenate((np.log10(p0_a), np.log10(p0_b)))
 
+    # Chk initial guess
+    ca,cbb = fgordon.calc_ab(model, p0)
+    u = cbb/(ca+cbb)
+    rrs = fgordon.G1 * u + fgordon.G2 * u*u
+    pRrs = fgordon.A_Rrs*rrs / (1 - fgordon.B_Rrs*rrs)
+    print(f'Initial Rrs guess: {np.mean((Rrs-pRrs)/Rrs)}')
+    #embed(header='81 of gordon')
+
     # Set the items
+    #items = [(Rrs, varRrs, None, idx)]
     items = [(Rrs, varRrs, p0, idx)]
 
     # Test
@@ -84,9 +97,12 @@ def fit_model(model:str, n_cores=20, idx:int=170):
 def reconstruct(model:str, chains, burn=7000, thin=1):
     chains = chains[burn::thin, :, :].reshape(-1, chains.shape[-1])
     # Burn the chains
-    if model in ['Indiv', 'bbwater', 'water']:
+    if model in ['Indiv']:
         a = 10**chains[:, :41]
         bb = 10**chains[:, 41:]
+    elif model in ['bbwater']:
+        a = 10**chains[:, :41]
+        bb = 10**chains[:, 41:] + fgordon.bbw
     else:
         raise ValueError(f"Bad model: {model}")
 
