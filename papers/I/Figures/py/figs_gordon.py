@@ -28,10 +28,10 @@ def fig_mcmc_fit(model:str, idx:int=170, chain_file=None,
     d_chains = inf_io.load_chains(chain_file)
 
     # Load the data
-    wave, Rrs, varRrs, a_true, bb_true, wave_true = gordon.prep_data(idx)
+    wave, Rrs, varRrs, a_true, bb_true, wave_true, Rrs_true = gordon.prep_data(idx)
 
     # Reconstruct
-    a_mean, bb, a_std, bb_std, model_Rrs, sigRs = gordon.reconstruct(
+    a_mean, bb_mean, a_std, bb_std, model_Rrs, sigRs = gordon.reconstruct(
         model, d_chains['chains']) 
 
     # Water
@@ -66,62 +66,37 @@ def fig_mcmc_fit(model:str, idx:int=170, chain_file=None,
     ax_aw.set_ylim(bottom=0., top=2*a_true.max())
     #ax_a.tick_params(labelbottom=False)  # Hide x-axis labels
 
-    '''
     # #########################################################
     # b
-    if water:
-        bb_w = d_train['bb_w']
-    else:
-        bb_w = 0
     ax_bb = plt.subplot(gs[3])
-    ax_bb.plot(wave, bb_w+orig_bb, 'ko', label='True')
-    ax_bb.plot(wave, bb_w+bb_mean, 'g-', label='Retrieval')
-    if show_NMF:
-        ax_bb.plot(wave, bb_w+bb_nmf, 'g:', label='True NMF')
-    ax_bb.fill_between(wave, bb_w+bb_mean-bb_std, bb_w+bb_mean+bb_std, 
+    ax_bb.plot(wave_true, bb_true, 'ko', label='True')
+    ax_bb.plot(wave, bb_mean, 'g-', label='Retrieval')
+    ax_bb.fill_between(wave, bb_mean-bb_std, bb_mean+bb_std, 
             color='g', alpha=0.5, label='Uncertainty') 
 
     #ax_bb.set_xlabel('Wavelength (nm)')
     ax_bb.set_ylabel(r'$b_b(\lambda) \; [{\rm m}^{-1}]$')
 
-    ax_bb.text(xpos, ypos2,  '(c)', color='k',
-            transform=ax_bb.transAxes,
-              fontsize=18, ha='left')
     ax_bb.legend(fontsize=lgsz)
-    ax_bb.set_ylim(bottom=0., top=None)
+    ax_bb.set_ylim(bottom=0., top=2*bb_true.max())
+
 
     # #########################################################
     # Rs
-    ax_R = plt.subplot(gs[0:2])
-    ax_R.plot(wave, Rs[idx], 'kx', label='True')
-    if true_only:
-        pass
-    elif use_quick:
-        ax_R.plot(wave, obs_Rs[0], 'bs', label='"Observed"')
-    else:
-        ax_R.plot(wave, obs_Rs[in_idx], 'bs', label='"Observed"')
-    if (not true_only) and (not true_obs_only):
-        ax_R.plot(wave, pred_Rs, 'r-', label='Fit', zorder=10)
-        ax_R.fill_between(wave, pred_Rs-std_pred, pred_Rs+std_pred, 
+    ax_R = plt.subplot(gs[2])
+    ax_R.plot(wave_true, Rrs_true, 'kx', label='True')
+    ax_R.plot(wave, model_Rrs, 'r-', label='Fit', zorder=10)
+    ax_R.fill_between(wave, model_Rrs-sigRs, model_Rrs+sigRs, 
             color='r', alpha=0.5, zorder=10) 
-        ax_R.fill_between(wave,
-            pred_Rs-std_pred, pred_Rs+std_pred,
-            color='r', alpha=0.5) 
 
-    #ax_R.set_xlabel('Wavelength (nm)')
     ax_R.set_ylabel(r'$R_{rs}(\lambda) \; [10^{-4} \, {\rm sr}^{-1}$]')
-    #ax_R.tick_params(labelbottom=False)  # Hide x-axis labels
+    ax_R.set_ylim(bottom=0., top=2*Rrs_true.max())
 
-    ax_R.text(xpos, ypos, '(a)', color='k',
-            transform=ax_R.transAxes,
-              fontsize=18, ha='right')
-
-    #ax_R.set_yscale('log')
-    ax_R.legend(fontsize=lgsz)
-    '''
+    #ax_R.legend(fontsize=lgsz)
+    
     
     # axes
-    for ss, ax in enumerate([ax_aw]):#, ax_R, ax_bb]):
+    for ss, ax in enumerate([ax_aw, ax_R, ax_bb]):
         plotting.set_fontsize(ax, 14)
         if ss != 1:
             ax.set_xlabel('Wavelength (nm)')

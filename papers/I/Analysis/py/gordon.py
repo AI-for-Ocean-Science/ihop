@@ -18,6 +18,7 @@ def prep_data(idx:int, scl_noise:float=0.01):
 
     # Grab
     Rrs = ds.Rrs.data[idx,:]
+    Rrs_true = Rrs.copy()
     wave = ds.Lambda.data
     true_wave = ds.Lambda.data.copy()
     a = ds.a.data[idx,:]
@@ -30,19 +31,24 @@ def prep_data(idx:int, scl_noise:float=0.01):
     # Error
     varRrs = (scl_noise * Rrs)**2
 
-    return wave, Rrs, varRrs, a, bb, true_wave
+    return wave, Rrs, varRrs, a, bb, true_wave, Rrs_true
 
 def fit_model(model:str, n_cores=20):
 
-    wave, Rrs, varRrs, _, _, _ = prep_data(170)
+    wave, Rrs, varRrs, a, bb, _, _ = prep_data(170)
     # Grab the priors (as a test and for ndim)
     priors = fgordon.grab_priors(model)
     ndim = priors.shape[0]
     # Initialize the MCMC
     pdict = fgordon.init_mcmc(model, ndim, wave)
     
+    # Hack for now
+    p0_a = a[::2]
+    p0_b = bb[::2]
+    p0 = np.concatenate((np.log10(p0_a), np.log10(p0_b)))
+
     # Set the items
-    items = [(Rrs, varRrs, None, 170)]
+    items = [(Rrs, varRrs, p0, 170)]
 
     # Test
     chains, idx = fgordon.fit_one(items[0], pdict=pdict, chains_only=True)
