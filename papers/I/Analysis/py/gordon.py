@@ -19,6 +19,9 @@ def prep_data(idx:int, scl_noise:float=0.01):
     # Grab
     Rrs = ds.Rrs.data[idx,:]
     wave = ds.Lambda.data
+    true_wave = ds.Lambda.data.copy()
+    a = ds.a.data[idx,:]
+    bb = ds.bb.data[idx,:]
 
     # Cut down to 40 bands
     Rrs = Rrs[::2]
@@ -27,11 +30,11 @@ def prep_data(idx:int, scl_noise:float=0.01):
     # Error
     varRrs = (scl_noise * Rrs)**2
 
-    return wave, Rrs, varRrs
+    return wave, Rrs, varRrs, a, bb, true_wave
 
 def fit_model(model:str, n_cores=20):
 
-    wave, Rrs, varRrs = prep_data(170)
+    wave, Rrs, varRrs, _, _, _ = prep_data(170)
     # Grab the priors (as a test and for ndim)
     priors = fgordon.grab_priors(model)
     ndim = priors.shape[0]
@@ -47,6 +50,33 @@ def fit_model(model:str, n_cores=20):
     # Save
     outfile = f'FGordon_{model}_170'
     save_fits(chains, idx, outfile)
+
+def reconstruct(model:str, chains, burn=7000, thin=1):
+    chains = chains[burn::thin, :, :].reshape(-1, chains.shape[-1])
+    # Burn the chains
+    if model == 'Indiv':
+        a = 10**chains[:, :41]
+        bb = 10**chains[:, 41:]
+    else:
+        raise ValueError(f"Bad model: {model}")
+
+    # Calculate the mean and standard deviation
+    a_mean = np.mean(a, axis=0)
+    a_std = np.std(a, axis=0)
+    bb_mean = np.mean(bb, axis=0)
+    bb_std = np.std(bb, axis=0)
+
+    # Calculate the model Rrs
+    u = bb/(a+bb)
+    rrs = fgordon.G1 * u + fgordon.G2 * u*u
+    Rrs = fgordon.A_Rrs*rrs / (1 - fgordon.B_Rrs*rrs)
+
+    # Stats
+    sigRs = np.std(Rrs, axis=0)
+    Rrs = np.mean(Rrs, axis=0)
+
+    # Return
+    return a_mean, bb_mean, a_std, bb_std, Rrs, sigRs 
 
 def save_fits(all_samples, all_idx, outroot, extras:dict=None):
     """

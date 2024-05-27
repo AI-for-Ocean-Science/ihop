@@ -21,17 +21,17 @@ import gordon
 
 # ############################################################
 def fig_mcmc_fit(model:str, idx:int=170, chain_file=None,
-                 outroot='fig_mcmc_fit'): 
+                 outroot='fig_gordon_fit'): 
 
     if chain_file is None:
         chain_file = f'../Analysis/Fits/FGordon_{model}_170.npz'
     d_chains = inf_io.load_chains(chain_file)
 
     # Load the data
-    wave, Rrs, varRrs = gordon.prep_data(idx)
+    wave, Rrs, varRrs, a_true, bb_true, wave_true = gordon.prep_data(idx)
 
     # Reconstruct
-    a, b, siga, sigb, model_Rrs, sigRs = gordon.reconstruct(
+    a_mean, bb, a_std, bb_std, model_Rrs, sigRs = gordon.reconstruct(
         model, d_chains['chains']) 
 
     # Water
@@ -53,34 +53,20 @@ def fig_mcmc_fit(model:str, idx:int=170, chain_file=None,
     # a with water
 
     ax_aw = plt.subplot(gs[0])
-    ax_aw.plot(wave, orig+a_w, 'ko', label='True', zorder=1)
-    ax_aw.plot(wave, a_nmf+a_w, 'r:', label='Real Recon')
-    ax_aw.fill_between(wave, a_w+a_mean-a_std, a_w+a_mean+a_std, 
+    ax_aw.plot(wave_true, a_true, 'ko', label='True', zorder=1)
+    ax_aw.plot(wave, a_mean, 'r:', label='Real Recon')
+    ax_aw.fill_between(wave, a_mean-a_std, a_mean+a_std, 
             color='r', alpha=0.5, label='Uncertainty') 
     #ax_a.set_xlabel('Wavelength (nm)')
     ax_aw.set_ylabel(r'$a(\lambda) \; [{\rm m}^{-1}]$')
     #else:
     #    ax_a.set_ylabel(r'$a_{\rm nw}(\lambda) \; [{\rm m}^{-1}]$')
 
-    ax_a.legend(fontsize=lgsz)
+    ax_aw.legend(fontsize=lgsz)
+    ax_aw.set_ylim(bottom=0., top=2*a_true.max())
     #ax_a.tick_params(labelbottom=False)  # Hide x-axis labels
 
-    if wvmnx is not None:
-        ax_a.set_xlim(wvmnx[0], wvmnx[1])
-
-    # Zoom in
-    # inset axes....
-    if show_zoom:
-        asz = 0.4
-        ax_zoom = ax_a.inset_axes(
-            [0.15, 0.5, asz, asz])
-        plot_spec(ax_zoom)
-        ax_zoom.set_xlim(340.,550)
-        ax_zoom.set_ylim(0., 0.25)
-        #ax_zoom.set_ylim(340.,550)
-        ax_zoom.set_xlabel('Wavelength (nm)')
-        ax_zoom.set_ylabel(r'$a(\lambda)$')
-
+    '''
     # #########################################################
     # b
     if water:
@@ -132,9 +118,10 @@ def fig_mcmc_fit(model:str, idx:int=170, chain_file=None,
 
     #ax_R.set_yscale('log')
     ax_R.legend(fontsize=lgsz)
+    '''
     
     # axes
-    for ss, ax in enumerate([ax_a, ax_R, ax_bb]):
+    for ss, ax in enumerate([ax_aw]):#, ax_R, ax_bb]):
         plotting.set_fontsize(ax, 14)
         if ss != 1:
             ax.set_xlabel('Wavelength (nm)')
