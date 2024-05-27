@@ -5,6 +5,8 @@ import numpy as np
 import emcee
 from emcee import ensemble
 
+from oceancolor.hydrolight import loisel23
+
 from IPython import embed
 
 # Conversion from rrs to Rrs
@@ -12,6 +14,13 @@ A_Rrs, B_Rrs = 0.52, 1.17
 
 # Gordon factors
 G1, G2 = 0.0949, 0.0794  # Gordon
+
+# Hack for now
+ds = loisel23.load_ds(4,0)
+bbw = ds.bb.data[0,:]-ds.bbnw.data[0,:]
+bbw = bbw[::2]
+aw = ds.a.data[0,:]-ds.anw.data[0,:]
+aw = aw[::2]
 
 
 def calc_ab(model:str, params:np.ndarray):
@@ -28,13 +37,16 @@ def calc_ab(model:str, params:np.ndarray):
     if model == 'Indiv':
         a = 10**params[:41]
         b = 10**params[41:]
+    elif model == 'bbwater':
+        a = 10**params[:41]
+        b = 10**params[41:] + bbw
     else:
         raise ValueError(f"Bad model: {model}")
     # Return
     return a, b
 
 def grab_priors(model:str):
-    if model == 'Indiv':
+    if model in ['Indiv', 'bbwater']:
         ndim = 82
         priors = np.zeros((ndim, 2))
         priors[:,0] = -5

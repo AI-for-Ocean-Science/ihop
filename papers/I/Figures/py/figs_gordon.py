@@ -28,7 +28,20 @@ def fig_mcmc_fit(model:str, idx:int=170, chain_file=None,
     d_chains = inf_io.load_chains(chain_file)
 
     # Load the data
-    wave, Rrs, varRrs, a_true, bb_true, wave_true, Rrs_true = gordon.prep_data(idx)
+    odict = gordon.prep_data(idx)
+    wave = odict['wave']
+    Rrs = odict['Rrs']
+    varRrs = odict['varRrs']
+    a_true = odict['a']
+    bb_true = odict['bb']
+    aw = odict['aw']
+    bbw = odict['bbw']
+    wave_true = odict['true_wave']
+    Rrs_true = odict['Rrs_true']
+
+    # Interpolate
+    aw_interp = np.interp(wave, wave_true, aw)
+    bbw_interp = np.interp(wave, wave_true, bbw)
 
     # Reconstruct
     a_mean, bb_mean, a_std, bb_std, model_Rrs, sigRs = gordon.reconstruct(
@@ -38,7 +51,7 @@ def fig_mcmc_fit(model:str, idx:int=170, chain_file=None,
     a_w = absorption.a_water(wave, data='IOCCG')
 
     # Outfile
-    outfile = outroot + f'_{idx}.png'
+    outfile = outroot + f'_{model}_{idx}.png'
 
     # #########################################################
     # Plot the solution
@@ -54,7 +67,7 @@ def fig_mcmc_fit(model:str, idx:int=170, chain_file=None,
 
     ax_aw = plt.subplot(gs[0])
     ax_aw.plot(wave_true, a_true, 'ko', label='True', zorder=1)
-    ax_aw.plot(wave, a_mean, 'r:', label='Real Recon')
+    ax_aw.plot(wave, a_mean, 'r-', label='Retreival')
     ax_aw.fill_between(wave, a_mean-a_std, a_mean+a_std, 
             color='r', alpha=0.5, label='Uncertainty') 
     #ax_a.set_xlabel('Wavelength (nm)')
@@ -65,6 +78,25 @@ def fig_mcmc_fit(model:str, idx:int=170, chain_file=None,
     ax_aw.legend(fontsize=lgsz)
     ax_aw.set_ylim(bottom=0., top=2*a_true.max())
     #ax_a.tick_params(labelbottom=False)  # Hide x-axis labels
+
+
+    # #########################################################
+    # a without water
+
+    ax_anw = plt.subplot(gs[1])
+    ax_anw.plot(wave_true, a_true-aw, 'ko', label='True', zorder=1)
+    ax_anw.plot(wave, a_mean-aw_interp, 'r-', label='Retreival')
+    ax_anw.fill_between(wave, a_mean-a_std-aw_interp, a_mean+a_std-aw_interp, 
+            color='r', alpha=0.5, label='Uncertainty') 
+    #ax_a.set_xlabel('Wavelength (nm)')
+    ax_anw.set_ylabel(r'$a(\lambda) \; [{\rm m}^{-1}]$')
+    #else:
+    #    ax_a.set_ylabel(r'$a_{\rm nw}(\lambda) \; [{\rm m}^{-1}]$')
+
+    ax_anw.legend(fontsize=lgsz)
+    ax_anw.set_ylim(bottom=0., top=2*(a_true-aw).max())
+    #ax_a.tick_params(labelbottom=False)  # Hide x-axis labels
+
 
     # #########################################################
     # b
@@ -90,7 +122,7 @@ def fig_mcmc_fit(model:str, idx:int=170, chain_file=None,
             color='r', alpha=0.5, zorder=10) 
 
     ax_R.set_ylabel(r'$R_{rs}(\lambda) \; [10^{-4} \, {\rm sr}^{-1}$]')
-    ax_R.set_ylim(bottom=0., top=2*Rrs_true.max())
+    ax_R.set_ylim(bottom=0., top=1.1*Rrs_true.max())
 
     #ax_R.legend(fontsize=lgsz)
     
@@ -111,9 +143,18 @@ def main(flg):
     else:
         flg= int(flg)
 
-    # Decomposition
+    # Indiv
     if flg & (2**0):
         fig_mcmc_fit('Indiv')
+
+    # bbwater
+    if flg & (2**1):
+        fig_mcmc_fit('bbwater')
+
+    # water
+    if flg & (2**2):
+        fig_mcmc_fit('water')
+
 
 # Command line execution
 if __name__ == '__main__':

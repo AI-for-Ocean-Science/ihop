@@ -31,11 +31,25 @@ def prep_data(idx:int, scl_noise:float=0.01):
     # Error
     varRrs = (scl_noise * Rrs)**2
 
-    return wave, Rrs, varRrs, a, bb, true_wave, Rrs_true
+    # Dict me
+    odict = dict(wave=wave, Rrs=Rrs, varRrs=varRrs, a=a, bb=bb, 
+                 true_wave=true_wave, Rrs_true=Rrs_true,
+                 bbw=ds.bb.data[idx,:]-ds.bbnw.data[idx,:],
+                 aw=ds.a.data[idx,:]-ds.anw.data[idx,:])
 
-def fit_model(model:str, n_cores=20):
+    return odict
 
-    wave, Rrs, varRrs, a, bb, _, _ = prep_data(170)
+def fit_model(model:str, n_cores=20, idx:int=170):
+
+    odict = prep_data(idx)
+    # Unpack
+    wave = odict['wave']
+    Rrs = odict['Rrs']
+    varRrs = odict['varRrs']
+    a = odict['a']
+    bb = odict['bb']
+    bbw = odict['bbw']
+    
     # Grab the priors (as a test and for ndim)
     priors = fgordon.grab_priors(model)
     ndim = priors.shape[0]
@@ -43,12 +57,22 @@ def fit_model(model:str, n_cores=20):
     pdict = fgordon.init_mcmc(model, ndim, wave)
     
     # Hack for now
-    p0_a = a[::2]
-    p0_b = bb[::2]
+    if model == 'Indiv':
+        p0_a = a[::2]
+        p0_b = bb[::2]
+    elif model == 'bbwater':
+        p0_a = a[::2]
+        p0_b = np.maximum(bb[::2] - bbw[::2], 1e-4)
+    elif model == 'water':
+        p0_a = a[::2] - aw[::2]
+        p0_b = bb[::2] - bbw[::2]
+    else:
+        raise ValueError(f"51 of gordon.py -- Deal with this model: {model}")
+
     p0 = np.concatenate((np.log10(p0_a), np.log10(p0_b)))
 
     # Set the items
-    items = [(Rrs, varRrs, p0, 170)]
+    items = [(Rrs, varRrs, p0, idx)]
 
     # Test
     chains, idx = fgordon.fit_one(items[0], pdict=pdict, chains_only=True)
@@ -60,7 +84,7 @@ def fit_model(model:str, n_cores=20):
 def reconstruct(model:str, chains, burn=7000, thin=1):
     chains = chains[burn::thin, :, :].reshape(-1, chains.shape[-1])
     # Burn the chains
-    if model == 'Indiv':
+    if model in ['Indiv', 'bbwater', 'water']:
         a = 10**chains[:, :41]
         bb = 10**chains[:, 41:]
     else:
@@ -127,6 +151,15 @@ def main(flg):
     if flg & (2**1):
         fit_model('Indiv')
 
+    # bb_water
+    if flg & (2**2):
+        fit_model('bbwater')
+
+    # water
+    if flg & (2**3):
+        fit_model('water')
+
+
 # Command line execution
 if __name__ == '__main__':
     import sys
@@ -134,7 +167,8 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         flg = 0
         #flg += 2 ** 0  # 1 -- Testing
-        #flg += 2 ** 1  # 2 -- Figure 2 L23: PCA vs NMF Explained variance
+        #flg += 2 ** 1  # 2 -- No priors
+        #flg += 2 ** 2  # 4 -- bb_water
 
     else:
         flg = sys.argv[1]
