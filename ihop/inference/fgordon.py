@@ -35,6 +35,8 @@ def calc_ab(model:str, params:np.ndarray):
         tuple: A tuple containing the a and b values.
     """
     if model == 'Indiv':
+        #a = params[:41]/1000
+        #bb = params[41:]/1000
         a = 10**params[:41]
         bb = 10**params[41:]
     elif model == 'bbwater':
@@ -51,6 +53,8 @@ def grab_priors(model:str):
         priors = np.zeros((ndim, 2))
         priors[:,0] = -6
         priors[:,1] = 5
+        #priors[:,0] = 0.
+        #priors[:,1] = np.inf
     else:
         raise ValueError(f"Bad model: {model}")
     # Return
@@ -77,6 +81,7 @@ def fit_one(items:list, pdict:dict=None, chains_only:bool=False):
         pdict['model'], Rs, varRs,
         nwalkers=pdict['nwalkers'],
         nsteps=pdict['nsteps'],
+        nburn=pdict['nburn'],
         skip_check=True,
         p0=params,
         save_file=pdict['save_file'])
@@ -87,7 +92,8 @@ def fit_one(items:list, pdict:dict=None, chains_only:bool=False):
     else:
         return sampler, idx
 
-def init_mcmc(model:str, ndim:int, wave:np.ndarray):
+def init_mcmc(model:str, ndim:int, wave:np.ndarray,
+              nsteps:int=10000, nburn:int=1000):
     """
     Initializes the MCMC parameters.
 
@@ -101,7 +107,8 @@ def init_mcmc(model:str, ndim:int, wave:np.ndarray):
     """
     pdict = dict(model=model)
     pdict['nwalkers'] = max(16,ndim*2)
-    pdict['nsteps'] = 10000
+    pdict['nsteps'] = nsteps
+    pdict['nburn'] = nburn
     pdict['wave'] = wave
     pdict['save_file'] = None
     #
@@ -142,6 +149,7 @@ def log_prob(params, model:str, Rs, varRs):
 
 
 def run_emcee(model:str, Rrs, varRrs, nwalkers:int=32, 
+              nburn:int=1000,
               nsteps:int=20000, save_file:str=None, 
               p0=None, skip_check:bool=False, ndim:int=None):
     """
@@ -174,8 +182,12 @@ def run_emcee(model:str, Rrs, varRrs, nwalkers:int=32,
         # Replicate for nwalkers
         ndim = len(p0)
         p0 = np.tile(p0, (nwalkers, 1))
-        # Perturb a tiny bit
+        # Perturb 
         p0 += p0*np.random.uniform(-1e-2, 1e-2, size=p0.shape)
+        #r = 10**np.random.uniform(-0.5, 0.5, size=p0.shape[0])
+        #for ii in range(p0.shape[0]):
+        #    p0[ii] *= r[ii]
+        #embed(header='108 of fgordon')
 
     # Set up the backend
     # Don't forget to clear it in case the file already exists
@@ -193,7 +205,7 @@ def run_emcee(model:str, Rrs, varRrs, nwalkers:int=32,
 
     # Burn in
     print("Running burn-in")
-    state = sampler.run_mcmc(p0, 1000,
+    state = sampler.run_mcmc(p0, nburn,
         skip_initial_state_check=skip_check,
         progress=True)
     sampler.reset()

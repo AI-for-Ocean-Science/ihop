@@ -39,7 +39,8 @@ def prep_data(idx:int, scl_noise:float=0.02):
 
     return odict
 
-def fit_model(model:str, n_cores=20, idx:int=170):
+def fit_model(model:str, n_cores=20, idx:int=170, 
+              nsteps:int=10000, nburn:int=1000):
 
     odict = prep_data(idx)
     # Unpack
@@ -55,18 +56,17 @@ def fit_model(model:str, n_cores=20, idx:int=170):
     priors = fgordon.grab_priors(model)
     ndim = priors.shape[0]
     # Initialize the MCMC
-    pdict = fgordon.init_mcmc(model, ndim, wave)
+    pdict = fgordon.init_mcmc(model, ndim, wave, 
+                              nsteps=nsteps, nburn=nburn)
     
     # Hack for now
     if model == 'Indiv':
         p0_a = a[::2]
         p0_b = bb[::2]
     elif model == 'bbwater':
-        p0_a = a[::2]
-        p0_b = 2*np.maximum(bb[::2] - bbw[::2], 1e-5)
-        # Hack
-        p0_a *= 2
-        p0_b *= 2
+        scl = 5.
+        p0_a = scl*a[::2]
+        p0_b = 2*np.maximum(scl*bb[::2] - bbw[::2], 1e-5)
     elif model == 'water':
         p0_a = a[::2] - aw[::2]
         p0_b = bb[::2] - bbw[::2]
@@ -74,6 +74,7 @@ def fit_model(model:str, n_cores=20, idx:int=170):
         raise ValueError(f"51 of gordon.py -- Deal with this model: {model}")
 
     p0 = np.concatenate((np.log10(p0_a), np.log10(p0_b)))
+    #p0 = np.concatenate([p0_a, p0_b])
 
     # Chk initial guess
     ca,cbb = fgordon.calc_ab(model, p0)
@@ -98,6 +99,8 @@ def reconstruct(model:str, chains, burn=7000, thin=1):
     chains = chains[burn::thin, :, :].reshape(-1, chains.shape[-1])
     # Burn the chains
     if model in ['Indiv']:
+        #a = chains[:, :41]/1000
+        #bb = chains[:, 41:]/1000
         a = 10**chains[:, :41]
         bb = 10**chains[:, 41:]
     elif model in ['bbwater']:
@@ -169,7 +172,7 @@ def main(flg):
 
     # bb_water
     if flg & (2**2):
-        fit_model('bbwater')
+        fit_model('bbwater', nsteps=100000, nburn=10000)
 
     # water
     if flg & (2**3):
