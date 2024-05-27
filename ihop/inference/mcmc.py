@@ -121,10 +121,7 @@ def run_emcee_nn(nn_model, Rs, nwalkers:int=32, nsteps:int=20000,
     if hasattr(nn_model, 'ninput'):
         ndim = nn_model.ninput
     else:
-        # TODO -- remove this
-        warnings.warn("Assuming 8 inputs. REMOVE THIS")
-        ndim = 8
-
+        raise ValueError("Bad model")
 
     # Initialize
     if p0 is None:
@@ -137,7 +134,6 @@ def run_emcee_nn(nn_model, Rs, nwalkers:int=32, nsteps:int=20000,
         # Perturb a tiny bit
         p0 += p0*np.random.uniform(-1e-2, 1e-2, size=p0.shape)
 
-    #embed(header='run_emcee_nn 47')
     # Set up the backend
     # Don't forget to clear it in case the file already exists
     if save_file is not None:
@@ -170,25 +166,3 @@ def run_emcee_nn(nn_model, Rs, nwalkers:int=32, nsteps:int=20000,
 
     # Return
     return sampler
-
-if __name__ == '__main__':
-
-    from ihop.iops.nmf import load_loisel_2023
-    # Load Hydrolight
-    print("Loading Hydrolight data")
-    #ab, Rs, d_l23 = ihop_io.load_loisel_2023_pca()
-    ab, Rs, _, _ = load_loisel_2023()
-
-    # Load model
-    em_path = os.path.join(os.getenv('OS_COLOR'), 'IHOP', 'Emulators')
-    model_file = os.path.join(em_path, 'densenet_NMF3_L23', 
-                       'densenet_NMF_[512, 128, 128]_batchnorm_epochs_2500_p_0.05_lr_0.001.pth')
-    print(f"Loading model: {model_file}")
-    model = io.load_nn(model_file)
-    
-
-    # idx=200
-    idx = 200
-    save_file = f'MCMC_NN_NMF_i{idx}.h5'
-
-    run_emcee_nn(model, Rs[idx], save_file=save_file)

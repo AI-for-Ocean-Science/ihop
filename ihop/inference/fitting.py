@@ -46,7 +46,7 @@ def fit_one(items:list, pdict:dict=None, chains_only:bool=False):
     else:
         return sampler, idx
 
-def fit_batch(pdict:dict, items:list, n_cores:int=1): 
+def fit_batch(pdict:dict, items:list, n_cores:int=1, fit_method=None): 
     """
     Fits a batch of items using parallel processing.
 
@@ -54,13 +54,16 @@ def fit_batch(pdict:dict, items:list, n_cores:int=1):
         pdict (dict): A dictionary containing the parameters for fitting.
         items (list): A list of items to be fitted.
         n_cores (int, optional): The number of CPU cores to use for parallel processing. Defaults to 1.
+        fit_method (function, optional): The fitting method to be used. Defaults to None.
 
     Returns:
         tuple: A tuple containing the fitted samples and their corresponding indices.
     """
+    if fit_method is None:
+        fit_method = fit_one
 
     # Setup for parallel
-    map_fn = partial(fit_one, pdict=pdict, chains_only=True)
+    map_fn = partial(fit_method, pdict=pdict, chains_only=True)
     
     # Parallel
     with ProcessPoolExecutor(max_workers=n_cores) as executor:
@@ -71,13 +74,6 @@ def fit_batch(pdict:dict, items:list, n_cores:int=1):
     # Need to avoid blowing up the memory!
     # Slurp
     all_idx = np.array([item[1] for item in answers])
-    #answers = [item[0].get_chain() for item in answers]
     answers = np.array([item[0].astype(np.float32) for item in answers])
-
-    # Chains
-    #all_samples = np.zeros((len(samples), samples[0].shape[0], 
-    #    samples[0].shape[1], samples[0].shape[2]))
-    #for ss in range(len(all_idx)):
-    #    all_samples[ss,:,:,:] = samples[ss]
 
     return answers, all_idx
