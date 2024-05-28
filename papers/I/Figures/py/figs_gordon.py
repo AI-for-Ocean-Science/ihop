@@ -12,6 +12,7 @@ from oceancolor.utils import plotting
 from oceancolor.water import absorption
 
 from ihop.inference import io as inf_io
+from ihop.inference import fgordon
 
 # Local
 sys.path.append(os.path.abspath("../Analysis/py"))
@@ -44,8 +45,11 @@ def fig_mcmc_fit(model:str, idx:int=170, chain_file=None,
     bbw_interp = np.interp(wave, wave_true, bbw)
 
     # Reconstruct
-    a_mean, bb_mean, a_std, bb_std, model_Rrs, sigRs = gordon.reconstruct(
-        model, d_chains['chains']) 
+    pdict = fgordon.init_mcmc(model, d_chains['chains'].shape[-1], 
+                              wave, Y=odict['Y'])
+    a_mean, bb_mean, a_5, a_95, bb_5, bb_95,\
+        model_Rrs, sigRs = gordon.reconstruct(
+        model, d_chains['chains'], pdict) 
 
     # Water
     a_w = absorption.a_water(wave, data='IOCCG')
@@ -68,7 +72,7 @@ def fig_mcmc_fit(model:str, idx:int=170, chain_file=None,
     ax_aw = plt.subplot(gs[0])
     ax_aw.plot(wave_true, a_true, 'ko', label='True', zorder=1)
     ax_aw.plot(wave, a_mean, 'r-', label='Retreival')
-    ax_aw.fill_between(wave, a_mean-a_std, a_mean+a_std, 
+    ax_aw.fill_between(wave, a_5, a_95,
             color='r', alpha=0.5, label='Uncertainty') 
     #ax_a.set_xlabel('Wavelength (nm)')
     ax_aw.set_ylabel(r'$a(\lambda) \; [{\rm m}^{-1}]$')
@@ -86,14 +90,14 @@ def fig_mcmc_fit(model:str, idx:int=170, chain_file=None,
     ax_anw = plt.subplot(gs[1])
     ax_anw.plot(wave_true, a_true-aw, 'ko', label='True', zorder=1)
     ax_anw.plot(wave, a_mean-aw_interp, 'r-', label='Retreival')
-    ax_anw.fill_between(wave, a_mean-a_std-aw_interp, a_mean+a_std-aw_interp, 
+    ax_anw.fill_between(wave, a_5-aw_interp, a_95-aw_interp, 
             color='r', alpha=0.5, label='Uncertainty') 
-    #ax_a.set_xlabel('Wavelength (nm)')
-    ax_anw.set_ylabel(r'$a(\lambda) \; [{\rm m}^{-1}]$')
+    
+    ax_anw.set_ylabel(r'$a_{\rm nw}(\lambda) \; [{\rm m}^{-1}]$')
     #else:
     #    ax_a.set_ylabel(r'$a_{\rm nw}(\lambda) \; [{\rm m}^{-1}]$')
 
-    ax_anw.legend(fontsize=lgsz)
+    #ax_anw.legend(fontsize=lgsz)
     ax_anw.set_ylim(bottom=0., top=2*(a_true-aw).max())
     #ax_a.tick_params(labelbottom=False)  # Hide x-axis labels
 
@@ -103,7 +107,7 @@ def fig_mcmc_fit(model:str, idx:int=170, chain_file=None,
     ax_bb = plt.subplot(gs[3])
     ax_bb.plot(wave_true, bb_true, 'ko', label='True')
     ax_bb.plot(wave, bb_mean, 'g-', label='Retrieval')
-    ax_bb.fill_between(wave, bb_mean-bb_std, bb_mean+bb_std, 
+    ax_bb.fill_between(wave, bb_5, bb_95,
             color='g', alpha=0.5, label='Uncertainty') 
 
     #ax_bb.set_xlabel('Wavelength (nm)')
@@ -124,13 +128,13 @@ def fig_mcmc_fit(model:str, idx:int=170, chain_file=None,
     ax_R.set_ylabel(r'$R_{rs}(\lambda) \; [10^{-4} \, {\rm sr}^{-1}$]')
     ax_R.set_ylim(bottom=0., top=1.1*Rrs_true.max())
 
-    #ax_R.legend(fontsize=lgsz)
+    ax_R.legend(fontsize=lgsz)
     
     
     # axes
-    for ss, ax in enumerate([ax_aw, ax_R, ax_bb]):
+    for ss, ax in enumerate([ax_aw, ax_anw, ax_R, ax_bb]):
         plotting.set_fontsize(ax, 14)
-        if ss != 1:
+        if ss > 1:
             ax.set_xlabel('Wavelength (nm)')
 
     #plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
@@ -154,6 +158,15 @@ def main(flg):
     # water
     if flg & (2**2):
         fig_mcmc_fit('water')
+
+    # water
+    if flg & (2**3): # 8
+        fig_mcmc_fit('bp')
+
+    # exppow
+    if flg & (2**4): # 16
+        fig_mcmc_fit('exppow')
+
 
 
 # Command line execution

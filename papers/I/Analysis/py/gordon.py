@@ -24,6 +24,12 @@ def prep_data(idx:int, scl_noise:float=0.02):
     a = ds.a.data[idx,:]
     bb = ds.bb.data[idx,:]
 
+    # For bp
+    rrs = Rrs / (fgordon.A_Rrs + fgordon.B_Rrs*Rrs)
+    i440 = np.argmin(np.abs(wave-440))
+    i555 = np.argmin(np.abs(wave-555))
+    Y = 2.2 * (1 - 1.2 * np.exp(-0.9 * rrs[i440]/rrs[i555]))
+
     # Cut down to 40 bands
     Rrs = Rrs[::2]
     wave = wave[::2]
@@ -35,7 +41,8 @@ def prep_data(idx:int, scl_noise:float=0.02):
     odict = dict(wave=wave, Rrs=Rrs, varRrs=varRrs, a=a, bb=bb, 
                  true_wave=true_wave, Rrs_true=Rrs_true,
                  bbw=ds.bb.data[idx,:]-ds.bbnw.data[idx,:],
-                 aw=ds.a.data[idx,:]-ds.anw.data[idx,:])
+                 aw=ds.a.data[idx,:]-ds.anw.data[idx,:],
+                 Y=Y)
 
     return odict
 
@@ -56,7 +63,7 @@ def fit_model(model:str, n_cores=20, idx:int=170,
     priors = fgordon.grab_priors(model)
     ndim = priors.shape[0]
     # Initialize the MCMC
-    pdict = fgordon.init_mcmc(model, ndim, wave, 
+    pdict = fgordon.init_mcmc(model, ndim, wave, Y=odict['Y'],
                               nsteps=nsteps, nburn=nburn)
     
     # Hack for now
@@ -68,21 +75,39 @@ def fit_model(model:str, n_cores=20, idx:int=170,
         p0_a = scl*a[::2]
         p0_b = 2*np.maximum(scl*bb[::2] - bbw[::2], 1e-5)
     elif model == 'water':
-        p0_a = a[::2] - aw[::2]
-        p0_b = bb[::2] - bbw[::2]
+        scl = 5.
+        p0_a = np.maximum(scl*a[::2] - aw[::2], 1e-5)
+        p0_b = 2*np.maximum(scl*bb[::2] - bbw[::2], 1e-5)
+    elif model == 'bp':
+        scl = 5.
+        p0_a = np.maximum(scl*a[::2] - aw[::2], 1e-5)
+        # Fit bnw 
+        bnw = 2*np.maximum(scl*bb[::2] - bbw[::2], 1e-5)
+        i500 = np.argmin(np.abs(wave-500))
+        p0_b = bnw[i500] 
+    elif model == 'exppow':
+        i400 = np.argmin(np.abs(wave-400))
+        i500 = np.argmin(np.abs(wave-500))
+        scl = 1.
+        anw = np.maximum(scl*a[::2] - aw[::2], 1e-5)
+        p0_a = [anw[i400], 0.017] 
+        # Fit bnw 
+        bnw = 2*np.maximum(scl*bb[::2] - bbw[::2], 1e-5)
+        p0_b = bnw[i500] 
     else:
         raise ValueError(f"51 of gordon.py -- Deal with this model: {model}")
 
-    p0 = np.concatenate((np.log10(p0_a), np.log10(p0_b)))
+    p0 = np.concatenate((np.log10(p0_a), 
+                         np.log10(np.atleast_1d(p0_b))))
     #p0 = np.concatenate([p0_a, p0_b])
 
     # Chk initial guess
-    ca,cbb = fgordon.calc_ab(model, p0)
+    ca,cbb = fgordon.calc_ab(model, p0, pdict)
     u = cbb/(ca+cbb)
     rrs = fgordon.G1 * u + fgordon.G2 * u*u
     pRrs = fgordon.A_Rrs*rrs / (1 - fgordon.B_Rrs*rrs)
     print(f'Initial Rrs guess: {np.mean((Rrs-pRrs)/Rrs)}')
-    #embed(header='81 of gordon')
+    embed(header='100 of gordon')
 
     # Set the items
     #items = [(Rrs, varRrs, None, idx)]
@@ -95,25 +120,20 @@ def fit_model(model:str, n_cores=20, idx:int=170,
     outfile = f'FGordon_{model}_170'
     save_fits(chains, idx, outfile)
 
-def reconstruct(model:str, chains, burn=7000, thin=1):
-    chains = chains[burn::thin, :, :].reshape(-1, chains.shape[-1])
+def reconstruct(model:str, chains, pdict:dict, burn=7000, thin=1):
     # Burn the chains
-    if model in ['Indiv']:
-        #a = chains[:, :41]/1000
-        #bb = chains[:, 41:]/1000
-        a = 10**chains[:, :41]
-        bb = 10**chains[:, 41:]
-    elif model in ['bbwater']:
-        a = 10**chains[:, :41]
-        bb = 10**chains[:, 41:] + fgordon.bbw
-    else:
-        raise ValueError(f"Bad model: {model}")
+    chains = chains[burn::thin, :, :].reshape(-1, chains.shape[-1])
+    # Calc
+    a, bb = fgordon.calc_ab(model, chains, pdict)
+    del chains
 
     # Calculate the mean and standard deviation
-    a_mean = np.mean(a, axis=0)
-    a_std = np.std(a, axis=0)
-    bb_mean = np.mean(bb, axis=0)
-    bb_std = np.std(bb, axis=0)
+    a_mean = np.median(a, axis=0)
+    a_5, a_95 = np.percentile(a, [5, 95], axis=0)
+    #a_std = np.std(a, axis=0)
+    bb_mean = np.median(bb, axis=0)
+    bb_5, bb_95 = np.percentile(bb, [5, 95], axis=0)
+    #bb_std = np.std(bb, axis=0)
 
     # Calculate the model Rrs
     u = bb/(a+bb)
@@ -122,10 +142,10 @@ def reconstruct(model:str, chains, burn=7000, thin=1):
 
     # Stats
     sigRs = np.std(Rrs, axis=0)
-    Rrs = np.mean(Rrs, axis=0)
+    Rrs = np.median(Rrs, axis=0)
 
     # Return
-    return a_mean, bb_mean, a_std, bb_std, Rrs, sigRs 
+    return a_mean, bb_mean, a_5, a_95, bb_5, bb_95, Rrs, sigRs 
 
 def save_fits(all_samples, all_idx, outroot, extras:dict=None):
     """
@@ -164,7 +184,7 @@ def main(flg):
 
     # Testing
     if flg & (2**0):
-        wv, Rrs, varRrs = prep_data(170)
+        odict = prep_data(170)
 
     # Indiv
     if flg & (2**1):
@@ -172,11 +192,19 @@ def main(flg):
 
     # bb_water
     if flg & (2**2):
-        fit_model('bbwater', nsteps=100000, nburn=10000)
+        fit_model('bbwater', nsteps=50000, nburn=5000)
 
     # water
     if flg & (2**3):
-        fit_model('water')
+        fit_model('water', nsteps=50000, nburn=5000)
+
+    # bp
+    if flg & (2**4): # 16
+        fit_model('bp', nsteps=50000, nburn=5000)
+
+    # Exponential power-law
+    if flg & (2**5): # 32
+        fit_model('exppow', nsteps=10000, nburn=1000)
 
 
 # Command line execution

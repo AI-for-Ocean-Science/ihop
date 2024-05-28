@@ -23,13 +23,14 @@ aw = ds.a.data[0,:]-ds.anw.data[0,:]
 aw = aw[::2]
 
 
-def calc_ab(model:str, params:np.ndarray):
+def calc_ab(model:str, params:np.ndarray, pdict:dict):
     """
     Calculate the a and b values from the input parameters.
 
     Args:
         model (str): The model name.
         params (np.ndarray): The input parameters.
+            1D or 2D
 
     Returns:
         tuple: A tuple containing the a and b values.
@@ -37,26 +38,74 @@ def calc_ab(model:str, params:np.ndarray):
     if model == 'Indiv':
         #a = params[:41]/1000
         #bb = params[41:]/1000
-        a = 10**params[:41]
-        bb = 10**params[41:]
+        a = 10**params[...,:41]
+        bb = 10**params[...,41:]
     elif model == 'bbwater':
-        a = 10**params[:41]
-        bb = 10**params[41:] + bbw
+        a = 10**params[...,:41]
+        bb = 10**params[...,41:] + bbw
+    elif model == 'water':
+        a = 10**params[...,:41] + aw
+        bb = 10**params[...,41:] + bbw
+    elif model == 'bp':
+        a = 10**params[...,:41] + aw
+        # Lee+2002
+        bbp = np.outer(10**params[...,-1],
+                       (550./pdict['wave'])**pdict['Y'])
+        # Add water
+        bb = bbp + bbw
+    elif model == 'exppow':
+        # anw exponential
+        anw = np.outer(10**params[...,0], np.ones_like(pdict['wave'])) *\
+            np.exp(np.outer(-10**params[...,1],pdict['wave']-400.))
+        a = anw + aw
+                       
+        # Lee+2002
+        bbp = np.outer(10**params[...,-1],
+                       (550./pdict['wave'])**pdict['Y'])
+        # Add water
+        bb = bbp + bbw
     else:
         raise ValueError(f"Bad model: {model}")
     # Return
     return a, bb
 
+def init_mcmc(model:str, ndim:int, wave:np.ndarray,
+              nsteps:int=10000, nburn:int=1000, Y:float=None):
+    """
+    Initializes the MCMC parameters.
+
+    Args:
+        emulator: The emulator model.
+        ndim (int): The number of dimensions.
+        priors (dict): The prior information (optional).
+
+    Returns:
+        dict: A dictionary containing the MCMC parameters.
+    """
+    pdict = dict(model=model)
+    pdict['nwalkers'] = max(16,ndim*2)
+    pdict['nsteps'] = nsteps
+    pdict['nburn'] = nburn
+    pdict['wave'] = wave
+    pdict['Y'] = Y # for bp (Lee+2002)
+    pdict['save_file'] = None
+    #
+    return pdict
+
 def grab_priors(model:str):
-    if model in ['Indiv', 'bbwater']:
+    # Set em
+    if model in ['Indiv', 'bbwater', 'water']:
         ndim = 82
-        priors = np.zeros((ndim, 2))
-        priors[:,0] = -6
-        priors[:,1] = 5
-        #priors[:,0] = 0.
-        #priors[:,1] = np.inf
+    elif model in ['bp']:
+        ndim = 42
+    elif model in ['exppow']:
+        ndim = 3
     else:
         raise ValueError(f"Bad model: {model}")
+    # Return
+    priors = np.zeros((ndim, 2))
+    priors[:,0] = -6
+    priors[:,1] = 5
     # Return
     return priors
 
@@ -84,7 +133,8 @@ def fit_one(items:list, pdict:dict=None, chains_only:bool=False):
         nburn=pdict['nburn'],
         skip_check=True,
         p0=params,
-        save_file=pdict['save_file'])
+        save_file=pdict['save_file'],
+        pdict=pdict)
 
     # Return
     if chains_only:
@@ -92,29 +142,9 @@ def fit_one(items:list, pdict:dict=None, chains_only:bool=False):
     else:
         return sampler, idx
 
-def init_mcmc(model:str, ndim:int, wave:np.ndarray,
-              nsteps:int=10000, nburn:int=1000):
-    """
-    Initializes the MCMC parameters.
 
-    Args:
-        emulator: The emulator model.
-        ndim (int): The number of dimensions.
-        priors (dict): The prior information (optional).
 
-    Returns:
-        dict: A dictionary containing the MCMC parameters.
-    """
-    pdict = dict(model=model)
-    pdict['nwalkers'] = max(16,ndim*2)
-    pdict['nsteps'] = nsteps
-    pdict['nburn'] = nburn
-    pdict['wave'] = wave
-    pdict['save_file'] = None
-    #
-    return pdict
-
-def log_prob(params, model:str, Rs, varRs):
+def log_prob(params, model:str, Rs:np.ndarray, varRs, pdict:dict):
     """
     Calculate the logarithm of the probability of the given parameters.
 
@@ -131,9 +161,8 @@ def log_prob(params, model:str, Rs, varRs):
     if np.any(params < priors[:,0]) or np.any(params > priors[:,1]):
         return -np.inf
 
-
     # Proceed
-    a, bb = calc_ab(model, params)
+    a, bb = calc_ab(model, params, pdict)
     u = bb / (a+bb)
     rrs = G1 * u + G2 * u*u
     pred = A_Rrs*rrs / (1 - B_Rrs*rrs)
@@ -151,7 +180,8 @@ def log_prob(params, model:str, Rs, varRs):
 def run_emcee(model:str, Rrs, varRrs, nwalkers:int=32, 
               nburn:int=1000,
               nsteps:int=20000, save_file:str=None, 
-              p0=None, skip_check:bool=False, ndim:int=None):
+              p0=None, skip_check:bool=False, ndim:int=None,
+              pdict:dict=None):
     """
     Run the emcee sampler for neural network inference.
 
@@ -200,7 +230,7 @@ def run_emcee(model:str, Rrs, varRrs, nwalkers:int=32,
     # Init
     sampler = emcee.EnsembleSampler(
         nwalkers, ndim, log_prob,
-        args=[model, Rrs, varRrs],
+        args=[model, Rrs, varRrs, pdict],
         backend=backend)#, pool=pool)
 
     # Burn in
