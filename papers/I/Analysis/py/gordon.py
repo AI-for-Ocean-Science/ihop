@@ -26,9 +26,13 @@ def prep_data(idx:int, scl_noise:float=0.02):
 
     # For bp
     rrs = Rrs / (fgordon.A_Rrs + fgordon.B_Rrs*Rrs)
-    i440 = np.argmin(np.abs(wave-440))
-    i555 = np.argmin(np.abs(wave-555))
+    i440 = np.argmin(np.abs(true_wave-440))
+    i555 = np.argmin(np.abs(true_wave-555))
     Y = 2.2 * (1 - 1.2 * np.exp(-0.9 * rrs[i440]/rrs[i555]))
+
+    # For aph
+    aph = ds.aph.data[idx,:]
+    Chl = aph[i440] / 0.05582
 
     # Cut down to 40 bands
     Rrs = Rrs[::2]
@@ -42,7 +46,7 @@ def prep_data(idx:int, scl_noise:float=0.02):
                  true_wave=true_wave, true_Rrs=true_Rrs,
                  bbw=ds.bb.data[idx,:]-ds.bbnw.data[idx,:],
                  aw=ds.a.data[idx,:]-ds.anw.data[idx,:],
-                 Y=Y)
+                 Y=Y, Chl=Chl)
 
     return odict
 
@@ -63,7 +67,7 @@ def fit_model(model:str, n_cores=20, idx:int=170,
     priors = fgordon.grab_priors(model)
     ndim = priors.shape[0]
     # Initialize the MCMC
-    pdict = fgordon.init_mcmc(model, ndim, wave, Y=odict['Y'],
+    pdict = fgordon.init_mcmc(model, ndim, wave, Y=odict['Y'], Chl=odict['Chl'],
                               nsteps=nsteps, nburn=nburn)
     
     # Hack for now
@@ -81,7 +85,7 @@ def fit_model(model:str, n_cores=20, idx:int=170,
     elif model == 'bp':
         scl = 5.
         p0_a = np.maximum(scl*a[::2] - aw[::2], 1e-5)
-        # Fit bnw 
+        # bbp
         bnw = 2*np.maximum(scl*bb[::2] - bbw[::2], 1e-5)
         i500 = np.argmin(np.abs(wave-500))
         p0_b = bnw[i500] 
@@ -91,7 +95,16 @@ def fit_model(model:str, n_cores=20, idx:int=170,
         scl = 1.
         anw = np.maximum(scl*a[::2] - aw[::2], 1e-5)
         p0_a = [anw[i400], 0.017] 
-        # Fit bnw 
+        # bbp
+        bnw = 2*np.maximum(scl*bb[::2] - bbw[::2], 1e-5)
+        p0_b = bnw[i500] 
+    elif model == 'giop':
+        i440 = np.argmin(np.abs(wave-440))
+        i500 = np.argmin(np.abs(wave-500))
+        scl = 1.
+        anw = np.maximum(scl*a[::2] - aw[::2], 1e-5)
+        p0_a = [anw[i440]/2., 0.017, anw[i440]/2.] 
+        # bbp
         bnw = 2*np.maximum(scl*bb[::2] - bbw[::2], 1e-5)
         p0_b = bnw[i500] 
     else:
@@ -204,6 +217,9 @@ def main(flg):
     if flg & (2**5): # 32
         fit_model('exppow', nsteps=10000, nburn=1000)
 
+    # GIOP-like:  adg, aph, bbp
+    if flg & (2**6): # 64
+        fit_model('giop', nsteps=10000, nburn=1000)
 
 # Command line execution
 if __name__ == '__main__':

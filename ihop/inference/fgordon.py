@@ -3,9 +3,11 @@
 import numpy as np
 
 import emcee
-from emcee import ensemble
+
+from scipy.interpolate import interp1d
 
 from oceancolor.hydrolight import loisel23
+from oceancolor.ph import absorption as ph_absorption
 
 from IPython import embed
 
@@ -21,7 +23,18 @@ bbw = ds.bb.data[0,:]-ds.bbnw.data[0,:]
 bbw = bbw[::2]
 aw = ds.a.data[0,:]-ds.anw.data[0,:]
 aw = aw[::2]
+ds_wave = ds.Lambda.data[::2]
 
+# Bricaud
+b1998 = ph_absorption.load_bricaud1998()
+
+# Interpolate
+f_b1998_A = interp1d(b1998['lambda'], b1998.Aphi, bounds_error=False, fill_value=0.)
+f_b1998_E = interp1d(b1998['lambda'], b1998.Ephi, bounds_error=False, fill_value=0.)
+
+# Apply
+L23_A = f_b1998_A(ds_wave)
+L23_E = f_b1998_E(ds_wave)
 
 def calc_ab(model:str, params:np.ndarray, pdict:dict):
     """
@@ -64,6 +77,19 @@ def calc_ab(model:str, params:np.ndarray, pdict:dict):
                        (550./pdict['wave'])**pdict['Y'])
         # Add water
         bb = bbp + bbw
+    elif model == 'giop':
+        # anw exponential
+        adg = np.outer(10**params[...,0], np.ones_like(pdict['wave'])) *\
+            np.exp(np.outer(-10**params[...,1],pdict['wave']-400.))
+        aph = np.outer(10**params[...,2], L23_A*pdict['Chl']**(L23_E))
+
+        a = adg + aph + aw
+                       
+        # Lee+2002
+        bbp = np.outer(10**params[...,-1],
+                       (550./pdict['wave'])**pdict['Y'])
+        # Add water
+        bb = bbp + bbw
     else:
         raise ValueError(f"Bad model: {model}")
     # Return
@@ -97,14 +123,19 @@ def calc_Rrs(a, bb, in_G1=None, in_G2=None):
     return Rrs
     
 def init_mcmc(model:str, ndim:int, wave:np.ndarray,
-              nsteps:int=10000, nburn:int=1000, Y:float=None):
+              nsteps:int=10000, nburn:int=1000, Y:float=None,
+              Chl:float=None):
     """
     Initializes the MCMC parameters.
 
     Args:
         emulator: The emulator model.
         ndim (int): The number of dimensions.
-        priors (dict): The prior information (optional).
+        nsteps (int, optional): The number of steps to run the sampler. Defaults to 10000.
+        nburn (int, optional): The number of steps to run the burn-in. Defaults to 1000.
+        wave (np.ndarray): The wavelengths.
+        Y (float, optional): The Y parameter for the bp model. Defaults to None.
+        Chl (float, optional): The chlorophyll value. Defaults to None.
 
     Returns:
         dict: A dictionary containing the MCMC parameters.
@@ -116,6 +147,7 @@ def init_mcmc(model:str, ndim:int, wave:np.ndarray,
     pdict['wave'] = wave
     pdict['Y'] = Y # for bp (Lee+2002)
     pdict['save_file'] = None
+    pdict['Chl'] = Chl # for aph (Brichaud+1995)
     #
     return pdict
 
@@ -127,6 +159,8 @@ def grab_priors(model:str):
         ndim = 42
     elif model in ['exppow']:
         ndim = 3
+    elif model in ['giop']:
+        ndim = 4
     else:
         raise ValueError(f"Bad model: {model}")
     # Return
