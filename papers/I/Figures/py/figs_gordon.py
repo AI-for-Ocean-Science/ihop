@@ -38,7 +38,7 @@ def fig_mcmc_fit(model:str, idx:int=170, chain_file=None,
     aw = odict['aw']
     bbw = odict['bbw']
     wave_true = odict['true_wave']
-    Rrs_true = odict['Rrs_true']
+    Rrs_true = odict['true_Rrs']
 
     # Interpolate
     aw_interp = np.interp(wave, wave_true, aw)

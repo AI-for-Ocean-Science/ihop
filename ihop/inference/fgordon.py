@@ -69,6 +69,33 @@ def calc_ab(model:str, params:np.ndarray, pdict:dict):
     # Return
     return a, bb
 
+def calc_Rrs(a, bb, in_G1=None, in_G2=None):
+    """
+    Calculates the Remote Sensing Reflectance (Rrs) using the given absorption (a) and backscattering (bb) coefficients.
+
+    Parameters:
+        a (float or array-like): Absorption coefficient.
+        bb (float or array-like): Backscattering coefficient.
+
+    Returns:
+        float or array-like: Remote Sensing Reflectance (Rrs) value.
+    """
+    # u
+    u = bb / (a+bb)
+    # rrs
+    if in_G1 is not None:
+        t1 = in_G1 * u
+    else: 
+        t1 = G1 * u
+    if in_G2 is not None:
+        t2 = in_G2 * u*u
+    else:
+        t2 = G2 * u*u
+    rrs = t1 + t2
+    # Done
+    Rrs = A_Rrs*rrs / (1 - B_Rrs*rrs)
+    return Rrs
+    
 def init_mcmc(model:str, ndim:int, wave:np.ndarray,
               nsteps:int=10000, nburn:int=1000, Y:float=None):
     """

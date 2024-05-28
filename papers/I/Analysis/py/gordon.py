@@ -18,7 +18,7 @@ def prep_data(idx:int, scl_noise:float=0.02):
 
     # Grab
     Rrs = ds.Rrs.data[idx,:]
-    Rrs_true = Rrs.copy()
+    true_Rrs = Rrs.copy()
     wave = ds.Lambda.data
     true_wave = ds.Lambda.data.copy()
     a = ds.a.data[idx,:]
@@ -39,7 +39,7 @@ def prep_data(idx:int, scl_noise:float=0.02):
 
     # Dict me
     odict = dict(wave=wave, Rrs=Rrs, varRrs=varRrs, a=a, bb=bb, 
-                 true_wave=true_wave, Rrs_true=Rrs_true,
+                 true_wave=true_wave, true_Rrs=true_Rrs,
                  bbw=ds.bb.data[idx,:]-ds.bbnw.data[idx,:],
                  aw=ds.a.data[idx,:]-ds.anw.data[idx,:],
                  Y=Y)
@@ -103,9 +103,7 @@ def fit_model(model:str, n_cores=20, idx:int=170,
 
     # Chk initial guess
     ca,cbb = fgordon.calc_ab(model, p0, pdict)
-    u = cbb/(ca+cbb)
-    rrs = fgordon.G1 * u + fgordon.G2 * u*u
-    pRrs = fgordon.A_Rrs*rrs / (1 - fgordon.B_Rrs*rrs)
+    pRrs = fgordon.calc_Rrs(ca, cbb)
     print(f'Initial Rrs guess: {np.mean((Rrs-pRrs)/Rrs)}')
     embed(header='100 of gordon')
 
