@@ -124,7 +124,7 @@ def one_spectrum(in_idx:int, ab, Chl, d_chains, d_a, d_bb, emulator,
 def all_spectra(decomps:tuple, Ncomps:tuple, 
                 hidden_list:list=[512, 512, 512, 256], 
                 dataset:str='L23', perc:int=None, 
-                use_log_ab:bool=False,
+                use_log_ab:bool=False, include_Chl:bool=True,
                 abs_sig:float=None, nchains:int=None,
                 X:int=4, Y:int=0, quick_and_dirty:bool=False):
 
@@ -141,7 +141,7 @@ def all_spectra(decomps:tuple, Ncomps:tuple,
     edict = emu_io.set_emulator_dict(
         dataset, decomps, Ncomps, 'Rrs',
         'dense', hidden_list=hidden_list, 
-        include_chl=True, X=X, Y=Y)
+        include_chl=include_Chl, X=X, Y=Y)
 
     ab, Chl, Rs, d_a, d_bb = ihop_io.load_l23_full(
         decomps, Ncomps)
@@ -180,7 +180,10 @@ def all_spectra(decomps:tuple, Ncomps:tuple,
     outputs['fit_Rrs_std'] = std_Rrs
 
     # Correct estimates
-    items = [ab[i].tolist()+[Chl[i]] for i in chain_idx]
+    if include_Chl:
+        items = [ab[i].tolist()+[Chl[i]] for i in chain_idx]
+    else:
+        items = [ab[i].tolist() for i in chain_idx]
     corr_Rrs = []
     for item in items:
         iRs = emulator.prediction(item, device)
@@ -217,7 +220,7 @@ def all_spectra(decomps:tuple, Ncomps:tuple,
         a_recons = []
         for idx in chain_idx:
             _, a_recon = rfunc(d_a[d_keys[decomps[0]]][idx], d_a, idx)
-            a_recons.append(a_recon)
+            a_recons.append(a_recon.flatten())
     outputs['decomp_a'] = np.array(a_recons)
     print("Done with a")
 
@@ -258,10 +261,12 @@ if __name__ == '__main__':
 
     #all_spectra(('nmf', 'nmf'), (2,2), abs_sig=None, quick_and_dirty=True,
     #            use_log_ab=True)#, nchains=300)
-    all_spectra(('nmf', 'nmf'), (3,2), abs_sig=None, quick_and_dirty=True,
-                use_log_ab=True)#, nchains=300)
+    #all_spectra(('nmf', 'nmf'), (3,2), abs_sig=None, quick_and_dirty=True,
+    #            use_log_ab=True)#, nchains=300)
     #all_spectra(('nmf', 'nmf'), (4,2), abs_sig=None, quick_and_dirty=True,
     #            use_log_ab=True)#, nchains=300)
+    all_spectra(('hyb', 'nmf'), (4,2), abs_sig=None, quick_and_dirty=True,
+        include_Chl=False, use_log_ab=True)#, nchains=300)
 
     # PCA with noise
     #all_spectra(('pca', 'pca'), (4,2), abs_sig=1., quick_and_dirty=True)#, nchains=500)

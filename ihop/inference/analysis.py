@@ -5,13 +5,10 @@ import numpy as np
 
 import torch
 
-from functools import partial
-from concurrent.futures import ProcessPoolExecutor
-from tqdm import tqdm
-
 from ihop.iops.decompose import reconstruct_nmf
 from ihop.iops.decompose import reconstruct_pca
 from ihop.iops.decompose import reconstruct_int
+from ihop.iops.decompose import reconstruct_hyb
 
 from IPython import embed
 
@@ -106,6 +103,8 @@ def calc_iop(iop_chains:np.ndarray, decomp:str, d_iop:dict):
         rfunc = reconstruct_nmf
     elif decomp == 'int':
         rfunc = reconstruct_int
+    elif decomp == 'hyb':
+        rfunc = reconstruct_hyb
     else:
         raise ValueError("Bad decomp")
 

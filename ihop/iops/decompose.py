@@ -4,6 +4,7 @@ import os
 import numpy as np
 
 from importlib import resources
+from importlib import reload
 
 from functools import partial
 
@@ -267,6 +268,7 @@ def reconstruct_int(Y:np.ndarray, int_dict:dict, idx:int,
             nchains, nfeatures or nfeatures
         int_dict (dict): A dictionary containing the Int transformation parameters.
         idx (int): The index of the data point to reconstruct.
+        single (bool): Whether to reconstruct a single chain. Defaults to False.
 
     Returns:
         tuple: A tuple containing the original data and its reconstructed version.
@@ -301,7 +303,7 @@ def reconstruct_hyb(Y:np.ndarray, hyb_dict:dict, idx:int):
 
     Args:
         Y (np.ndarray): The hybrid-encoded representation of the data point.
-        pca_dict (dict): A dictionary containing the NMF transformation parameters.
+        hyb_dict (dict): A dictionary containing the NMF transformation parameters.
         idx (int): The index of the data point to reconstruct.
 
     Returns:
@@ -310,20 +312,37 @@ def reconstruct_hyb(Y:np.ndarray, hyb_dict:dict, idx:int):
     # Grab the original
     orig = hyb_dict['data'][idx]
 
+    '''
+    if single:
+        raise ValueError("Not implemented")
+        #items = [(int_dict['new_wave'], Y, int_dict['wave'])]
+    else:
+        embed(header='reconstruct_hyb 319')
+        items = [(hyb_dict['wave'], Y[ichain,:])\
+             for ichain in range(Y.shape[0])]
+
     # Prep
     partial_func = partial(hybrid.a_func, 
                            W1=hyb_dict['W1'], 
                            W2=hyb_dict['W2'])
 
+    # Do it
+    with ProcessPoolExecutor(max_workers=n_cores) as executor:
+        chunksize = len(items) // n_cores if len(items) // n_cores > 0 else 1
+        recons = list(tqdm(executor.map(partial_func, items,
+                                            chunksize=chunksize), total=len(items)))
     # Reconstruct
     # TODO -- consider parallelizing
-    recons = []
-    for idx in range(Y.shape[0]):
-        recon = partial_func(hyb_dict['wave'], *Y[idx])
-        # Save
-        recons.append(recon)
+    #recons = []
+    #for idx in range(Y.shape[0]):
+    #    recon = partial_func(hyb_dict['wave'], *Y[idx])
+    #    # Save
+    #    recons.append(recon)
+    '''
+    recons = hybrid.a_func(hyb_dict['wave'], Y, 
+                           W1=hyb_dict['W1'], W2=hyb_dict['W2'])
 
-    return orig, np.array(recons)
+    return orig, recons
 
 def partial_int(items:list):
     # Unpack

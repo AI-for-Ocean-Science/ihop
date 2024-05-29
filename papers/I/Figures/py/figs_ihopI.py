@@ -599,7 +599,7 @@ def fig_summary_a(items:list, outfile:str,
 def fig_a_examples(decomps:tuple, Ncomps:tuple, outfile:str, 
                      abs_sigs:list, hidden_list:list=[512, 512, 512, 256], 
                      dataset:str='L23', X:int=4, Y:int=0,
-                     use_log_ab:bool=False,
+                     use_log_ab:bool=False, include_chl:bool=True,
                      skip_fits:bool=False, show_LS2:bool=False,
                      show_noiseless_error:bool=False,
                      show_absig_error:list=None):
@@ -612,7 +612,7 @@ def fig_a_examples(decomps:tuple, Ncomps:tuple, outfile:str,
     edict = emu_io.set_emulator_dict(
         dataset, decomps, Ncomps, 'Rrs',
         'dense', hidden_list=hidden_list, 
-        include_chl=True, X=X, Y=Y)
+        include_chl=include_chl, X=X, Y=Y)
 
     priors = None
     if use_log_ab:
@@ -1708,12 +1708,12 @@ def main(flg):
         #                 'fig_a_examples_nmf.png', [1.0, 2., 5.],
         #                 show_noiseless_error=True,
         #                 show_LS2=True)
-        fig_a_examples(('nmf', 'nmf'), (4,2), 
-                         'fig_a_examples_nmf.png', [2.],
-                         use_log_ab=True,
-                         show_noiseless_error=True,
-                         show_absig_error=[2.],
-                         show_LS2=True)
+        #fig_a_examples(('nmf', 'nmf'), (4,2), 
+        #                 'fig_a_examples_nmf.png', [2.],
+        #                 use_log_ab=True,
+        #                 show_noiseless_error=True,
+        #                 show_absig_error=[2.],
+        #                 show_LS2=True)
         #fig_a_examples(('pca', 'pca'), (4,2), 
         #                 'fig_a_examples.png', [1., 5.], skip_fits=True)
         #fig_a_examples(('npca', 'pca'), (4,2), 
@@ -1725,6 +1725,12 @@ def main(flg):
         #fig_a_examples(('npca', 'pca'), (4,2), 
         #                 'fig_a_examples_npca.png', [1., 5.],
         #                 skip_fits=True)
+        fig_a_examples(('hyb', 'nmf'), (4,2), 
+                         'fig_a_examples_hyb.png', [],
+                         include_chl=False,
+                         use_log_ab=True,
+                         show_noiseless_error=True)
+                         #show_absig_error=[2.],
 
     # RMSE of a
     if flg & (2**30):
@@ -1785,14 +1791,14 @@ if __name__ == '__main__':
         #flg += 2 ** 2  # Single MCMC fit (example)
 
         #flg += 2 ** 22  # RMSE of L23 fits
-        flg += 2 ** 23  # Fit corner
+        #flg += 2 ** 23  # Fit corner
         #flg += 2 ** 24  # NMF corner plots (decomposition only)
 
         #flg += 2 ** 26  # Decompose error
 
         #flg += 2 ** 27  # RMSE on Rrs and a
         #flg += 2 ** 28  # RMSE on a vs. abs_sig
-        #flg += 2 ** 29  # Examples
+        flg += 2 ** 29  # Examples
 
         #flg += 2 ** 2  # 4 -- Indiv
         #flg += 2 ** 3  # 8 -- Coeff
