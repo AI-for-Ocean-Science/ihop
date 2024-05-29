@@ -92,20 +92,20 @@ def fit_model(model:str, n_cores=20, idx:int=170,
     elif model == 'exppow':
         i400 = np.argmin(np.abs(wave-400))
         i500 = np.argmin(np.abs(wave-500))
-        scl = 1.
+        scl = 5.
         anw = np.maximum(scl*a[::2] - aw[::2], 1e-5)
         p0_a = [anw[i400], 0.017] 
         # bbp
-        bnw = 2*np.maximum(scl*bb[::2] - bbw[::2], 1e-5)
+        bnw = np.maximum(scl*bb[::2] - bbw[::2], 1e-5)
         p0_b = bnw[i500] 
     elif model == 'giop':
         i440 = np.argmin(np.abs(wave-440))
         i500 = np.argmin(np.abs(wave-500))
-        scl = 1.
+        scl = 5.
         anw = np.maximum(scl*a[::2] - aw[::2], 1e-5)
         p0_a = [anw[i440]/2., 0.017, anw[i440]/2.] 
         # bbp
-        bnw = 2*np.maximum(scl*bb[::2] - bbw[::2], 1e-5)
+        bnw = np.maximum(scl*bb[::2] - bbw[::2], 1e-5)
         p0_b = bnw[i500] 
     else:
         raise ValueError(f"51 of gordon.py -- Deal with this model: {model}")
@@ -114,15 +114,18 @@ def fit_model(model:str, n_cores=20, idx:int=170,
                          np.log10(np.atleast_1d(p0_b))))
     #p0 = np.concatenate([p0_a, p0_b])
 
+    # Gordon Rrs
+    gordon_Rrs = fgordon.calc_Rrs(odict['a'][::2], odict['bb'][::2])
+
     # Chk initial guess
     ca,cbb = fgordon.calc_ab(model, p0, pdict)
     pRrs = fgordon.calc_Rrs(ca, cbb)
-    print(f'Initial Rrs guess: {np.mean((Rrs-pRrs)/Rrs)}')
-    embed(header='100 of gordon')
+    print(f'Initial Rrs guess: {np.mean((gordon_Rrs-pRrs)/gordon_Rrs)}')
 
     # Set the items
     #items = [(Rrs, varRrs, None, idx)]
-    items = [(Rrs, varRrs, p0, idx)]
+    #items = [(Rrs, varRrs, p0, idx)]
+    items = [(gordon_Rrs, varRrs, p0, idx)]
 
     # Test
     chains, idx = fgordon.fit_one(items[0], pdict=pdict, chains_only=True)
@@ -219,7 +222,7 @@ def main(flg):
 
     # GIOP-like:  adg, aph, bbp
     if flg & (2**6): # 64
-        fit_model('giop', nsteps=10000, nburn=1000)
+        fit_model('giop', nsteps=20000, nburn=2000)
 
 # Command line execution
 if __name__ == '__main__':

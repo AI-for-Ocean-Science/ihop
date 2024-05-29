@@ -36,6 +36,10 @@ f_b1998_E = interp1d(b1998['lambda'], b1998.Ephi, bounds_error=False, fill_value
 L23_A = f_b1998_A(ds_wave)
 L23_E = f_b1998_E(ds_wave)
 
+# Normalize at 440
+iwave = np.argmin(np.abs(ds_wave-440))
+L23_A /= L23_A[iwave]
+
 def calc_ab(model:str, params:np.ndarray, pdict:dict):
     """
     Calculate the a and b values from the input parameters.

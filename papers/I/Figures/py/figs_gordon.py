@@ -8,6 +8,8 @@ import matplotlib as mpl
 import matplotlib.gridspec as gridspec
 mpl.rcParams['font.family'] = 'stixgeneral'
 
+import corner
+
 from oceancolor.utils import plotting 
 from oceancolor.water import absorption
 
@@ -40,13 +42,15 @@ def fig_mcmc_fit(model:str, idx:int=170, chain_file=None,
     wave_true = odict['true_wave']
     Rrs_true = odict['true_Rrs']
 
+    gordon_Rrs = fgordon.calc_Rrs(odict['a'][::2], odict['bb'][::2])
+
     # Interpolate
     aw_interp = np.interp(wave, wave_true, aw)
     bbw_interp = np.interp(wave, wave_true, bbw)
 
-    # Reconstruct
+    # Reconstruc
     pdict = fgordon.init_mcmc(model, d_chains['chains'].shape[-1], 
-                              wave, Y=odict['Y'])
+                              wave, Y=odict['Y'], Chl=odict['Chl'])
     a_mean, bb_mean, a_5, a_95, bb_5, bb_95,\
         model_Rrs, sigRs = gordon.reconstruct(
         model, d_chains['chains'], pdict) 
@@ -120,7 +124,8 @@ def fig_mcmc_fit(model:str, idx:int=170, chain_file=None,
     # #########################################################
     # Rs
     ax_R = plt.subplot(gs[2])
-    ax_R.plot(wave_true, Rrs_true, 'kx', label='True')
+    ax_R.plot(wave_true, Rrs_true, 'kx', label='True L23')
+    ax_R.plot(wave, gordon_Rrs, 'ko', label='L23 + Gordon')
     ax_R.plot(wave, model_Rrs, 'r-', label='Fit', zorder=10)
     ax_R.fill_between(wave, model_Rrs-sigRs, model_Rrs+sigRs, 
             color='r', alpha=0.5, zorder=10) 
@@ -141,6 +146,36 @@ def fig_mcmc_fit(model:str, idx:int=170, chain_file=None,
     plt.savefig(outfile, dpi=300)
     print(f"Saved: {outfile}")
 
+
+def fig_corner(model, outroot:str='fig_gordon_corner', idx:int=170,
+        chain_file:str=None): 
+
+    if chain_file is None:
+        chain_file = f'../Analysis/Fits/FGordon_{model}_170.npz'
+    d_chains = inf_io.load_chains(chain_file)
+
+    # Outfile
+    outfile = outroot + f'_{model}_{idx}.png'
+
+    burn = 7000
+    thin = 1
+    chains = d_chains['chains']
+    coeff = 10**(chains[burn::thin, :, :].reshape(-1, chains.shape[-1]))
+
+    fig = corner.corner(
+        coeff, #labels=clbls,
+        label_kwargs={'fontsize':17},
+        color='k',
+        #axes_scale='log',
+        #truths=truths,
+        show_titles=True,
+        title_kwargs={"fontsize": 12},
+        )
+
+    plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
+    plt.savefig(outfile, dpi=300)
+    print(f"Saved: {outfile}")
+
 def main(flg):
     if flg== 'all':
         flg= np.sum(np.array([2 ** ii for ii in range(25)]))
@@ -148,24 +183,32 @@ def main(flg):
         flg= int(flg)
 
     # Indiv
-    if flg & (2**0):
+    if flg == 1:
         fig_mcmc_fit('Indiv')
 
     # bbwater
-    if flg & (2**1):
+    if flg == 2:
         fig_mcmc_fit('bbwater')
 
     # water
-    if flg & (2**2):
+    if flg == 3:
         fig_mcmc_fit('water')
 
     # water
-    if flg & (2**3): # 8
+    if flg == 4:
         fig_mcmc_fit('bp')
 
     # exppow
-    if flg & (2**4): # 16
+    if flg == 5:
         fig_mcmc_fit('exppow')
+
+    # GIOP
+    if flg == 6:
+        fig_mcmc_fit('giop')
+
+    # GIOP
+    if flg == 7:
+        fig_corner('giop')
 
 
 
@@ -176,8 +219,7 @@ if __name__ == '__main__':
     if len(sys.argv) == 1:
         flg = 0
 
-        #flg += 2 ** 0  # Basis functions of the decomposition
-        #flg += 2 ** 1  # RMSE of emulators
+        #flg = 1
         
     else:
         flg = sys.argv[1]
