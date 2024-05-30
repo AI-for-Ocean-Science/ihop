@@ -222,7 +222,7 @@ def main(flg):
 
     # GIOP-like:  adg, aph, bbp
     if flg & (2**6): # 64
-        fit_model('giop', nsteps=20000, nburn=2000)
+        fit_model('giop', nsteps=40000, nburn=4000)
 
 # Command line execution
 if __name__ == '__main__':

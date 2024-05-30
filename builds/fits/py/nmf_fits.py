@@ -423,6 +423,44 @@ def main(flg):
         fit(edict, n_cores=n_cores, abs_sig=abs_sig, 
             use_log_ab=True, use_NMF_pos=False)#, debug=True)
 
+    # HYB, 4,2, absig=2 , use_log_ab
+    if flg == 21:
+
+        # Emulator
+        hidden_list=[512, 512, 512, 256]
+        decomps = ('hyb', 'nmf')
+        Ncomps = (4,2)
+        X, Y = 4, 0
+        n_cores = 20
+        dataset = 'L23'
+        abs_sig = 2.
+        edict = emu_io.set_emulator_dict(
+            dataset, decomps, Ncomps, 'Rrs',
+            'dense', hidden_list=hidden_list, 
+            include_chl=False, X=X, Y=Y)
+
+        fit(edict, n_cores=n_cores, abs_sig=abs_sig, 
+            use_log_ab=True, use_NMF_pos=False)#, debug=True)
+
+    # HYB, 4,2, absig=PACE , use_log_ab
+    if flg == 22:
+
+        # Emulator
+        hidden_list=[512, 512, 512, 256]
+        decomps = ('hyb', 'nmf')
+        Ncomps = (4,2)
+        X, Y = 4, 0
+        n_cores = 20
+        dataset = 'L23'
+        abs_sig = 'PACE'
+        edict = emu_io.set_emulator_dict(
+            dataset, decomps, Ncomps, 'Rrs',
+            'dense', hidden_list=hidden_list, 
+            include_chl=False, X=X, Y=Y)
+
+        fit(edict, n_cores=n_cores, abs_sig=abs_sig, 
+            use_log_ab=True, use_NMF_pos=False)#, debug=True)
+
 
 # Command line execution
 if __name__ == '__main__':
@@ -454,7 +492,7 @@ if __name__ == '__main__':
         #flg += 2 ** 30  # 16 -- L23 + NMF 4,2
         #flg += 2 ** 31  # 16 -- L23 + NMF 4,2
         #flg += 2 ** 32  # 16 -- L23 + NMF 4,2
-        flg += 2 ** 33  # 16 -- L23 + NMF 2,2
+        #flg += 2 ** 33  # 16 -- L23 + NMF 2,2
 
         
     else:

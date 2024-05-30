@@ -24,7 +24,8 @@ import gordon
 
 # ############################################################
 def fig_mcmc_fit(model:str, idx:int=170, chain_file=None,
-                 outroot='fig_gordon_fit'): 
+                 outroot='fig_gordon_fit', show_bbnw:bool=False,
+                 set_abblim:bool=True): 
 
     if chain_file is None:
         chain_file = f'../Analysis/Fits/FGordon_{model}_170.npz'
@@ -39,6 +40,7 @@ def fig_mcmc_fit(model:str, idx:int=170, chain_file=None,
     bb_true = odict['bb']
     aw = odict['aw']
     bbw = odict['bbw']
+    bbnw = bb_true - bbw
     wave_true = odict['true_wave']
     Rrs_true = odict['true_Rrs']
 
@@ -102,23 +104,34 @@ def fig_mcmc_fit(model:str, idx:int=170, chain_file=None,
     #    ax_a.set_ylabel(r'$a_{\rm nw}(\lambda) \; [{\rm m}^{-1}]$')
 
     #ax_anw.legend(fontsize=lgsz)
-    ax_anw.set_ylim(bottom=0., top=2*(a_true-aw).max())
+    if set_abblim:
+        ax_anw.set_ylim(bottom=0., top=2*(a_true-aw).max())
     #ax_a.tick_params(labelbottom=False)  # Hide x-axis labels
 
 
     # #########################################################
     # b
     ax_bb = plt.subplot(gs[3])
-    ax_bb.plot(wave_true, bb_true, 'ko', label='True')
-    ax_bb.plot(wave, bb_mean, 'g-', label='Retrieval')
-    ax_bb.fill_between(wave, bb_5, bb_95,
+    if show_bbnw:
+        use_bbw = bbw[::2]
+        show_bb = bbnw
+    else:
+        use_bbw = 0.
+        show_bb = bbnw
+    ax_bb.plot(wave_true, show_bb, 'ko', label='True')
+    ax_bb.plot(wave, bb_mean-use_bbw, 'g-', label='Retrieval')
+    ax_bb.fill_between(wave, bb_5-use_bbw, bb_95-use_bbw,
             color='g', alpha=0.5, label='Uncertainty') 
 
     #ax_bb.set_xlabel('Wavelength (nm)')
-    ax_bb.set_ylabel(r'$b_b(\lambda) \; [{\rm m}^{-1}]$')
+    if show_bbnw:
+        ax_bb.set_ylabel(r'$b_bnw(\lambda) \; [{\rm m}^{-1}]$')
+    else:
+        ax_bb.set_ylabel(r'$b_b(\lambda) \; [{\rm m}^{-1}]$')
 
     ax_bb.legend(fontsize=lgsz)
-    ax_bb.set_ylim(bottom=0., top=2*bb_true.max())
+    if set_abblim:
+        ax_bb.set_ylim(bottom=0., top=2*bb_true.max())
 
 
     # #########################################################
@@ -204,7 +217,7 @@ def main(flg):
 
     # GIOP
     if flg == 6:
-        fig_mcmc_fit('giop')
+        fig_mcmc_fit('giop', show_bbnw=True, set_abblim=False)
 
     # GIOP
     if flg == 7:

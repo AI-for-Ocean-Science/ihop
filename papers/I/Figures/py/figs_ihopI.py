@@ -1726,11 +1726,11 @@ def main(flg):
         #                 'fig_a_examples_npca.png', [1., 5.],
         #                 skip_fits=True)
         fig_a_examples(('hyb', 'nmf'), (4,2), 
-                         'fig_a_examples_hyb.png', [],
+                         'fig_a_examples_hyb.png', [2.],
                          include_chl=False,
                          use_log_ab=True,
-                         show_noiseless_error=True)
-                         #show_absig_error=[2.],
+                         show_noiseless_error=True,
+                         show_absig_error=[2.])
 
     # RMSE of a
     if flg & (2**30):
