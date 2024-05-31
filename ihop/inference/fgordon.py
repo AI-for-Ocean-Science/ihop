@@ -94,6 +94,19 @@ def calc_ab(model:str, params:np.ndarray, pdict:dict):
                        (550./pdict['wave'])**pdict['Y'])
         # Add water
         bb = bbp + bbw
+    elif model == 'giop+':
+        # anw exponential
+        adg = np.outer(10**params[...,0], np.ones_like(pdict['wave'])) *\
+            np.exp(np.outer(-10**params[...,1],pdict['wave']-400.))
+        aph = np.outer(10**params[...,2], L23_A*pdict['Chl']**(L23_E))
+
+        a = adg + aph + aw
+                       
+        # Power-law with free exponent
+        bbp = np.outer(10**params[...,3], np.ones_like(pdict['wave'])) *\
+                       (550./pdict['wave'])**(10**params[...,4]).reshape(-1,1)
+        # Add water
+        bb = bbp + bbw
     else:
         raise ValueError(f"Bad model: {model}")
     # Return
@@ -161,10 +174,12 @@ def grab_priors(model:str):
         ndim = 82
     elif model in ['bp']:
         ndim = 42
-    elif model in ['exppow']:
+    elif model == 'exppow':
         ndim = 3
-    elif model in ['giop']:
+    elif model == 'giop':
         ndim = 4
+    elif model == 'giop+':
+        ndim = 5
     else:
         raise ValueError(f"Bad model: {model}")
     # Return

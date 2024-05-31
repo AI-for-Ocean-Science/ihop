@@ -223,6 +223,10 @@ def main(flg):
     if flg == 7:
         fig_corner('giop')
 
+    # GIOP+
+    if flg == 8:
+        fig_mcmc_fit('giop+', show_bbnw=True, set_abblim=False)
+
 
 
 # Command line execution
