@@ -1726,7 +1726,7 @@ def main(flg):
         #                 'fig_a_examples_npca.png', [1., 5.],
         #                 skip_fits=True)
         fig_a_examples(('hyb', 'nmf'), (4,2), 
-                         'fig_a_examples_hyb.png', [2.],
+                         'fig_a_examples_hyb.png', [2., 99],
                          include_chl=False,
                          use_log_ab=True,
                          show_noiseless_error=True,
