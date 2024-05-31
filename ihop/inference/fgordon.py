@@ -9,6 +9,8 @@ from scipy.interpolate import interp1d
 from oceancolor.hydrolight import loisel23
 from oceancolor.ph import absorption as ph_absorption
 
+from ihop.iops import io as iops_io
+
 from IPython import embed
 
 # Conversion from rrs to Rrs
@@ -25,6 +27,7 @@ aw = ds.a.data[0,:]-ds.anw.data[0,:]
 aw = aw[::2]
 ds_wave = ds.Lambda.data[::2]
 
+# ##################################
 # Bricaud
 b1998 = ph_absorption.load_bricaud1998()
 
@@ -39,6 +42,14 @@ L23_E = f_b1998_E(ds_wave)
 # Normalize at 440
 iwave = np.argmin(np.abs(ds_wave-440))
 L23_A /= L23_A[iwave]
+
+# ##################################
+# NMF for aph
+# Load the decomposition of aph
+aph_file = iops_io.loisel23_filename('nmf', 'aph', 2, 4, 0)
+d_aph = np.load(aph_file)
+NMF_W1=d_aph['M'][0][::2]
+NMF_W2=d_aph['M'][1][::2]
 
 def calc_ab(model:str, params:np.ndarray, pdict:dict):
     """
@@ -82,9 +93,10 @@ def calc_ab(model:str, params:np.ndarray, pdict:dict):
         # Add water
         bb = bbp + bbw
     elif model == 'giop':
-        # anw exponential
+        # adg exponential
         adg = np.outer(10**params[...,0], np.ones_like(pdict['wave'])) *\
             np.exp(np.outer(-10**params[...,1],pdict['wave']-400.))
+        # aph Briaud
         aph = np.outer(10**params[...,2], L23_A*pdict['Chl']**(L23_E))
 
         a = adg + aph + aw
@@ -92,6 +104,33 @@ def calc_ab(model:str, params:np.ndarray, pdict:dict):
         # Lee+2002
         bbp = np.outer(10**params[...,-1],
                        (550./pdict['wave'])**pdict['Y'])
+        # Add water
+        bb = bbp + bbw
+    elif model == 'giop+':
+        # adg exponential
+        adg = np.outer(10**params[...,0], np.ones_like(pdict['wave'])) *\
+            np.exp(np.outer(-10**params[...,1],pdict['wave']-400.))
+        # aph Briaud
+        aph = np.outer(10**params[...,2], L23_A*pdict['Chl']**(L23_E))
+
+        a = adg + aph + aw
+                       
+        # Power-law with free exponent
+        bbp = np.outer(10**params[...,3], np.ones_like(pdict['wave'])) *\
+                       (550./pdict['wave'])**(10**params[...,4]).reshape(-1,1)
+        # Add water
+        bb = bbp + bbw
+    elif model == 'hybpow':
+        # adg exponent
+        adg = np.outer(10**params[...,0], np.ones_like(pdict['wave'])) *\
+            np.exp(np.outer(-10**params[...,1],pdict['wave']-400.))
+        aph = np.outer(10**params[...,2], NMF_W1) + np.outer(10**params[...,3], NMF_W2)
+
+        a = adg + aph + aw
+                       
+        # Power-law with free exponent
+        bbp = np.outer(10**params[...,4], np.ones_like(pdict['wave'])) *\
+                       (550./pdict['wave'])**(10**params[...,5]).reshape(-1,1)
         # Add water
         bb = bbp + bbw
     else:
@@ -161,10 +200,14 @@ def grab_priors(model:str):
         ndim = 82
     elif model in ['bp']:
         ndim = 42
-    elif model in ['exppow']:
+    elif model == 'exppow':
         ndim = 3
-    elif model in ['giop']:
+    elif model == 'giop':
         ndim = 4
+    elif model == 'giop+':
+        ndim = 5
+    elif model == 'hybpow':
+        ndim = 6
     else:
         raise ValueError(f"Bad model: {model}")
     # Return
