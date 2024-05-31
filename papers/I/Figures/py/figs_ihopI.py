@@ -1730,7 +1730,7 @@ def main(flg):
                          include_chl=False,
                          use_log_ab=True,
                          show_noiseless_error=True,
-                         show_absig_error=[2.])
+                         show_absig_error=[2., 99])
 
     # RMSE of a
     if flg & (2**30):
