@@ -116,6 +116,15 @@ def fit_model(model:str, n_cores=20, idx:int=170,
         # bbp
         bnw = np.maximum(scl*bb[::2] - bbw[::2], 1e-5)
         p0_b = [bnw[i500], odict['Y']]
+    elif model == 'hybpow':
+        i440 = np.argmin(np.abs(wave-440))
+        i500 = np.argmin(np.abs(wave-500))
+        scl = 5.
+        anw = np.maximum(scl*a[::2] - aw[::2], 1e-5)
+        p0_a = [anw[i440]/2., 0.017, anw[i440]/4., anw[i440]/4.] 
+        # bbp
+        bnw = np.maximum(scl*bb[::2] - bbw[::2], 1e-5)
+        p0_b = [bnw[i500], odict['Y']]
     else:
         raise ValueError(f"51 of gordon.py -- Deal with this model: {model}")
 
@@ -236,6 +245,10 @@ def main(flg):
     # GIOP-like:  adg, aph, bbp
     if flg & (2**7): # 128
         fit_model('giop+', nsteps=10000, nburn=1000)
+
+    # NMF aph
+    if flg & (2**8): # 256
+        fit_model('hybpow', nsteps=10000, nburn=1000)
 
 
 # Command line execution
