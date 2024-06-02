@@ -6,11 +6,11 @@ import numpy as np
 from oceancolor.hydrolight import loisel23
 
 from ihop.inference import fgordon
-from ihop.inference import fitting
+from ihop.inference import noise
 
 from IPython import embed
 
-def prep_data(idx:int, scl_noise:float=0.02):
+def prep_data(idx:int, scl_noise:float=0.02, add_noise:bool=False):
     """ Prepare the data for the Gordon analysis """
 
     # Load
@@ -51,9 +51,11 @@ def prep_data(idx:int, scl_noise:float=0.02):
     return odict
 
 def fit_model(model:str, n_cores=20, idx:int=170, 
-              nsteps:int=10000, nburn:int=1000):
+              nsteps:int=10000, nburn:int=1000, scl_noise:float=0.02,
+              add_noise:bool=False):
 
-    odict = prep_data(idx)
+    odict = prep_data(idx, scl_noise=scl_noise, add_noise=add_noise)
+
     # Unpack
     wave = odict['wave']
     Rrs = odict['Rrs']
@@ -134,6 +136,8 @@ def fit_model(model:str, n_cores=20, idx:int=170,
 
     # Gordon Rrs
     gordon_Rrs = fgordon.calc_Rrs(odict['a'][::2], odict['bb'][::2])
+    if add_noise:
+        gordon_Rrs = noise.add_noise(gordon_Rrs, perc=scl_noise*100)
 
     # Chk initial guess
     ca,cbb = fgordon.calc_ab(model, p0, pdict)
@@ -150,7 +154,11 @@ def fit_model(model:str, n_cores=20, idx:int=170,
     
     # Save
     outfile = f'FGordon_{model}_170'
-    save_fits(chains, idx, outfile)
+    if add_noise:
+        # Add noise to the outfile with padding of 2
+        outfile += f'_n{int(100*scl_noise):02d}'
+    save_fits(chains, idx, outfile,
+              extras=dict(wave=wave, obs_Rrs=gordon_Rrs, varRrs=varRrs))
 
 def reconstruct(model:str, chains, pdict:dict, burn=7000, thin=1):
     # Burn the chains
@@ -250,6 +258,10 @@ def main(flg):
     if flg & (2**8): # 256
         fit_model('hybpow', nsteps=10000, nburn=1000)
 
+    # NMF aph with 7% noise
+    if flg & (2**9): # 512
+        fit_model('hybpow', nsteps=80000, nburn=8000,
+                  scl_noise=0.07, add_noise=True)
 
 # Command line execution
 if __name__ == '__main__':

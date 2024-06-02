@@ -21,14 +21,16 @@ sys.path.append(os.path.abspath("../Analysis/py"))
 import gordon
 
 
+from IPython import embed
 
 # ############################################################
 def fig_mcmc_fit(model:str, idx:int=170, chain_file=None,
                  outroot='fig_gordon_fit', show_bbnw:bool=False,
-                 set_abblim:bool=True): 
+                 set_abblim:bool=True, scl_noise:float=None): 
 
     if chain_file is None:
-        chain_file = f'../Analysis/Fits/FGordon_{model}_170.npz'
+        noises = '' if scl_noise is None else f'_n{int(100*scl_noise):02d}'
+        chain_file = f'../Analysis/Fits/FGordon_{model}_170{noises}.npz'
     d_chains = inf_io.load_chains(chain_file)
 
     # Load the data
@@ -143,6 +145,9 @@ def fig_mcmc_fit(model:str, idx:int=170, chain_file=None,
     ax_R.fill_between(wave, model_Rrs-sigRs, model_Rrs+sigRs, 
             color='r', alpha=0.5, zorder=10) 
 
+    if scl_noise is not None:
+        ax_R.plot(d_chains['wave'], d_chains['obs_Rrs'], 'bs', label='Observed')
+
     ax_R.set_ylabel(r'$R_{rs}(\lambda) \; [10^{-4} \, {\rm sr}^{-1}$]')
     ax_R.set_ylim(bottom=0., top=1.1*Rrs_true.max())
 
@@ -161,10 +166,11 @@ def fig_mcmc_fit(model:str, idx:int=170, chain_file=None,
 
 
 def fig_corner(model, outroot:str='fig_gordon_corner', idx:int=170,
-        chain_file:str=None): 
+        chain_file:str=None, scl_noise:float=None): 
 
     if chain_file is None:
-        chain_file = f'../Analysis/Fits/FGordon_{model}_170.npz'
+        noises = '' if scl_noise is None else f'_n{int(100*scl_noise):02d}'
+        chain_file = f'../Analysis/Fits/FGordon_{model}_170{noises}.npz'
     d_chains = inf_io.load_chains(chain_file)
 
     # Outfile
@@ -175,8 +181,13 @@ def fig_corner(model, outroot:str='fig_gordon_corner', idx:int=170,
     chains = d_chains['chains']
     coeff = 10**(chains[burn::thin, :, :].reshape(-1, chains.shape[-1]))
 
+    if model == 'hybpow':
+        clbls = ['H0', 'g', 'H1', 'H2', 'B1', 'b']
+    else:
+        clbls = None
+
     fig = corner.corner(
-        coeff, #labels=clbls,
+        coeff, labels=clbls,
         label_kwargs={'fontsize':17},
         color='k',
         #axes_scale='log',
@@ -231,6 +242,14 @@ def main(flg):
     if flg == 9:
         fig_mcmc_fit('hybpow', show_bbnw=True, set_abblim=False)
 
+    # NMF aph + power-law bb + 7% noise
+    if flg == 10:
+        fig_mcmc_fit('hybpow', show_bbnw=True, set_abblim=False,
+                     scl_noise=0.07)
+
+    # HybPow with noise
+    if flg == 11:
+        fig_corner('hybpow', scl_noise=0.07)
 
 
 # Command line execution
