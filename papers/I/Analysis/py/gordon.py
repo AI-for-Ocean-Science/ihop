@@ -242,7 +242,7 @@ def main(flg):
     if flg & (2**6): # 64
         fit_model('giop', nsteps=40000, nburn=4000)
 
-    # GIOP-like:  adg, aph, bbp
+    # GIOP-like:  adg, aph Bricaud, bbp with free exponent
     if flg & (2**7): # 128
         fit_model('giop+', nsteps=10000, nburn=1000)
 
