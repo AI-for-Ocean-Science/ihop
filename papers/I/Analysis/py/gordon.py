@@ -121,7 +121,7 @@ def fit_model(model:str, n_cores=20, idx:int=170,
     elif model == 'hybpow':
         i440 = np.argmin(np.abs(wave-440))
         i500 = np.argmin(np.abs(wave-500))
-        scl = 5.
+        scl = 1.
         anw = np.maximum(scl*a[::2] - aw[::2], 1e-5)
         p0_a = [anw[i440]/2., 0.017, anw[i440]/4., anw[i440]/4.] 
         # bbp
@@ -265,7 +265,7 @@ def main(flg):
 
     # NMF aph
     if flg & (2**8): # 256
-        fit_model('hybpow', nsteps=50000, nburn=5000)
+        fit_model('hybpow', nsteps=80000, nburn=8000)
 
     # NMF aph with 7% noise
     if flg & (2**9): # 512

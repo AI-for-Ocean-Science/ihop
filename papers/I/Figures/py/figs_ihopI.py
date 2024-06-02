@@ -110,15 +110,25 @@ def fig_basis_functions(decomps:tuple,
                             ax=ax, lw=2)#, drawstyle='steps-pre')
 
         # Now the rest
-        M = d['M']
+        if decomps[ss] == 'hyb':
+            #embed(header='114 of figs ihop')
+            M = np.concatenate([d['W1'], d['W2']]).reshape(2, d['W1'].size)
+            spec = d['data']
+            coeff = d['coeff'][:,2:]
+            Ncomp = 2
+        else:
+            M = d['M']
+            spec = d['spec']
+            coeff = d['coeff']
+            Ncomp = Ncomps[ss]
         # Variance
-        if decomps[ss] == 'nmf':
+        if decomps[ss] in ['nmf', 'hyb']:
             evar_i = cnmf_stats.evar_computation(
-                d['spec'], d['coeff'], d['M'])
+                spec, coeff, M)
         else:
             evar_i = np.sum(d['explained_variance'])
         # Plot
-        for ii in range(Ncomps[ss]):
+        for ii in range(Ncomp):
             # Normalize
             if norm:
                 iwv = np.argmin(np.abs(wave-440.))
@@ -1540,12 +1550,14 @@ def main(flg):
         #fig_emulator_rmse('L23_PCA')
         #fig_basis_functions(('nmf', 'nmf'), in_Ncomps=(2,2),
         #                    outfile='fig_basis_functions_nmf_22.png')
-        fig_basis_functions(('nmf', 'nmf'), in_Ncomps=(3,2),
-                            outfile='fig_basis_functions_nmf_32.png')
+        #fig_basis_functions(('nmf', 'nmf'), in_Ncomps=(3,2),
+        #                    outfile='fig_basis_functions_nmf_32.png')
         #fig_basis_functions(('pca', 'pca'),
         #                    outfile='fig_basis_functions_pca.png')
         #fig_basis_functions(('npca', 'npca'), in_Ncomps=(4,2),
         #                    outfile='fig_basis_functions_npca.png')
+        fig_basis_functions(('hyb', 'nmf'), in_Ncomps=(4,2),
+                            outfile='fig_basis_functions_hybnmf_22.png')
 
     # Emulator RMSE
     if flg & (2**1):
