@@ -51,6 +51,13 @@ d_aph = np.load(aph_file)
 NMF_W1=d_aph['M'][0][::2]
 NMF_W2=d_aph['M'][1][::2]
 
+# ##################################
+# NMF for bb
+bb_file = iops_io.loisel23_filename('nmf', 'bb', 2, 4, 0)
+d_bb = np.load(bb_file)
+NMF_bbW1=d_bb['M'][0][::2]
+NMF_bbW2=d_bb['M'][1][::2]
+
 def calc_ab(model:str, params:np.ndarray, pdict:dict):
     """
     Calculate the a and b values from the input parameters.
@@ -133,6 +140,21 @@ def calc_ab(model:str, params:np.ndarray, pdict:dict):
                        (550./pdict['wave'])**(10**params[...,5]).reshape(-1,1)
         # Add water
         bb = bbp + bbw
+    elif model == 'hybnmf':
+        # adg exponent
+        adg = np.outer(10**params[...,0], np.ones_like(pdict['wave'])) *\
+            np.exp(np.outer(-10**params[...,1],pdict['wave']-400.))
+        aph = np.outer(10**params[...,2], NMF_W1) +\
+            np.outer(10**params[...,3], NMF_W2)
+
+        a = adg + aph + aw
+                       
+        # NMF bb
+        bnw = np.outer(10**params[...,4], NMF_bbW1) +\
+            np.outer(10**params[...,5], NMF_bbW2)
+
+        # Add water
+        bb = bnw + bbw
     else:
         raise ValueError(f"Bad model: {model}")
     # Return
@@ -207,6 +229,8 @@ def grab_priors(model:str):
     elif model == 'giop+':
         ndim = 5
     elif model == 'hybpow':
+        ndim = 6
+    elif model == 'hybnmf':
         ndim = 6
     else:
         raise ValueError(f"Bad model: {model}")

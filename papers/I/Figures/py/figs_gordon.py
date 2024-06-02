@@ -183,6 +183,8 @@ def fig_corner(model, outroot:str='fig_gordon_corner', idx:int=170,
 
     if model == 'hybpow':
         clbls = ['H0', 'g', 'H1', 'H2', 'B1', 'b']
+    elif model == 'hybnmf':
+        clbls = ['H0', 'g', 'H1', 'H2', 'B1', 'B2']
     else:
         clbls = None
 
@@ -247,10 +249,22 @@ def main(flg):
         fig_mcmc_fit('hybpow', show_bbnw=True, set_abblim=False,
                      scl_noise=0.07)
 
-    # HybPow with noise
+    # HybPow without noise
     if flg == 11:
+        fig_corner('hybpow')
+
+    # HybPow with noise
+    if flg == 12:
         fig_corner('hybpow', scl_noise=0.07)
 
+    # NMF aph + power-law bb
+    if flg == 13:
+        fig_mcmc_fit('hybnmf', show_bbnw=True, set_abblim=False)
+
+    # HybNMF
+    if flg == 14:
+        fig_corner('hybnmf')
+        # B1, B2 are highly degenerate, no bueno
 
 # Command line execution
 if __name__ == '__main__':

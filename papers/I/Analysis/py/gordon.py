@@ -127,6 +127,15 @@ def fit_model(model:str, n_cores=20, idx:int=170,
         # bbp
         bnw = np.maximum(scl*bb[::2] - bbw[::2], 1e-5)
         p0_b = [bnw[i500], odict['Y']]
+    elif model == 'hybnmf':
+        i440 = np.argmin(np.abs(wave-440))
+        i500 = np.argmin(np.abs(wave-500))
+        scl = 1.
+        anw = np.maximum(scl*a[::2] - aw[::2], 1e-5)
+        p0_a = [anw[i440]/2., 0.017, anw[i440]/4., anw[i440]/4.] 
+        # bbp
+        bnw = np.maximum(scl*bb[::2] - bbw[::2], 1e-5)
+        p0_b = [bnw[i500]/2., bnw[i500]/2.]
     else:
         raise ValueError(f"51 of gordon.py -- Deal with this model: {model}")
 
@@ -256,12 +265,17 @@ def main(flg):
 
     # NMF aph
     if flg & (2**8): # 256
-        fit_model('hybpow', nsteps=10000, nburn=1000)
+        fit_model('hybpow', nsteps=50000, nburn=5000)
 
     # NMF aph with 7% noise
     if flg & (2**9): # 512
         fit_model('hybpow', nsteps=80000, nburn=8000,
                   scl_noise=0.07, add_noise=True)
+
+    # NMF aph
+    if flg & (2**10): # 1024
+        fit_model('hybnmf', nsteps=80000, nburn=8000)
+
 
 # Command line execution
 if __name__ == '__main__':
