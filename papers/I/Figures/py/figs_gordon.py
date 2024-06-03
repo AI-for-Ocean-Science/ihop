@@ -307,6 +307,9 @@ def fig_chi2_model(model:str, idx:int=170, chain_file=None,
     ax.set_xscale('log')
     ax.set_yscale('log')
 
+    # Vertical line at 5%
+    ax.axvline(5, color='k', linestyle=':')
+
     # Grid me
     ax.grid(True)
     ax.legend(fontsize=14)
@@ -439,11 +442,9 @@ def main(flg):
         fig_chi2_model('exppow', idx=1032)
         fig_chi2_model('exppow', idx=170)
 
-    # exppow, 0.2 noise
+    # corner exppow
     if flg == 16:
-        fig_mcmc_fit('exppow', show_bbnw=True, set_abblim=False,
-                     scl_noise=0.2)
-        fig_corner('exppow', scl_noise=0.2)
+        fig_corner('exppow', idx=1032, scl_noise=0.05)
 
     # reducechi2, giop+
     if flg == 17:
@@ -466,6 +467,12 @@ def main(flg):
     if flg == 20:
         for idx in [170, 180, 1032]:
             fig_plot_abb(idx)
+
+    # corner exppow
+    if flg == 21:
+        #fig_corner('expcst', idx=170)
+        fig_mcmc_fit('expcst', show_bbnw=True, set_abblim=False, idx=170)
+        fig_chi2_model('expcst', idx=170)
 
 # Command line execution
 if __name__ == '__main__':

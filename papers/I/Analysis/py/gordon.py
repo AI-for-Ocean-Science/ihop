@@ -118,6 +118,17 @@ def fit_model(model:str, n_cores=20, idx:int=170,
         # bbp
         bnw = np.maximum(scl*bb[::2] - bbw[::2], 1e-5)
         p0_b = [bnw[i500]]
+    elif model == 'expcst':
+        # Exponential adg, power-law bpp with free exponent
+        i400 = np.argmin(np.abs(wave-400))
+        i500 = np.argmin(np.abs(wave-500))
+        if scl is None:
+            scl = 5.
+        anw = np.maximum(scl*a[::2] - aw[::2], 1e-5)
+        p0_a = [anw[i400], 0.017] 
+        # bbp
+        bnw = np.maximum(scl*bb[::2] - bbw[::2], 1e-5)
+        p0_b = [bnw[i500]]
     elif model == 'giop':
         i440 = np.argmin(np.abs(wave-440))
         i500 = np.argmin(np.abs(wave-500))
@@ -274,7 +285,9 @@ def main(flg):
 
     # Exponential power-law
     if flg & (2**5): # 32
-        fit_model('exppow', nsteps=80000, nburn=8000, scl=1., idx=1032)
+        #fit_model('exppow', nsteps=80000, nburn=8000, scl=1., idx=1032)
+        fit_model('exppow', nsteps=80000, nburn=8000, scl=1., idx=1032,
+                  scl_noise=0.05, add_noise=False)
         #fit_model('explee', nsteps=80000, nburn=8000, scl=1., idx=1032,
         #          scl_noise=0.05, add_noise=False)
         #fit_model('exppow', nsteps=80000, nburn=8000, scl=1.)
@@ -292,11 +305,12 @@ def main(flg):
     # NMF aph
     if flg & (2**8): # 256
         fit_model('hybpow', nsteps=80000, nburn=8000)
-
-    # NMF aph with 7% noise
-    if flg & (2**9): # 512
         fit_model('hybpow', nsteps=80000, nburn=8000,
                   scl_noise=0.07, add_noise=True)
+
+    # Exp anw, constant bbp
+    if flg & (2**9): # 512
+        fit_model('expcst', nsteps=10000, nburn=1000, scl=1.)
 
     # NMF aph
     if flg & (2**10): # 1024
