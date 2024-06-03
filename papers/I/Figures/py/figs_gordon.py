@@ -317,6 +317,58 @@ def fig_chi2_model(model:str, idx:int=170, chain_file=None,
     plt.savefig(outfile, dpi=300)
     print(f"Saved: {outfile}")
 
+# ############################################################
+def fig_plot_abb(idx:int, 
+                 outroot='fig_abb_spec_', show_bbnw:bool=False,
+                 add_noise:bool=False, log_Rrs:bool=False,
+                 show_trueRrs:bool=False,
+                 set_abblim:bool=True, scl_noise:float=None): 
+
+    # Outfile
+    outfile = outroot + f'{idx}.png'
+
+    # 
+    odict = gordon.prep_data(idx)
+    wave = odict['true_wave']
+    a = odict['a']
+    aw = odict['aw']
+    aph = odict['aph']
+    adg = odict['adg']
+    bb = odict['bb']
+    bbw = odict['bbw']
+    bnw = odict['bb'] - bbw
+
+    #
+    fig = plt.figure(figsize=(9,5))
+    ax = plt.gca()
+    # a
+    ax.plot(wave, a, 'k-', label=r'$a$', zorder=1)
+
+    ax.plot(wave, aw, 'b-', label=r'$a_w$', zorder=1)
+    ax.plot(wave, aph, 'g-', label=r'$a_{ph}$', zorder=1)
+    ax.plot(wave, adg, '-', color='brown', label=r'$a_{dg}$', zorder=1)
+
+    # bb
+    ax.plot(wave, bb, ':', color='k', label=r'$b_{b}$', zorder=1)
+
+    bbscl = 20
+    ax.plot(wave, bbscl*bbw, ':', color='blue', label=f'{bbscl}*'+r'$b_{b,w}$', zorder=1)
+    ax.plot(wave, bbscl*bnw, ':', color='red', label=f'{bbscl}*'+r'$b_{b,nw}$', zorder=1)
+
+    #
+    ax.legend(fontsize=13.)
+
+    ax.set_xlabel('Wavelength (nm)')
+    ax.set_ylabel(r'$a, b_b \; [{\rm m}^{-1}]$')
+    ax.set_ylim(0., 0.08)
+
+    plotting.set_fontsize(ax, 15)
+
+    plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
+    plt.savefig(outfile, dpi=300)
+    print(f"Saved: {outfile}")
+
+
 def main(flg):
     if flg== 'all':
         flg= np.sum(np.array([2 ** ii for ii in range(25)]))
@@ -409,6 +461,11 @@ def main(flg):
         fig_chi2_model('explee', idx=170)
         fig_chi2_model('explee', idx=180)
         fig_chi2_model('explee', idx=1032)
+
+    # a, bb
+    if flg == 20:
+        for idx in [170, 180, 1032]:
+            fig_plot_abb(idx)
 
 # Command line execution
 if __name__ == '__main__':
