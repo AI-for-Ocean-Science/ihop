@@ -23,6 +23,8 @@ def prep_data(idx:int, scl_noise:float=0.02, add_noise:bool=False):
     true_wave = ds.Lambda.data.copy()
     a = ds.a.data[idx,:]
     bb = ds.bb.data[idx,:]
+    adg = ds.ag.data[idx,:] + ds.ad.data[idx,:]
+    aph = ds.aph.data[idx,:]
 
     # For bp
     rrs = Rrs / (fgordon.A_Rrs + fgordon.B_Rrs*Rrs)
@@ -46,6 +48,7 @@ def prep_data(idx:int, scl_noise:float=0.02, add_noise:bool=False):
                  true_wave=true_wave, true_Rrs=true_Rrs,
                  bbw=ds.bb.data[idx,:]-ds.bbnw.data[idx,:],
                  aw=ds.a.data[idx,:]-ds.anw.data[idx,:],
+                 adg=adg, aph=aph,
                  Y=Y, Chl=Chl)
 
     return odict
@@ -104,6 +107,17 @@ def fit_model(model:str, n_cores=20, idx:int=170,
         # bbp
         bnw = np.maximum(scl*bb[::2] - bbw[::2], 1e-5)
         p0_b = [bnw[i500], odict['Y']]
+    elif model == 'explee':
+        # Exponential adg, power-law bpp with free exponent
+        i400 = np.argmin(np.abs(wave-400))
+        i500 = np.argmin(np.abs(wave-500))
+        if scl is None:
+            scl = 5.
+        anw = np.maximum(scl*a[::2] - aw[::2], 1e-5)
+        p0_a = [anw[i400], 0.017] 
+        # bbp
+        bnw = np.maximum(scl*bb[::2] - bbw[::2], 1e-5)
+        p0_b = [bnw[i500]]
     elif model == 'giop':
         i440 = np.argmin(np.abs(wave-440))
         i500 = np.argmin(np.abs(wave-500))
@@ -116,7 +130,8 @@ def fit_model(model:str, n_cores=20, idx:int=170,
     elif model == 'giop+':
         i440 = np.argmin(np.abs(wave-440))
         i500 = np.argmin(np.abs(wave-500))
-        scl = 5.
+        if scl is None:
+            scl = 5.
         anw = np.maximum(scl*a[::2] - aw[::2], 1e-5)
         p0_a = [anw[i440]/2., 0.017, anw[i440]/2.] 
         # bbp
@@ -259,9 +274,9 @@ def main(flg):
 
     # Exponential power-law
     if flg & (2**5): # 32
-        fit_model('exppow', nsteps=80000, nburn=8000)
+        fit_model('exppow', nsteps=80000, nburn=8000, scl=1.)
         fit_model('exppow', nsteps=80000, nburn=8000,
-                  scl_noise=0.2, add_noise=False)
+                  scl_noise=0.2, add_noise=False, scl=1.)
 
     # GIOP-like:  adg, aph, bbp
     if flg & (2**6): # 64
@@ -269,7 +284,7 @@ def main(flg):
 
     # GIOP-like:  adg, aph Bricaud, bbp with free exponent
     if flg & (2**7): # 128
-        fit_model('giop+', nsteps=10000, nburn=1000)
+        fit_model('giop+', nsteps=80000, nburn=8000, scl=1.)
 
     # NMF aph
     if flg & (2**8): # 256
@@ -284,6 +299,9 @@ def main(flg):
     if flg & (2**10): # 1024
         fit_model('hybnmf', nsteps=80000, nburn=8000)
 
+    # Exponential + power-law with Lee+2002
+    if flg & (2**11): # 2048
+        fit_model('explee', nsteps=80000, nburn=8000, scl=1.)
 
 # Command line execution
 if __name__ == '__main__':

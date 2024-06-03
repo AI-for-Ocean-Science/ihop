@@ -33,7 +33,8 @@ from IPython import embed
 # ############################################################
 def fig_mcmc_fit(model:str, idx:int=170, chain_file=None,
                  outroot='fig_gordon_fit', show_bbnw:bool=False,
-                 add_noise:bool=False,
+                 add_noise:bool=False, log_Rrs:bool=False,
+                 show_trueRrs:bool=False,
                  set_abblim:bool=True, scl_noise:float=None): 
 
     chain_file, noises, noise_lbl = get_chain_file(model, scl_noise, add_noise)
@@ -47,6 +48,8 @@ def fig_mcmc_fit(model:str, idx:int=170, chain_file=None,
     a_true = odict['a']
     bb_true = odict['bb']
     aw = odict['aw']
+    adg = odict['adg']
+    aph = odict['aph']
     bbw = odict['bbw']
     bbnw = bb_true - bbw
     wave_true = odict['true_wave']
@@ -108,10 +111,14 @@ def fig_mcmc_fit(model:str, idx:int=170, chain_file=None,
             color='r', alpha=0.5, label='Uncertainty') 
     
     ax_anw.set_ylabel(r'$a_{\rm nw}(\lambda) \; [{\rm m}^{-1}]$')
+
+    ax_anw.plot(wave_true, adg, '-', color='brown', label=r'$a_{\rm dg}$')
+    ax_anw.plot(wave_true, aph, 'b-', label=r'$a_{\rm ph}$')
+
     #else:
     #    ax_a.set_ylabel(r'$a_{\rm nw}(\lambda) \; [{\rm m}^{-1}]$')
 
-    #ax_anw.legend(fontsize=lgsz)
+    ax_anw.legend(fontsize=10.)
     if set_abblim:
         ax_anw.set_ylim(bottom=0., top=2*(a_true-aw).max())
     #ax_a.tick_params(labelbottom=False)  # Hide x-axis labels
@@ -145,8 +152,9 @@ def fig_mcmc_fit(model:str, idx:int=170, chain_file=None,
     # #########################################################
     # Rs
     ax_R = plt.subplot(gs[2])
-    ax_R.plot(wave_true, Rrs_true, 'kx', label='True L23')
-    ax_R.plot(wave, gordon_Rrs, 'ko', label='L23 + Gordon')
+    if show_trueRrs:
+        ax_R.plot(wave_true, Rrs_true, 'kx', label='True L23')
+    ax_R.plot(wave, gordon_Rrs, 'k+', label='L23 + Gordon')
     ax_R.plot(wave, model_Rrs, 'r-', label='Fit', zorder=10)
     ax_R.fill_between(wave, model_Rrs-sigRs, model_Rrs+sigRs, 
             color='r', alpha=0.5, zorder=10) 
@@ -155,10 +163,14 @@ def fig_mcmc_fit(model:str, idx:int=170, chain_file=None,
         ax_R.plot(d_chains['wave'], d_chains['obs_Rrs'], 'bs', label='Observed')
 
     ax_R.set_ylabel(r'$R_{rs}(\lambda) \; [10^{-4} \, {\rm sr}^{-1}$]')
-    ax_R.set_ylim(bottom=0., top=1.1*Rrs_true.max())
 
     ax_R.legend(fontsize=lgsz)
     
+    # Log scale y-axis
+    if log_Rrs:
+        ax_R.set_yscale('log')
+    else:
+        ax_R.set_ylim(bottom=0., top=1.1*Rrs_true.max())
     
     # axes
     for ss, ax in enumerate([ax_aw, ax_anw, ax_R, ax_bb]):
@@ -252,7 +264,7 @@ def fig_chi2_model(model:str, idx:int=170, chain_file=None,
     red_chi2s = []
     sigs = [1, 2., 3, 5, 7, 10, 15, 20, 30]
     for scl_sig in sigs:
-        chi2 = ((model_Rrs - Rrs) / ((scl_sig/100.) * Rrs))**2
+        chi2 = ((model_Rrs - gordon_Rrs) / ((scl_sig/100.) * Rrs))**2
         reduced_chi2 = np.sum(chi2) / (len(Rrs) - nparm)
         red_chi2s.append(reduced_chi2)
         
@@ -276,7 +288,11 @@ def fig_chi2_model(model:str, idx:int=170, chain_file=None,
             ha='left')
 
     # Log scale y-axis
+    ax.set_xscale('log')
     ax.set_yscale('log')
+
+    # Grid me
+    ax.grid(True)
 
     plotting.set_fontsize(ax, 15)
 
@@ -308,7 +324,7 @@ def main(flg):
 
     # exppow
     if flg == 5:
-        fig_mcmc_fit('exppow', show_bbnw=True, set_abblim=False)
+        fig_mcmc_fit('exppow', show_bbnw=True, set_abblim=False, log_Rrs=True)
 
     # GIOP
     if flg == 6:
@@ -320,7 +336,8 @@ def main(flg):
 
     # GIOP+
     if flg == 8:
-        fig_mcmc_fit('giop+', show_bbnw=True, set_abblim=False)
+        fig_mcmc_fit('giop+', show_bbnw=True, set_abblim=False,
+                     log_Rrs=True)
 
     # NMF aph + power-law bb
     if flg == 9:
@@ -357,6 +374,15 @@ def main(flg):
         fig_mcmc_fit('exppow', show_bbnw=True, set_abblim=False,
                      scl_noise=0.2)
         fig_corner('exppow', scl_noise=0.2)
+
+    # reducechi2, giop+
+    if flg == 17:
+        fig_chi2_model('giop+')
+
+    # explee
+    if flg == 18:
+        fig_mcmc_fit('explee', show_bbnw=True, set_abblim=False, log_Rrs=True)
+
 
 # Command line execution
 if __name__ == '__main__':

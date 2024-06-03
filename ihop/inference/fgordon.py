@@ -98,6 +98,7 @@ def calc_ab(model:str, params:np.ndarray, pdict:dict):
         bbp = np.outer(10**params[...,-1],
                        (550./pdict['wave'])**pdict['Y'])
         # Add water
+        bb = bbp + bbw
     elif model == 'exppow':
         # anw exponential
         anw = np.outer(10**params[...,0], np.ones_like(pdict['wave'])) *\
@@ -123,7 +124,7 @@ def calc_ab(model:str, params:np.ndarray, pdict:dict):
                        (550./pdict['wave'])**pdict['Y'])
         # Add water
         bb = bbp + bbw
-    elif model == 'giop+':
+    elif model == 'giop+':  # adg, aph Bricaud, free bbp
         # adg exponential
         adg = np.outer(10**params[...,0], np.ones_like(pdict['wave'])) *\
             np.exp(np.outer(-10**params[...,1],pdict['wave']-400.))
