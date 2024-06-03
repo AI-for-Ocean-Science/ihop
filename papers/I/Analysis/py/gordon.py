@@ -181,7 +181,7 @@ def fit_model(model:str, n_cores=20, idx:int=170,
     chains, idx = fgordon.fit_one(items[0], pdict=pdict, chains_only=True)
     
     # Save
-    outfile = f'FGordon_{model}_170'
+    outfile = f'FGordon_{model}_{idx}'
     if add_noise:
         # Add noise to the outfile with padding of 2
         outfile += f'_N{int(100*scl_noise):02d}'
@@ -274,9 +274,12 @@ def main(flg):
 
     # Exponential power-law
     if flg & (2**5): # 32
-        fit_model('exppow', nsteps=80000, nburn=8000, scl=1.)
-        fit_model('exppow', nsteps=80000, nburn=8000,
-                  scl_noise=0.2, add_noise=False, scl=1.)
+        fit_model('exppow', nsteps=80000, nburn=8000, scl=1., idx=1032)
+        #fit_model('explee', nsteps=80000, nburn=8000, scl=1., idx=1032,
+        #          scl_noise=0.05, add_noise=False)
+        #fit_model('exppow', nsteps=80000, nburn=8000, scl=1.)
+        #fit_model('exppow', nsteps=80000, nburn=8000,
+        #          scl_noise=0.2, add_noise=False, scl=1.)
 
     # GIOP-like:  adg, aph, bbp
     if flg & (2**6): # 64
@@ -301,7 +304,11 @@ def main(flg):
 
     # Exponential + power-law with Lee+2002
     if flg & (2**11): # 2048
-        fit_model('explee', nsteps=80000, nburn=8000, scl=1.)
+        #fit_model('explee', nsteps=80000, nburn=8000, scl=1., idx=1032)
+        fit_model('explee', nsteps=80000, nburn=8000, scl=1., idx=1032,
+                  scl_noise=0.05, add_noise=False)
+        #fit_model('explee', nsteps=80000, nburn=8000, scl=1., idx=180)
+        #fit_model('explee', nsteps=80000, nburn=8000, scl=1.)
 
 # Command line execution
 if __name__ == '__main__':

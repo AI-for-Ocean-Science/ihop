@@ -21,11 +21,11 @@ sys.path.append(os.path.abspath("../Analysis/py"))
 import gordon
 
 
-def get_chain_file(model, scl_noise, add_noise):
+def get_chain_file(model, scl_noise, add_noise, idx):
     scl_noise = 0.02 if scl_noise is None else scl_noise
     noises = f'{int(100*scl_noise):02d}'
     noise_lbl = 'N' if add_noise else 'n'
-    chain_file = f'../Analysis/Fits/FGordon_{model}_170_{noise_lbl}{noises}.npz'
+    chain_file = f'../Analysis/Fits/FGordon_{model}_{idx}_{noise_lbl}{noises}.npz'
     return chain_file, noises, noise_lbl
 
 from IPython import embed
@@ -37,7 +37,7 @@ def fig_mcmc_fit(model:str, idx:int=170, chain_file=None,
                  show_trueRrs:bool=False,
                  set_abblim:bool=True, scl_noise:float=None): 
 
-    chain_file, noises, noise_lbl = get_chain_file(model, scl_noise, add_noise)
+    chain_file, noises, noise_lbl = get_chain_file(model, scl_noise, add_noise, idx)
     d_chains = inf_io.load_chains(chain_file)
 
     # Load the data
@@ -100,6 +100,12 @@ def fig_mcmc_fit(model:str, idx:int=170, chain_file=None,
     ax_aw.set_ylim(bottom=0., top=2*a_true.max())
     #ax_a.tick_params(labelbottom=False)  # Hide x-axis labels
 
+    # Add model, index as text
+    ax_aw.text(0.1, 0.9, f'Index: {idx}', fontsize=15, transform=ax_aw.transAxes,
+            ha='left')
+    ax_aw.text(0.1, 0.8, f'Model: {model}', fontsize=15, transform=ax_aw.transAxes,
+            ha='left')
+
 
     # #########################################################
     # a without water
@@ -159,7 +165,7 @@ def fig_mcmc_fit(model:str, idx:int=170, chain_file=None,
     ax_R.fill_between(wave, model_Rrs-sigRs, model_Rrs+sigRs, 
             color='r', alpha=0.5, zorder=10) 
 
-    if scl_noise is not None:
+    if add_noise:
         ax_R.plot(d_chains['wave'], d_chains['obs_Rrs'], 'bs', label='Observed')
 
     ax_R.set_ylabel(r'$R_{rs}(\lambda) \; [10^{-4} \, {\rm sr}^{-1}$]')
@@ -187,7 +193,7 @@ def fig_corner(model, outroot:str='fig_gordon_corner', idx:int=170,
         scl_noise:float=None,
         add_noise:bool=False): 
 
-    chain_file, noises, noise_lbl = get_chain_file(model, scl_noise, add_noise)
+    chain_file, noises, noise_lbl = get_chain_file(model, scl_noise, add_noise, idx)
     d_chains = inf_io.load_chains(chain_file)
 
     # Outfile
@@ -222,15 +228,16 @@ def fig_corner(model, outroot:str='fig_gordon_corner', idx:int=170,
     print(f"Saved: {outfile}")
 
 # ############################################################
-def fig_chi2_model(model:str, idx:int=170, chain_file=None,
-                 outroot='fig_chi2_model', show_bbnw:bool=False,
+def fig_chi2_model(model:str, idx:int=170, chain_file=None, 
+                   low_wv=500., 
+                   outroot='fig_chi2_model', show_bbnw:bool=False,
                  set_abblim:bool=True, scl_noise:float=None,
                  add_noise:bool=False): 
 
     # Outfile
     outfile = outroot + f'_{model}_{idx}.png'
 
-    chain_file, noises, noise_lbl = get_chain_file(model, scl_noise, add_noise)
+    chain_file, noises, noise_lbl = get_chain_file(model, scl_noise, add_noise, idx)
     d_chains = inf_io.load_chains(chain_file)
 
     # Load the data
@@ -259,14 +266,21 @@ def fig_chi2_model(model:str, idx:int=170, chain_file=None,
         model_Rrs, sigRs = gordon.reconstruct(
         model, d_chains['chains'], pdict) 
 
+    # Low wave
+    ilow = np.argmin(np.abs(wave - low_wv))
+
     # Calcualte chi^2
     nparm = fgordon.grab_priors(model).shape[0]
     red_chi2s = []
+    red_chi2s_low = []
     sigs = [1, 2., 3, 5, 7, 10, 15, 20, 30]
     for scl_sig in sigs:
         chi2 = ((model_Rrs - gordon_Rrs) / ((scl_sig/100.) * Rrs))**2
         reduced_chi2 = np.sum(chi2) / (len(Rrs) - nparm)
         red_chi2s.append(reduced_chi2)
+        # Low
+        reduced_chi2_low = np.sum(chi2[:ilow]) / (ilow - nparm)
+        red_chi2s_low.append(reduced_chi2_low)
         
 
     fig = plt.figure(figsize=(8,8))
@@ -275,7 +289,9 @@ def fig_chi2_model(model:str, idx:int=170, chain_file=None,
 
     ax = plt.subplot(gs[0])
 
-    ax.plot(sigs, red_chi2s, 'ko-')
+    ax.plot(sigs, red_chi2s, 'ko-', label='Full')
+
+    ax.plot(sigs, red_chi2s_low, 'bo-', label=r'$\lambda < '+f'{int(low_wv)}'+r'$ nm')
 
     ax.set_xlabel(r'$100 \, \sigma_{R_{rs}} / R_{rs}$')
     ax.set_ylabel(r'$\chi^2_{\nu}$')
@@ -284,7 +300,7 @@ def fig_chi2_model(model:str, idx:int=170, chain_file=None,
     ax.axhline(1, color='r', linestyle='--')
 
     # Add model as text
-    ax.text(0.1, 0.9, model, fontsize=15, transform=ax.transAxes,
+    ax.text(0.1, 0.1, model+f': idx={idx}', fontsize=15, transform=ax.transAxes,
             ha='left')
 
     # Log scale y-axis
@@ -293,6 +309,7 @@ def fig_chi2_model(model:str, idx:int=170, chain_file=None,
 
     # Grid me
     ax.grid(True)
+    ax.legend(fontsize=14)
 
     plotting.set_fontsize(ax, 15)
 
@@ -324,6 +341,7 @@ def main(flg):
 
     # exppow
     if flg == 5:
+        fig_mcmc_fit('exppow', show_bbnw=True, set_abblim=False, idx=1032)
         fig_mcmc_fit('exppow', show_bbnw=True, set_abblim=False, log_Rrs=True)
 
     # GIOP
@@ -336,8 +354,7 @@ def main(flg):
 
     # GIOP+
     if flg == 8:
-        fig_mcmc_fit('giop+', show_bbnw=True, set_abblim=False,
-                     log_Rrs=True)
+        fig_mcmc_fit('giop+', show_bbnw=True, set_abblim=False, log_Rrs=True)
 
     # NMF aph + power-law bb
     if flg == 9:
@@ -367,7 +384,8 @@ def main(flg):
 
     # reducechi2
     if flg == 15:
-        fig_chi2_model('exppow')
+        fig_chi2_model('exppow', idx=1032)
+        fig_chi2_model('exppow', idx=170)
 
     # exppow, 0.2 noise
     if flg == 16:
@@ -381,8 +399,16 @@ def main(flg):
 
     # explee
     if flg == 18:
+        fig_mcmc_fit('explee', show_bbnw=True, set_abblim=False, idx=1032, scl_noise=0.05)
+        fig_mcmc_fit('explee', show_bbnw=True, set_abblim=False, idx=1032)
+        fig_mcmc_fit('explee', show_bbnw=True, set_abblim=False, idx=180)
         fig_mcmc_fit('explee', show_bbnw=True, set_abblim=False, log_Rrs=True)
 
+    # reducechi2
+    if flg == 19:
+        fig_chi2_model('explee', idx=170)
+        fig_chi2_model('explee', idx=180)
+        fig_chi2_model('explee', idx=1032)
 
 # Command line execution
 if __name__ == '__main__':
