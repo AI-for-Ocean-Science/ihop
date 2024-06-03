@@ -88,15 +88,25 @@ def calc_ab(model:str, params:np.ndarray, pdict:dict):
                        (550./pdict['wave'])**pdict['Y'])
         # Add water
         bb = bbp + bbw
+    elif model == 'explee':
+        # anw exponential
+        anw = np.outer(10**params[...,0], np.ones_like(pdict['wave'])) *\
+            np.exp(np.outer(-10**params[...,1],pdict['wave']-400.))
+        a = anw + aw
+                       
+        # Lee+2002 bbp
+        bbp = np.outer(10**params[...,-1],
+                       (550./pdict['wave'])**pdict['Y'])
+        # Add water
     elif model == 'exppow':
         # anw exponential
         anw = np.outer(10**params[...,0], np.ones_like(pdict['wave'])) *\
             np.exp(np.outer(-10**params[...,1],pdict['wave']-400.))
         a = anw + aw
                        
-        # Lee+2002
-        bbp = np.outer(10**params[...,-1],
-                       (550./pdict['wave'])**pdict['Y'])
+        # Power-law with free exponent
+        bbp = np.outer(10**params[...,2], np.ones_like(pdict['wave'])) *\
+                       (550./pdict['wave'])**(10**params[...,3]).reshape(-1,1)
         # Add water
         bb = bbp + bbw
     elif model == 'giop':
@@ -223,6 +233,8 @@ def grab_priors(model:str):
     elif model in ['bp']:
         ndim = 42
     elif model == 'exppow':
+        ndim = 4
+    elif model == 'explee':
         ndim = 3
     elif model == 'giop':
         ndim = 4

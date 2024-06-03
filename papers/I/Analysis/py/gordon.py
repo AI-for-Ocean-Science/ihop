@@ -51,7 +51,9 @@ def prep_data(idx:int, scl_noise:float=0.02, add_noise:bool=False):
     return odict
 
 def fit_model(model:str, n_cores=20, idx:int=170, 
-              nsteps:int=10000, nburn:int=1000, scl_noise:float=0.02,
+              nsteps:int=10000, nburn:int=1000, 
+              scl_noise:float=0.02,
+              scl:float=None,  # Scaling for the priors
               add_noise:bool=False):
 
     odict = prep_data(idx, scl_noise=scl_noise, add_noise=add_noise)
@@ -92,14 +94,16 @@ def fit_model(model:str, n_cores=20, idx:int=170,
         i500 = np.argmin(np.abs(wave-500))
         p0_b = bnw[i500] 
     elif model == 'exppow':
+        # Exponential adg, power-law bpp with free exponent
         i400 = np.argmin(np.abs(wave-400))
         i500 = np.argmin(np.abs(wave-500))
-        scl = 5.
+        if scl is None:
+            scl = 5.
         anw = np.maximum(scl*a[::2] - aw[::2], 1e-5)
         p0_a = [anw[i400], 0.017] 
         # bbp
         bnw = np.maximum(scl*bb[::2] - bbw[::2], 1e-5)
-        p0_b = bnw[i500] 
+        p0_b = [bnw[i500], odict['Y']]
     elif model == 'giop':
         i440 = np.argmin(np.abs(wave-440))
         i500 = np.argmin(np.abs(wave-500))
@@ -165,6 +169,8 @@ def fit_model(model:str, n_cores=20, idx:int=170,
     outfile = f'FGordon_{model}_170'
     if add_noise:
         # Add noise to the outfile with padding of 2
+        outfile += f'_N{int(100*scl_noise):02d}'
+    else:
         outfile += f'_n{int(100*scl_noise):02d}'
     save_fits(chains, idx, outfile,
               extras=dict(wave=wave, obs_Rrs=gordon_Rrs, varRrs=varRrs))
@@ -253,7 +259,9 @@ def main(flg):
 
     # Exponential power-law
     if flg & (2**5): # 32
-        fit_model('exppow', nsteps=10000, nburn=1000)
+        fit_model('exppow', nsteps=80000, nburn=8000)
+        fit_model('exppow', nsteps=80000, nburn=8000,
+                  scl_noise=0.2, add_noise=False)
 
     # GIOP-like:  adg, aph, bbp
     if flg & (2**6): # 64

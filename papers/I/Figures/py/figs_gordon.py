@@ -21,16 +21,22 @@ sys.path.append(os.path.abspath("../Analysis/py"))
 import gordon
 
 
+def get_chain_file(model, scl_noise, add_noise):
+    scl_noise = 0.02 if scl_noise is None else scl_noise
+    noises = f'{int(100*scl_noise):02d}'
+    noise_lbl = 'N' if add_noise else 'n'
+    chain_file = f'../Analysis/Fits/FGordon_{model}_170_{noise_lbl}{noises}.npz'
+    return chain_file, noises, noise_lbl
+
 from IPython import embed
 
 # ############################################################
 def fig_mcmc_fit(model:str, idx:int=170, chain_file=None,
                  outroot='fig_gordon_fit', show_bbnw:bool=False,
+                 add_noise:bool=False,
                  set_abblim:bool=True, scl_noise:float=None): 
 
-    if chain_file is None:
-        noises = '' if scl_noise is None else f'_n{int(100*scl_noise):02d}'
-        chain_file = f'../Analysis/Fits/FGordon_{model}_170{noises}.npz'
+    chain_file, noises, noise_lbl = get_chain_file(model, scl_noise, add_noise)
     d_chains = inf_io.load_chains(chain_file)
 
     # Load the data
@@ -63,7 +69,7 @@ def fig_mcmc_fit(model:str, idx:int=170, chain_file=None,
     a_w = absorption.a_water(wave, data='IOCCG')
 
     # Outfile
-    outfile = outroot + f'_{model}_{idx}.png'
+    outfile = outroot + f'_{model}_{idx}_{noise_lbl}{noises}.png'
 
     # #########################################################
     # Plot the solution
@@ -166,15 +172,14 @@ def fig_mcmc_fit(model:str, idx:int=170, chain_file=None,
 
 
 def fig_corner(model, outroot:str='fig_gordon_corner', idx:int=170,
-        chain_file:str=None, scl_noise:float=None): 
+        scl_noise:float=None,
+        add_noise:bool=False): 
 
-    if chain_file is None:
-        noises = '' if scl_noise is None else f'_n{int(100*scl_noise):02d}'
-        chain_file = f'../Analysis/Fits/FGordon_{model}_170{noises}.npz'
+    chain_file, noises, noise_lbl = get_chain_file(model, scl_noise, add_noise)
     d_chains = inf_io.load_chains(chain_file)
 
     # Outfile
-    outfile = outroot + f'_{model}_{idx}.png'
+    outfile = outroot + f'_{model}_{idx}_{noise_lbl}{noises}.png'
 
     burn = 7000
     thin = 1
@@ -183,6 +188,8 @@ def fig_corner(model, outroot:str='fig_gordon_corner', idx:int=170,
 
     if model == 'hybpow':
         clbls = ['H0', 'g', 'H1', 'H2', 'B1', 'b']
+    elif model == 'exppow':
+        clbls = ['Adg', 'g', 'Bnw', 'bnw']
     elif model == 'hybnmf':
         clbls = ['H0', 'g', 'H1', 'H2', 'B1', 'B2']
     else:
@@ -199,6 +206,81 @@ def fig_corner(model, outroot:str='fig_gordon_corner', idx:int=170,
         )
 
     plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
+    plt.savefig(outfile, dpi=300)
+    print(f"Saved: {outfile}")
+
+# ############################################################
+def fig_chi2_model(model:str, idx:int=170, chain_file=None,
+                 outroot='fig_chi2_model', show_bbnw:bool=False,
+                 set_abblim:bool=True, scl_noise:float=None,
+                 add_noise:bool=False): 
+
+    # Outfile
+    outfile = outroot + f'_{model}_{idx}.png'
+
+    chain_file, noises, noise_lbl = get_chain_file(model, scl_noise, add_noise)
+    d_chains = inf_io.load_chains(chain_file)
+
+    # Load the data
+    odict = gordon.prep_data(idx)
+    wave = odict['wave']
+    Rrs = odict['Rrs']
+    varRrs = odict['varRrs']
+    a_true = odict['a']
+    bb_true = odict['bb']
+    aw = odict['aw']
+    bbw = odict['bbw']
+    bbnw = bb_true - bbw
+    wave_true = odict['true_wave']
+    Rrs_true = odict['true_Rrs']
+
+    gordon_Rrs = fgordon.calc_Rrs(odict['a'][::2], odict['bb'][::2])
+
+    # Interpolate
+    aw_interp = np.interp(wave, wave_true, aw)
+    bbw_interp = np.interp(wave, wave_true, bbw)
+
+    # Reconstruc
+    pdict = fgordon.init_mcmc(model, d_chains['chains'].shape[-1], 
+                              wave, Y=odict['Y'], Chl=odict['Chl'])
+    a_mean, bb_mean, a_5, a_95, bb_5, bb_95,\
+        model_Rrs, sigRs = gordon.reconstruct(
+        model, d_chains['chains'], pdict) 
+
+    # Calcualte chi^2
+    nparm = fgordon.grab_priors(model).shape[0]
+    red_chi2s = []
+    sigs = [1, 2., 3, 5, 7, 10, 15, 20, 30]
+    for scl_sig in sigs:
+        chi2 = ((model_Rrs - Rrs) / ((scl_sig/100.) * Rrs))**2
+        reduced_chi2 = np.sum(chi2) / (len(Rrs) - nparm)
+        red_chi2s.append(reduced_chi2)
+        
+
+    fig = plt.figure(figsize=(8,8))
+    plt.clf()
+    gs = gridspec.GridSpec(1,1)
+
+    ax = plt.subplot(gs[0])
+
+    ax.plot(sigs, red_chi2s, 'ko-')
+
+    ax.set_xlabel(r'$100 \, \sigma_{R_{rs}} / R_{rs}$')
+    ax.set_ylabel(r'$\chi^2_{\nu}$')
+
+    # Horizontal line at 1.
+    ax.axhline(1, color='r', linestyle='--')
+
+    # Add model as text
+    ax.text(0.1, 0.9, model, fontsize=15, transform=ax.transAxes,
+            ha='left')
+
+    # Log scale y-axis
+    ax.set_yscale('log')
+
+    plotting.set_fontsize(ax, 15)
+
+    #plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
     plt.savefig(outfile, dpi=300)
     print(f"Saved: {outfile}")
 
@@ -226,7 +308,7 @@ def main(flg):
 
     # exppow
     if flg == 5:
-        fig_mcmc_fit('exppow')
+        fig_mcmc_fit('exppow', show_bbnw=True, set_abblim=False)
 
     # GIOP
     if flg == 6:
@@ -265,6 +347,16 @@ def main(flg):
     if flg == 14:
         fig_corner('hybnmf')
         # B1, B2 are highly degenerate, no bueno
+
+    # reducechi2
+    if flg == 15:
+        fig_chi2_model('exppow')
+
+    # exppow, 0.2 noise
+    if flg == 16:
+        fig_mcmc_fit('exppow', show_bbnw=True, set_abblim=False,
+                     scl_noise=0.2)
+        fig_corner('exppow', scl_noise=0.2)
 
 # Command line execution
 if __name__ == '__main__':
