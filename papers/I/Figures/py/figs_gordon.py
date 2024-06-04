@@ -628,8 +628,8 @@ def main(flg):
 
     # exppow
     if flg == 5:
-        fig_mcmc_fit('exppow', show_bbnw=True, set_abblim=False, idx=1032)
-        fig_mcmc_fit('exppow', show_bbnw=True, set_abblim=False, log_Rrs=True)
+        #fig_mcmc_fit('exppow', show_bbnw=True, set_abblim=False, idx=1032)
+        fig_mcmc_fit('exppow', show_bbnw=True, set_abblim=False)# log_Rrs=True)
 
     # GIOP
     if flg == 6:
