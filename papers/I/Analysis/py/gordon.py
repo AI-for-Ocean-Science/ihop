@@ -193,13 +193,14 @@ def fit_model(model:str, n_cores=20, idx:int=170,
     ca,cbb = fgordon.calc_ab(model, p0, pdict)
     pRrs = fgordon.calc_Rrs(ca, cbb)
     print(f'Initial Rrs guess: {np.mean((gordon_Rrs-pRrs)/gordon_Rrs)}')
+    embed(header='196 of gordon')
 
     # Set the items
     #items = [(Rrs, varRrs, None, idx)]
     #items = [(Rrs, varRrs, p0, idx)]
     items = [(gordon_Rrs, varRrs, p0, idx)]
 
-    # Test
+    # 
     chains, idx = fgordon.fit_one(items[0], pdict=pdict, chains_only=True)
     
     # Save
@@ -296,8 +297,8 @@ def main(flg):
 
     # Exponential power-law
     if flg & (2**5): # 32
-        #fit_model('exppow', nsteps=80000, nburn=8000, scl=1., idx=170)
-        fit_model('exppow', nsteps=80000, nburn=8000, scl=1., idx=1032)
+        fit_model('exppow', nsteps=80000, nburn=8000, scl=1., idx=170)
+        #fit_model('exppow', nsteps=80000, nburn=8000, scl=1., idx=1032)
         #fit_model('exppow', nsteps=80000, nburn=8000, scl=1., idx=1032,
         #          scl_noise=0.05, add_noise=False)
         #fit_model('explee', nsteps=80000, nburn=8000, scl=1., idx=1032,
