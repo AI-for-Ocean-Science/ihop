@@ -285,9 +285,10 @@ def main(flg):
 
     # Exponential power-law
     if flg & (2**5): # 32
-        #fit_model('exppow', nsteps=80000, nburn=8000, scl=1., idx=1032)
-        fit_model('exppow', nsteps=80000, nburn=8000, scl=1., idx=1032,
-                  scl_noise=0.05, add_noise=False)
+        #fit_model('exppow', nsteps=80000, nburn=8000, scl=1., idx=170)
+        fit_model('exppow', nsteps=80000, nburn=8000, scl=1., idx=1032)
+        #fit_model('exppow', nsteps=80000, nburn=8000, scl=1., idx=1032,
+        #          scl_noise=0.05, add_noise=False)
         #fit_model('explee', nsteps=80000, nburn=8000, scl=1., idx=1032,
         #          scl_noise=0.05, add_noise=False)
         #fit_model('exppow', nsteps=80000, nburn=8000, scl=1.)
@@ -296,11 +297,12 @@ def main(flg):
 
     # GIOP-like:  adg, aph, bbp
     if flg & (2**6): # 64
-        fit_model('giop', nsteps=40000, nburn=4000)
+        fit_model('giop', nsteps=80000, nburn=8000, scl=1.)
 
     # GIOP-like:  adg, aph Bricaud, bbp with free exponent
     if flg & (2**7): # 128
-        fit_model('giop+', nsteps=80000, nburn=8000, scl=1.)
+        #fit_model('giop+', nsteps=80000, nburn=8000, scl=1.)
+        fit_model('giop+', nsteps=80000, nburn=8000, scl=1., idx=1032)
 
     # NMF aph
     if flg & (2**8): # 256
@@ -310,7 +312,8 @@ def main(flg):
 
     # Exp anw, constant bbp
     if flg & (2**9): # 512
-        fit_model('expcst', nsteps=10000, nburn=1000, scl=1.)
+        #fit_model('expcst', nsteps=80000, nburn=8000, scl=1.)
+        fit_model('expcst', nsteps=80000, nburn=8000, scl=1., idx=1032)
 
     # NMF aph
     if flg & (2**10): # 1024

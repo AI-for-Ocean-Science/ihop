@@ -275,8 +275,8 @@ def fig_chi2_model(model:str, idx:int=170, chain_file=None,
     red_chi2s_low = []
     sigs = [1, 2., 3, 5, 7, 10, 15, 20, 30]
     for scl_sig in sigs:
-        chi2 = ((model_Rrs - gordon_Rrs) / ((scl_sig/100.) * Rrs))**2
-        reduced_chi2 = np.sum(chi2) / (len(Rrs) - nparm)
+        chi2 = ((model_Rrs - gordon_Rrs) / ((scl_sig/100.) * gordon_Rrs))**2
+        reduced_chi2 = np.sum(chi2) / (len(gordon_Rrs) - nparm)
         red_chi2s.append(reduced_chi2)
         # Low
         reduced_chi2_low = np.sum(chi2[:ilow]) / (ilow - nparm)
@@ -368,6 +368,103 @@ def fig_plot_abb(idx:int,
     plotting.set_fontsize(ax, 15)
 
     plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
+    plt.savefig(outfile, dpi=300)
+    print(f"Saved: {outfile}")
+
+
+# ############################################################
+def fig_bic(models:list=None, idx:int=170, 
+            scl_noises:list=None,
+            low_wv=500., 
+            outroot='fig_bic_', show_bbnw:bool=False,
+            set_abblim:bool=True, 
+            add_noise:bool=False): 
+
+    # Outfile
+    outfile = outroot + f'{idx}.png'
+
+    if scl_noises is None:
+        scl_noises = [0.02, 0.03, 0.05, 0.07, 0.10]
+
+    if models is None:
+        models = ['expcst', 'exppow', 'giop+']
+
+    # Load the data
+    odict = gordon.prep_data(idx)
+    wave = odict['wave']
+    Rrs = odict['Rrs']
+    varRrs = odict['varRrs']
+    a_true = odict['a']
+    bb_true = odict['bb']
+    aw = odict['aw']
+    bbw = odict['bbw']
+    bbnw = bb_true - bbw
+    wave_true = odict['true_wave']
+    Rrs_true = odict['true_Rrs']
+
+    gordon_Rrs = fgordon.calc_Rrs(odict['a'][::2], odict['bb'][::2])
+
+    # Calculate BIC
+    BICs = {}
+    nparms = []
+    for model in models:
+        nparm = fgordon.grab_priors(model).shape[0]
+        nparms.append(nparm)
+        if model not in BICs.keys():
+            BICs[model] = []
+        # Load noiseless (should not matter) 
+        chain_file, noises, noise_lbl = get_chain_file(
+            model, 0.02, False, idx)
+        d_chains = inf_io.load_chains(chain_file)
+
+        # Reconstruct
+        pdict = fgordon.init_mcmc(model, d_chains['chains'].shape[-1], 
+                                wave, Y=odict['Y'], Chl=odict['Chl'])
+        a_mean, bb_mean, a_5, a_95, bb_5, bb_95,\
+            model_Rrs, sigRs = gordon.reconstruct(
+            model, d_chains['chains'], pdict) 
+
+        for scl_noise in scl_noises:
+            # Calcualte chi^2
+            chi2 = ((model_Rrs - gordon_Rrs) / ((scl_noise) * gordon_Rrs))**2
+            Bic = nparm * np.log(len(model_Rrs)) + np.sum(chi2) 
+            # Save
+            BICs[model].append(Bic)
+        
+    # Plot em
+
+    fig = plt.figure(figsize=(8,8))
+    plt.clf()
+    gs = gridspec.GridSpec(1,1)
+
+    ax = plt.subplot(gs[0])
+
+    for kk, scl_noise in enumerate(scl_noises):
+        these_BICs = []
+        for model in models:
+            these_BICs.append(BICs[model][kk])
+        ax.plot(nparms, these_BICs, '-', label=f'{int(100*scl_noise):02d}')
+
+    ax.set_xlabel('N parameters')
+    ax.set_ylabel('BIC')
+
+    # Add model as text
+    ax.text(0.1, 0.1, f'idx={idx}', fontsize=15, transform=ax.transAxes,
+            ha='left')
+
+    # Log scale y-axis
+    #ax.set_xscale('log')
+    #ax.set_yscale('log')
+
+    ax.set_ylim(0., 100.)
+
+    # Grid me
+    ax.grid(True)
+    ax.legend(fontsize=14)
+
+    plotting.set_fontsize(ax, 15)
+
+    #plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
     plt.savefig(outfile, dpi=300)
     print(f"Saved: {outfile}")
 
@@ -473,6 +570,11 @@ def main(flg):
         #fig_corner('expcst', idx=170)
         fig_mcmc_fit('expcst', show_bbnw=True, set_abblim=False, idx=170)
         fig_chi2_model('expcst', idx=170)
+
+    # BIC
+    if flg == 22:
+        #fig_bic()
+        fig_bic(idx=1032)
 
 # Command line execution
 if __name__ == '__main__':
