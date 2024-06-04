@@ -96,6 +96,17 @@ def fit_model(model:str, n_cores=20, idx:int=170,
         bnw = 2*np.maximum(scl*bb[::2] - bbw[::2], 1e-5)
         i500 = np.argmin(np.abs(wave-500))
         p0_b = bnw[i500] 
+    elif model == 'cstcst':
+        # Exponential adg, power-law bpp with free exponent
+        i400 = np.argmin(np.abs(wave-400))
+        i500 = np.argmin(np.abs(wave-500))
+        if scl is None:
+            scl = 5.
+        anw = np.maximum(scl*a[::2] - aw[::2], 1e-5)
+        p0_a = [anw[i400]]
+        # bbp
+        bnw = np.maximum(scl*bb[::2] - bbw[::2], 1e-5)
+        p0_b = [bnw[i500]]
     elif model == 'exppow':
         # Exponential adg, power-law bpp with free exponent
         i400 = np.argmin(np.abs(wave-400))
@@ -302,7 +313,9 @@ def main(flg):
     # GIOP-like:  adg, aph Bricaud, bbp with free exponent
     if flg & (2**7): # 128
         #fit_model('giop+', nsteps=80000, nburn=8000, scl=1.)
-        fit_model('giop+', nsteps=80000, nburn=8000, scl=1., idx=1032)
+        #fit_model('giop+', nsteps=80000, nburn=8000, scl=1., idx=1032)
+        fit_model('giop+', nsteps=80000, nburn=8000, scl=1., idx=1032,
+                  scl_noise=0.07, add_noise=False)
 
     # NMF aph
     if flg & (2**8): # 256
@@ -326,6 +339,11 @@ def main(flg):
                   scl_noise=0.05, add_noise=False)
         #fit_model('explee', nsteps=80000, nburn=8000, scl=1., idx=180)
         #fit_model('explee', nsteps=80000, nburn=8000, scl=1.)
+
+    # Constant and consant
+    if flg & (2**12): # 4096
+        fit_model('cstcst', nsteps=80000, nburn=8000, scl=1.)
+        fit_model('cstcst', nsteps=80000, nburn=8000, scl=1., idx=1032)
 
 # Command line execution
 if __name__ == '__main__':

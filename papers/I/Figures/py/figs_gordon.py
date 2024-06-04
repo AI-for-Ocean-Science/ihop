@@ -189,6 +189,139 @@ def fig_mcmc_fit(model:str, idx:int=170, chain_file=None,
     print(f"Saved: {outfile}")
 
 
+# ############################################################
+def fig_multi_fits(models:list=None, indices:list=None, 
+                 outroot='fig_multi_fits', show_bbnw:bool=False,
+                 add_noise:bool=False, log_Rrs:bool=False,
+                 show_trueRrs:bool=False,
+                 set_abblim:bool=True, scl_noise:float=None): 
+
+    if models is None:
+        models = ['cstcst', 'expcst', 'exppow', 'giop+']
+    if indices is None:
+        indices = [170, 1032]
+    outfile = outroot + f'_{indices[0]}_{indices[1]}.png'
+
+    fig = plt.figure(figsize=(12,6))
+    plt.clf()
+    gs = gridspec.GridSpec(2,3)
+
+    compare_models(models, indices[0], 
+                   [plt.subplot(gs[0]), plt.subplot(gs[1]), 
+                    plt.subplot(gs[2])],
+                   lbl_wavelengths=False)
+    compare_models(models, indices[1], 
+                   [plt.subplot(gs[3]), plt.subplot(gs[4]), 
+                    plt.subplot(gs[5])])
+
+    plt.tight_layout()#pad=0.0, h_pad=0.0, w_pad=0.3)
+    plt.savefig(outfile, dpi=300)
+    print(f"Saved: {outfile}")
+
+def compare_models(models:list, idx:int, axes:list,
+                   add_noise:bool=False, scl_noise:float=None,
+                   log_Rrs:bool=True, lbl_wavelengths:bool=True):
+
+    # Loop on models
+    for ss, clr, model in zip(range(len(models)), ['r', 'g', 'b', 'orange'], models):
+        nparm = fgordon.grab_priors(model).shape[0]
+        chain_file, noises, noise_lbl = get_chain_file(model, scl_noise, add_noise, idx)
+        d_chains = inf_io.load_chains(chain_file)
+
+        # Load the data
+        odict = gordon.prep_data(idx)
+        wave = odict['wave']
+        Rrs = odict['Rrs']
+        varRrs = odict['varRrs']
+        a_true = odict['a']
+        bb_true = odict['bb']
+        aw = odict['aw']
+        adg = odict['adg']
+        aph = odict['aph']
+        bbw = odict['bbw']
+        bbnw = bb_true - bbw
+        wave_true = odict['true_wave']
+        Rrs_true = odict['true_Rrs']
+
+        gordon_Rrs = fgordon.calc_Rrs(odict['a'][::2], odict['bb'][::2])
+
+        # Reconstruc
+        pdict = fgordon.init_mcmc(model, d_chains['chains'].shape[-1], 
+                                wave, Y=odict['Y'], Chl=odict['Chl'])
+        a_mean, bb_mean, a_5, a_95, bb_5, bb_95,\
+            model_Rrs, sigRs = gordon.reconstruct(
+            model, d_chains['chains'], pdict) 
+
+
+        # #########################################################
+        # a without water
+
+        ax_anw = axes[1]
+        if ss == 0:
+            ax_anw.plot(wave_true, a_true-aw, 'ko', label='True', zorder=1)
+            ax_anw.set_ylabel(r'$a_{\rm nw}(\lambda) \; [{\rm m}^{-1}]$')
+
+        ax_anw.plot(wave, a_mean-aw[::2], clr, label='Retreival')
+        #ax_anw.fill_between(wave, a_5-aw_interp, a_95-aw_interp, 
+        #        color='r', alpha=0.5, label='Uncertainty') 
+        
+
+        #ax_anw.plot(wave_true, adg, '-', color='brown', label=r'$a_{\rm dg}$')
+        #ax_anw.plot(wave_true, aph, 'b-', label=r'$a_{\rm ph}$')
+
+        #else:
+        #    ax_a.set_ylabel(r'$a_{\rm nw}(\lambda) \; [{\rm m}^{-1}]$')
+
+        #ax_anw.legend(fontsize=10.)
+        #if set_abblim:
+        #    ax_anw.set_ylim(bottom=0., top=2*(a_true-aw).max())
+        #ax_a.tick_params(labelbottom=False)  # Hide x-axis labels
+
+
+        # #########################################################
+        # b
+        use_bbw = bbw[::2]
+        ax_bb = axes[2]
+        if ss == 0:
+            ax_bb.plot(wave_true, bbnw, 'ko', label='True')
+            ax_bb.set_ylabel(r'$b_{b,nw} (\lambda) \; [{\rm m}^{-1}]$')
+        ax_bb.plot(wave, bb_mean-use_bbw, '-', color=clr, label='Retrieval')
+        #ax_bb.fill_between(wave, bb_5-use_bbw, bb_95-use_bbw,
+        #        color='g', alpha=0.5, label='Uncertainty') 
+
+
+        #ax_bb.legend(fontsize=lgsz)
+        #if set_abblim:
+        #    ax_bb.set_ylim(bottom=0., top=2*bb_true.max())
+
+
+        # #########################################################
+        # Rs
+        ax_R = axes[0]
+        if ss == 0:
+            ax_R.plot(wave, gordon_Rrs, 'k+', label='Observed')
+            ax_R.set_ylabel(r'$R_{rs}(\lambda) \; [10^{-4} \, {\rm sr}^{-1}$]')
+            lgsz = 12.
+            if log_Rrs:
+                ax_R.set_yscale('log')
+            else:
+                ax_R.set_ylim(bottom=0., top=1.1*Rrs_true.max())
+        ax_R.plot(wave, model_Rrs, '-', color=clr, label=f'n={nparm}', zorder=10)
+        #ax_R.fill_between(wave, model_Rrs-sigRs, model_Rrs+sigRs, 
+        #        color='r', alpha=0.5, zorder=10) 
+        ax_R.legend(fontsize=lgsz, loc='lower left')
+
+        
+    # axes
+    for ss, ax in enumerate(axes):
+        plotting.set_fontsize(ax, 14)
+        if lbl_wavelengths:
+            ax.set_xlabel('Wavelength (nm)')
+        else:
+            ax.tick_params(labelbottom=False)  # Hide x-axis labels
+
+
+
 def fig_corner(model, outroot:str='fig_gordon_corner', idx:int=170,
         scl_noise:float=None,
         add_noise:bool=False): 
@@ -210,6 +343,8 @@ def fig_corner(model, outroot:str='fig_gordon_corner', idx:int=170,
         clbls = ['Adg', 'g', 'Bnw', 'bnw']
     elif model == 'hybnmf':
         clbls = ['H0', 'g', 'H1', 'H2', 'B1', 'B2']
+    elif model == 'giop+':
+        clbls = ['Adg', 'Sdg', 'Aph', 'Bnw', 'beta']
     else:
         clbls = None
 
@@ -520,10 +655,13 @@ def main(flg):
     # HybPow without noise
     if flg == 11:
         fig_corner('hybpow')
+        fig_corner('hybpow', scl_noise=0.07)
 
     # HybPow with noise
     if flg == 12:
-        fig_corner('hybpow', scl_noise=0.07)
+        #fig_corner('giop+', scl_noise=0.07)
+        #fig_corner('giop+', scl_noise=0.07, idx=1032)
+        fig_corner('giop+', idx=1032)
 
     # NMF aph + power-law bb
     if flg == 13:
@@ -575,6 +713,10 @@ def main(flg):
     if flg == 22:
         #fig_bic()
         fig_bic(idx=1032)
+
+    # Compare models
+    if flg == 23:
+        fig_multi_fits()
 
 # Command line execution
 if __name__ == '__main__':

@@ -99,6 +99,16 @@ def calc_ab(model:str, params:np.ndarray, pdict:dict):
                        (550./pdict['wave'])**pdict['Y'])
         # Add water
         bb = bbp + bbw
+    elif model == 'cstcst':
+        # Constant anw
+        anw = np.outer(10**params[...,0], np.ones_like(pdict['wave']))
+        a = anw + aw
+                       
+        # Cosntant bpp
+        bbp = np.outer(10**params[...,1], np.ones_like(pdict['wave']))
+
+        # Add water
+        bb = bbp + bbw
     elif model == 'expcst':
         # anw exponential
         anw = np.outer(10**params[...,0], np.ones_like(pdict['wave'])) *\
@@ -244,6 +254,8 @@ def grab_priors(model:str):
         ndim = 82
     elif model in ['bp']:
         ndim = 42
+    elif model == 'cstcst':
+        ndim = 2
     elif model == 'explee':
         ndim = 3
     elif model == 'expcst':
