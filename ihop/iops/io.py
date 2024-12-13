@@ -3,8 +3,8 @@ import os
 
 from importlib import resources
 
-from oceancolor.hydrolight import loisel23
-from oceancolor.water import absorption
+from ocpy.hydrolight import loisel23
+from ocpy.water import absorption
 
 import numpy as np
 
@@ -12,7 +12,7 @@ from IPython import embed
 
 
 def loisel23_filename(decomp:str, iop:str, Ncomp:int,
-                       X:int, Y:int):
+                       X:int, Y:int, d_path:str=None):
     """
     Generate filenames for Loisel23 decomposition.
 
@@ -28,7 +28,8 @@ def loisel23_filename(decomp:str, iop:str, Ncomp:int,
     """
     root = f'{decomp}_L23_X{X}Y{Y}_{iop}_N{Ncomp:02d}'
     # Load up data
-    d_path = os.path.join(resources.files('ihop'),
+    if d_path is None:
+        d_path = os.path.join(resources.files('ihop'),
                             'data', decomp.upper())
     l23_file = os.path.join(d_path, f'{root}.npz')
     return l23_file

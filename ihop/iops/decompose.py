@@ -14,7 +14,7 @@ from scipy.optimize import curve_fit
 from concurrent.futures import ProcessPoolExecutor
 from tqdm import tqdm
 
-from oceancolor.utils import pca
+from ocpy.utils import pca
 
 from cnmf.oceanography.iops import tara_matched_to_l23
 from cnmf import nmf_imaging
