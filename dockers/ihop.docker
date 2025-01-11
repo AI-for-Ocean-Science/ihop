@@ -1,0 +1,92 @@
+# https://www.techrepublic.com/article/how-to-create-a-docker-image-and-push-it-to-docker-hub/
+# https://medium.com/faun/how-to-build-a-docker-container-from-scratch-docker-basics-a-must-know-395cba82897b
+# Login to docker: docker login -u profxj
+# ########################
+# docker.io
+# ########################
+#docker build -t ihop_nvidia -f ../ihop/dockers/ihop.docker .
+#docker tag ihop_nvidia:latest profxj/ihop_nvidia:latest
+#docker push profxj/ihop_nvidia:latest
+# ########################
+# GitLab
+# ########################
+# Login: docker login gitlab.nrp-nautilus.io
+#docker tag ihop_nvidia:latest  gitlab.nrp-nautilus.io/profx/ihop:latest
+#docker push gitlab.nrp-nautilus.io/profx/ihop:latest
+# Testing: docker exec -it <container> /bin/bash
+
+# install timm version 0.3.2
+# change file in /opt/conda/lib/python3.9/site-packages/timm/models/layers/helpers.py
+# PyTorch 1.8.1+
+# torchvision 0.8.1+
+
+#FROM nvidia/cuda:12.3.1-runtime-ubuntu22.04
+FROM gitlab-registry.nrp-nautilus.io/prp/jupyter-stack/tensorflow
+
+ENV DEBIAN_FRONTEND="noninteractive" TZ="US"
+
+RUN  sudo apt-get update && \
+     sudo apt-get install -y tzdata && \
+     sudo apt-get install -y wget glances git 
+#     curl https://rclone.org/install.sh | bash
+
+# Code and storage
+RUN  sudo apt-get install -y git awscli
+
+# APT and curl
+RUN sudo apt-get update && sudo apt-get install curl -y
+
+# Miniconda
+ENV PATH="/root/miniconda3/bin:${PATH}"
+ARG PATH="/root/miniconda3/bin:${PATH}"
+RUN wget https://repo.anaconda.com/miniconda/Miniconda3-py38_4.9.2-Linux-x86_64.sh \
+    && bash Miniconda3-py38_4.9.2-Linux-x86_64.sh -b \
+    && rm -f Miniconda3-py38_4.9.2-Linux-x86_64.sh 
+
+RUN pip install --upgrade pip \
+    && pip install torch \
+    && pip install torchvision \
+    && pip install scikit-image \
+    && pip install tensorboard_logger \
+    && pip install h5py 
+   
+
+# Other apt
+#RUN  apt-get update && \
+#     apt-get install -y vim
+
+# Storage
+RUN  pip install smart-open[s3]
+
+# Some basics
+RUN  pip install ipython
+
+# Some bigger packages
+RUN  pip install scikit-learn
+RUN  pip install xarray
+RUN  pip install pandas
+RUN  pip install astropy
+RUN  pip install pyarrow  
+RUN  pip install astropy-healpix
+RUN  pip install timm==0.3.2
+
+# ulmo time
+RUN git clone https://github.com/AI-for-Ocean-Science/ocean-color.git
+RUN git clone https://github.com/AI-for-Ocean-Science/cnmf.git
+RUN git clone https://github.com/AI-for-Ocean-Science/ihop.git
+RUN git clone https://github.com/AI-for-Ocean-Science/ulmo.git
+RUN git clone https://github.com/AI-for-Ocean-Science/nenya.git
+
+# Other bits and dependencies
+#RUN cd ulmo; python setup.py develop
+
+
+#Events:
+#  Type     Reason     Age    From               Message
+#  ----     ------     ----   ----               -------
+#  Normal   Scheduled  4m11s  default-scheduler  Successfully assigned ai-os/xavier-ihop-emulator-l23-nmf-ch9k8 to k8s-3090-01.calit2.optiputer.net
+#  Normal   Pulling    4m11s  kubelet            Pulling image "profxj/ihop_nvidia:latest"
+#  Normal   Pulled     40s    kubelet            Successfully pulled image "profxj/ihop_nvidia:latest" in 3m30.930982999s (3m30.93098753s including waiting)
+#  Normal   Created    40s    kubelet            Created container container
+#  Warning  Failed     38s    kubelet            Error: failed to create containerd task: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: error running hook #0: error running hook: exit status 1, stdout: , stderr: Auto-detected mode as 'legacy'
+#nvidia-container-cli: requirement error: unsatisfied condition: cuda>=12.3, please update your driver to a newer version, or use an earlier cuda container: unknown

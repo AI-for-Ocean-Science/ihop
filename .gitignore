@@ -6,6 +6,15 @@ __pycache__/
 # C extensions
 *.so
 
+# data
+*.npz
+*.npy
+*.fits
+*.h5
+
+# Figures
+*.png
+
 # Distribution / packaging
 .Python
 build/
